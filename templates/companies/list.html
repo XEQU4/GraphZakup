@@ -86,8 +86,8 @@
                                     {{ company.computed_risk|floatformat:0 }}/100
                                 </span>
                             {% elif company.computed_risk > 0 %}
-                                <span class="badge bg-success w-100 py-2">{
-                                    { company.computed_risk|floatformat:0 }}/100
+                                <span class="badge bg-success w-100 py-2">
+                                    {{ company.computed_risk|floatformat:0 }}/100
                                 </span>
                             {% else %}
                                 <span class="badge bg-secondary w-100 py-2">
