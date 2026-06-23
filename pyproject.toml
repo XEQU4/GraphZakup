@@ -1,16 +1,31 @@
 [project]
 name = "governmentprocurementgraph"
 version = "0.1.0"
-description = "Add your description here"
+description = "ГрафЗакуп — система анализа аффилированности в госзакупках"
 requires-python = ">=3.13"
 dependencies = [
-    "celery>=5.6.3",
-    "django>=6.0.6",
-    "django-extensions>=4.1",
-    "faker>=40.21.0",
-    "gql>=4.0.0",
+    "django>=5.2",
+    "whitenoise>=6.9.0",
+    "gunicorn>=23.0.0",
     "psycopg2-binary>=2.9.12",
-    "python-dotenv>=1.2.2",
-    "redis>=8.0.0",
-    "requests>=2.34.2",
+    "celery>=5.4.0",
+    "redis>=5.0.0",
+    "django-celery-beat>=2.7.0",
+    "beautifulsoup4>=4.12.0",
+    "curl-cffi>=0.7.0",
+    "requests>=2.32.0",
+    "python-dotenv>=1.0.0",
+]
+
+# setuptools без editable-режима — uv sync работает, hatchling не нужен
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = []
+
+[dependency-groups]
+dev = [
+    "django-extensions>=3.2.0",
 ]

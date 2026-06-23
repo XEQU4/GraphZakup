@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Главная{% endblock %}
+{% block content %}
+
+<h2 class="mb-4 text-white fw-bold"><i class="bi bi-speedometer2 page-icon"></i>Панель мониторинга</h2>
+
+{# ══ БЛОКИ СТАТИСТИКИ ══ #}
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column justify-content-center border-start border-4 border-info rounded-start">
+                <h6 class="text-info text-uppercase fw-semibold small mb-1">Всего компаний</h6>
+                <h2 class="mb-0 fw-bold">{{ supplier_count|intcomma }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column justify-content-center border-start border-4 border-success rounded-start">
+                <h6 class="text-success text-uppercase fw-semibold small mb-1">Контрактов в базе</h6>
+                <h2 class="mb-0 fw-bold">{{ contract_count|intcomma }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column justify-content-center border-start border-4 border-warning rounded-start">
+                <h6 class="text-warning text-uppercase fw-semibold small mb-1">Подозрительных групп</h6>
+                <h2 class="mb-0 fw-bold">{{ cluster_count|intcomma }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column justify-content-center border-start border-4 border-danger rounded-start">
+                <h6 class="text-danger text-uppercase fw-semibold small mb-1">Сумма под риском</h6>
+                <h2 class="mb-0 fw-bold text-danger" style="font-size: 1.6rem;">{{ money_at_risk|intcomma }} ₸</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ══ ДВЕ КОЛОНКИ: КЛАСТЕРЫ И КОМПАНИИ ══ #}
+<div class="row g-4 mb-4">
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header fw-semibold text-warning d-flex justify-content-between align-middle">
+                <span><i class="bi bi-exclamation-triangle"></i> Топ подозрительных групп</span>
+                <a href="{% url 'graph:cluster_list' %}" class="btn btn-link p-0 text-info text-decoration-none small">Все группы &rarr;</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="app-table table table-hover mb-0 align-middle small">
+                        <thead>
+                        <tr>
+                            <th class="ps-3" style="width: 10%">#</th>
+                            <th>Группа</th>
+                            <th style="width: 30%" class="text-center">Уровень угрозы</th>
+                            <th class="pe-3 text-end" style="width: 25%">Действие</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for cluster in top_clusters %}
+                        <tr>
+                            <td class="ps-3">{{ forloop.counter }}</td>
+                            <td class="fw-semibold text-white">{{ cluster.name|truncatechars:25 }}</td>
+                            <td class="text-center">
+                                {% if cluster.risk_score >= 80 %}
+                                    <span class="badge bg-danger px-2 py-1" style="min-width: 70px;">{{ cluster.risk_score }}/100</span>
+                                {% elif cluster.risk_score >= 50 %}
+                                    <span class="badge bg-warning text-dark px-2 py-1" style="min-width: 70px;">{{ cluster.risk_score }}/100</span>
+                                {% else %}
+                                    <span class="badge bg-success px-2 py-1" style="min-width: 70px;">{{ cluster.risk_score }}/100</span>
+                                {% endif %}
+                            </td>
+                            <td class="pe-3 text-end">
+                                <a href="{% url 'graph:cluster_detail' cluster.uuid %}" class="btn btn-outline-info btn-sm py-0 px-2" style="font-size: 0.85rem;">
+                                    Граф
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center p-3">Нет данных по кластерам</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header fw-semibold text-info d-flex justify-content-between align-middle">
+                <span><i class="bi bi-search"></i> Компании под риском (из групп)</span>
+                <a href="{% url 'companies:list' %}" class="btn btn-link p-0 text-info text-decoration-none small">Весь реестр &rarr;</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="app-table table table-hover mb-0 align-middle small">
+                        <thead>
+                        <tr>
+                            <th class="ps-3" style="width:36px;">#</th>
+                            <th>Организация</th>
+                            <th>БИН</th>
+                            <th class="pe-3">Руководитель</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for company in short_suppliers %}
+                        <tr>
+                            <td class="ps-3 text-center" style="width:36px;">
+                                {% if company.primary_cluster %}
+                                <a href="{% url 'graph:cluster_detail' company.primary_cluster.uuid %}"
+                                   title="{{ company.primary_cluster.name }}"
+                                   class="badge text-decoration-none text-white
+                                   {% if company.primary_cluster.risk_score >= 80 %}bg-danger
+                                   {% elif company.primary_cluster.risk_score >= 50 %}bg-warning text-dark
+                                   {% else %}bg-success{% endif %}"
+                                   style="font-size:0.7rem;">
+                                    {{ company.primary_cluster.risk_score }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'companies:detail' company.pk %}" class="text-info fw-semibold text-decoration-none">
+                                    {{ company.name|truncatechars:25 }}
+                                </a>
+                            </td>
+                            <td class="text-light fw-monospace">{{ company.bin }}</td>
+                            <td class="pe-3">
+                                {% with first_dir=company.directorships.all.0 %}
+                                    {% if first_dir %}
+                                        <a href="{% url 'owners:detail' first_dir.director.pk %}" class="text-info text-decoration-none border-bottom border-secondary fw-semibold">
+                                            {{ first_dir.director.full_name|truncatechars:20 }}
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted small">Не указан</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center p-3">В базе данных нет компаний</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{# ══ РЕЕСТР ПОСЛЕДНИХ КОНТРАКТОВ ══ #}
+<div class="card">
+    <div class="card-header fw-semibold">
+        <i class="bi bi-file-earmark-text"></i> Последние зарегистрированные контракты в системе
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="app-table table table-hover mb-0 align-middle small">
+                <thead>
+                <tr>
+                    <th class="ps-3">Номер договора</th>
+                    <th>Предмет закупки</th>
+                    <th>Поставщик</th>
+                    <th>Заказчик</th>
+                    <th class="text-end">Сумма</th>
+                    <th class="pe-3">Дата</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for contract in latest_contracts %}
+                <tr>
+                    <td class="ps-3 text-nowrap">
+                        {% if contract.contract_gos_id %}
+                        <a href="{{ contract.goszakup_url }}"
+                           target="_blank" class="text-info text-decoration-none fw-bold">
+                            {{ contract.contract_number }} <i class="bi bi-box-arrow-up-right" style="font-size: 0.75em;"></i>
+                        </a>
+                        {% else %}
+                        <span class="text-muted">{{ contract.contract_number }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ contract.title|truncatechars:40 }}</td>
+                    <td>
+                        <a href="{% url 'companies:detail' contract.supplier.pk %}" class="text-white border-bottom border-secondary text-decoration-none fw-semibold">
+                            {{ contract.supplier.name|truncatechars:35 }}
+                        </a>
+                    </td>
+                    <td>{{ contract.customer_name|truncatechars:30 }}</td>
+                    <td class="text-end text-nowrap text-success fw-bold">
+                        {{ contract.amount|intcomma }} ₸
+                    </td>
+                    <td class="pe-3 text-nowrap">
+                        {{ contract.contract_date }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center p-4">Контракты отсутствуют</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{# ══ ПАГИНАЦИЯ ДЛЯ КОНТРАКТОВ ══ #}
+{% if is_paginated %}
+<nav class="mt-4" aria-label="Навигация контрактов">
+    <ul class="pagination justify-content-center">
+
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link bg-dark text-info border-secondary"
+                   href="?page={{ page_obj.previous_page_number }}"
+                   aria-label="Предыдущая"><span aria-hidden="true">&laquo;</span></a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link bg-dark border-secondary">&laquo;</span>
+            </li>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link bg-info border-info text-dark fw-bold">{{ num }}</span>
+                </li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link bg-dark text-info border-secondary" href="?page={{ num }}">{{ num }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link bg-dark text-info border-secondary"
+                   href="?page={{ page_obj.next_page_number }}"
+                   aria-label="Следующая"><span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link bg-dark border-secondary">&raquo;</span>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% endblock %}

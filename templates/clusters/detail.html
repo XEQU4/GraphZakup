@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+{{ object.name }}
+{% endblock %}
+
+{% block content %}
+
+<h2 class="mb-4">
+    {{ object.name }}
+</h2>
+
+<div class="row">
+
+    <div class="col-lg-8">
+
+        <div class="card mb-4">
+
+            <div class="card-header">
+                Граф связей
+            </div>
+
+            <div class="card-body">
+
+                <div
+                        id="graph"
+                        data-company-url="/companies/"
+                        style="
+                        height:600px;
+                        background:#181818;
+                        border-radius:10px;
+                    "
+                ></div>
+
+            </div>
+
+        </div>
+
+        <div class="card mb-4">
+
+            <div class="card-body">
+
+                <h6 class="mb-3">
+                    Легенда связей
+                </h6>
+
+                <div class="d-flex flex-wrap gap-4">
+
+                    <span>
+                        <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#f1556c;"></span>
+                        Общий владелец
+                    </span>
+
+                    <span>
+                        <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#4aa3ff;"></span>
+                        Общий директор
+                    </span>
+
+                    <span>
+                        <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#ffd065;"></span>
+                        Общий адрес
+                    </span>
+
+                    <span>
+                        <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#fd7e14;"></span>
+                        Общий телефон
+                    </span>
+
+                    <span>
+                        <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#9b6bff;"></span>
+                        Общий email
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-lg-4">
+
+        <div class="card mb-4">
+
+            <div class="card-body">
+
+                <h5>
+                    Риск
+                </h5>
+
+                {% if object.risk_score >= 80 %}
+                <span class="badge bg-danger fs-6">
+                        {{ object.risk_score }}/100
+                    </span>
+
+                {% elif object.risk_score >= 50 %}
+                <span class="badge bg-warning text-dark fs-6">
+                        {{ object.risk_score }}/100
+                    </span>
+
+                {% else %}
+                <span class="badge bg-success fs-6">
+                        {{ object.risk_score }}/100
+                    </span>
+                {% endif %}
+
+                <hr>
+
+                <h6>
+                    Компании ({{ object.suppliers.count }})
+                </h6>
+
+                <ul class="mb-0">
+                    {% for supplier in object.suppliers.all %}
+                    <li>
+                        <a href="{% url 'companies:detail' supplier.pk %}" class="text-info">
+                            {{ supplier.name }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+
+            </div>
+
+        </div>
+
+        <div class="card">
+
+            <div class="card-header">
+                Объяснение
+            </div>
+
+            <div class="card-body">
+
+                <p class="mb-0">
+                    {{ ai_explanation_html }}
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{{ graph_data|json_script:"graph-data" }}
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="{% static 'js/cluster_graph.js' %}"></script>
+
+{% endblock %}

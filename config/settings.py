@@ -1,14 +1,15 @@
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
+
 load_dotenv()
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("SECRET_KEY")
-
-DEBUG = True
-ALLOWED_HOSTS = ["*"]
+DEBUG = os.getenv("DJANGO_DEBUG", "true").lower() == "true"
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -17,16 +18,22 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.humanize",
+
+    "django_celery_beat",
 
     "apps.companies.apps.CompaniesConfig",
     "apps.contracts.apps.ContractsConfig",
     "apps.owners.apps.OwnersConfig",
     "apps.graph.apps.GraphConfig",
     "apps.dashboard.apps.DashboardConfig",
+    "apps.core.apps.CoreConfig",   # ← CoreConfig.ready() вызывает init_logging()
+    "apps.ai.apps.AiConfig",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -56,24 +63,55 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME"),
-        "USER": os.getenv("DB_USER"),
-        "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": os.getenv("DB_HOST"),
-        "PORT": os.getenv("DB_PORT"),
+        "ENGINE":   "django.db.backends.postgresql",
+        "NAME":     os.getenv("DB_NAME",     "suppliergraph"),
+        "USER":     os.getenv("DB_USER",     "postgres"),
+        "PASSWORD": os.getenv("DB_PASSWORD", ""),
+        "HOST":     os.getenv("DB_HOST",     "localhost"),
+        "PORT":     os.getenv("DB_PORT",     "5432"),
+        "CONN_MAX_AGE": 60,
     }
 }
 
-STATIC_URL = "static/"
+STATIC_URL  = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-MEDIA_URL = "media/"
+MEDIA_URL  = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-CELERY_BROKER_URL = os.getenv(
-    "CELERY_BROKER_URL",
-    "redis://localhost:6379/0"
-)
+# ─── CELERY ────────────────────────────────────────────────────────────────────
+CELERY_BROKER_URL        = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND    = CELERY_BROKER_URL
+CELERY_TASK_SERIALIZER   = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_ACCEPT_CONTENT    = ["json"]
+CELERY_TIMEZONE          = "Asia/Almaty"
+CELERY_ENABLE_UTC        = True
 
-CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+CELERY_BEAT_SCHEDULE = {
+    # Каждые 12 часов — парсинг 500 новых контрактов
+    "update-procurement-data": {
+        "task":     "apps.core.tasks.update_all_data",
+        "schedule": 60 * 60 * 12,
+    },
+    # Раз в сутки — очистка логов старше 30 дней
+    "cleanup-logs-daily": {
+        "task":     "apps.core.tasks.cleanup_logs",
+        "schedule": 60 * 60 * 24,
+    },
+}
+
+# ─── ВНЕШНИЕ API ───────────────────────────────────────────────────────────────
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+OPENROUTER_MODEL   = "qwen/qwen3-8b:free"
+GOSZAKUP_TOKEN     = os.getenv("GOSZAKUP_TOKEN", "")
+
+# ─── ЛОГИРОВАНИЕ ───────────────────────────────────────────────────────────────
+# Логирование настраивается через logging_setup (CoreConfig.ready()),
+# а не через Django LOGGING dict — чтобы сохранить цвета, ротацию файлов
+# и формат из твоего шаблона.
+# Django и Celery пишут через тот же root logger, поэтому настраивать
+# их отдельно не нужно.
+LOGGING_CONFIG = None   # отключаем Django's dictConfig, используем свой init_logging

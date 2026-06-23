@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Подозрительные группы{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-baseline justify-content-between flex-wrap gap-2 mb-1">
+    <h2 class="mb-0 text-white"><i class="bi bi-diagram-3 page-icon"></i>Подозрительные группы</h2>
+    <span class="text-muted small">Всего найдено: {{ paginator.count|default:clusters.count }}</span>
+</div>
+<p class="text-muted mb-4" style="max-width: 720px;">
+    Группы компаний с признаками аффилированности — общими директорами, адресами,
+    телефонами или email. Чем выше риск-скор, тем больше совпадающих признаков обнаружено.
+</p>
+
+<div class="row">
+
+    {% for cluster in clusters %}
+
+    <div class="col-lg-4 mb-4">
+
+        <div class="card h-100">
+
+            <div class="card-body">
+
+                <h5 class="text-white mb-3">
+                    {{ cluster.name }}
+                </h5>
+
+                    {% if cluster.risk_score >= 80 %}
+                    <span class="badge bg-danger mb-3">
+                        Риск {{ cluster.risk_score }}/100
+                    </span>
+                    {% elif cluster.risk_score >= 50 %}
+                    <span class="badge bg-warning text-dark mb-3">
+                        Риск {{ cluster.risk_score }}/100
+                    </span>
+                    {% else %}
+                    <span class="badge bg-success mb-3">
+                        Риск {{ cluster.risk_score }}/100
+                    </span>
+                    {% endif %}
+
+                {% if cluster.connection_types %}
+                <div class="mb-3 d-flex flex-wrap gap-1">
+                    {% if "director" in cluster.connection_types %}
+                    <span class="badge" style="background:#4aa3ff;color:#0b0f14;">
+                        <i class="bi bi-person-badge"></i> Директор
+                    </span>
+                    {% endif %}
+                    {% if "address" in cluster.connection_types %}
+                    <span class="badge" style="background:#ffd065;color:#0b0f14;">
+                        <i class="bi bi-geo-alt"></i> Адрес
+                    </span>
+                    {% endif %}
+                    {% if "phone" in cluster.connection_types %}
+                    <span class="badge" style="background:#fd7e14;color:#0b0f14;">
+                        <i class="bi bi-telephone"></i> Телефон
+                    </span>
+                    {% endif %}
+                    {% if "email" in cluster.connection_types %}
+                    <span class="badge" style="background:#9b6bff;color:#ffffff;">
+                        <i class="bi bi-envelope"></i> Email
+                    </span>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <p class="text-light mb-1">
+                    <i class="bi bi-building" style="color:#8b9ab0;"></i>
+                    Компаний: {{ cluster.suppliers.count }}
+                </p>
+
+                <p class="text-light mb-1">
+                    <i class="bi bi-cash-stack" style="color:#8b9ab0;"></i>
+                    Сумма контрактов: {{ cluster.total_contract_amount|floatformat:0|intcomma }} ₸
+                </p>
+
+                <p class="text-muted mb-0 small">
+                    <i class="bi bi-clock-history"></i>
+                    Обновлено: {{ cluster.updated_at|date:"d.m.Y" }}
+                </p>
+
+            </div>
+
+            <div class="card-footer">
+
+                <a href="{% url 'graph:cluster_detail' cluster.uuid %}"
+                   class="btn btn-outline-light w-100">
+                    Подробнее <i class="bi bi-arrow-right"></i>
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    {% empty %}
+
+    <div class="col-12">
+        <p class="text-muted">Подозрительных групп не обнаружено.</p>
+    </div>
+
+    {% endfor %}
+
+</div>
+
+{% if is_paginated %}
+<nav class="mt-4" aria-label="Навигация по страницам">
+    <ul class="pagination justify-content-center">
+
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link bg-dark text-info border-secondary"
+                   href="?page={{ page_obj.previous_page_number }}"
+                   aria-label="Предыдущая"><span aria-hidden="true">&laquo;</span></a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link bg-dark border-secondary">&laquo;</span>
+            </li>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link bg-info border-info text-dark fw-bold">{{ num }}</span>
+                </li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link bg-dark text-info border-secondary" href="?page={{ num }}">{{ num }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link bg-dark text-info border-secondary"
+                   href="?page={{ page_obj.next_page_number }}"
+                   aria-label="Следующая"><span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link bg-dark border-secondary">&raquo;</span>
+            </li>
+        {% endif %}
+
+    </ul>
+</nav>
+<div class="text-center small mt-2">
+    Показано групп: {{ page_obj.start_index }}–{{ page_obj.end_index }} из {{ paginator.count }}
+</div>
+{% endif %}
+
+{% endblock %}

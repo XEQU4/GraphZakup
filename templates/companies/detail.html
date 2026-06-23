@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}{{ company.name }}{% endblock %}
+
+{% block extra_styles %}
+<style>
+@keyframes pulse-badge {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220,53,69,0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(220,53,69,0); }
+}
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<div class="d-flex align-items-start justify-content-between gap-3 mb-4 flex-wrap">
+    <div>
+        <h2 class="mb-0 text-white">{{ company.name }}</h2>
+        <small style="color:#8b9ab0;">
+            БИН: <span class="fw-monospace text-light">{{ company.bin }}</span>
+        </small>
+    </div>
+    {% if avg_risk_score > 0 %}
+        <span class="badge bg-{{ risk_color }} fs-5 px-3 py-2 fw-bold align-self-center"
+              style="animation: pulse-badge 2.5s ease-in-out infinite;">
+            {{ avg_risk_score }}/100
+        </span>
+    {% else %}
+        <span class="badge bg-secondary fs-5 px-3 py-2 fw-bold align-self-center">0/100</span>
+    {% endif %}
+</div>
+
+<div class="row g-3 mb-3 align-items-stretch" style="align-items:stretch;">
+    <div class="col-lg-4 d-flex">
+        <div class="card w-100">
+            <div class="card-header">
+                <i class="bi bi-building-gear"></i> Сведения о компании</div>
+            <div class="card-body p-0">
+                <table class="app-table table table-sm mb-0">
+                    <tbody>
+                    {% if company.company_status %}
+                        <tr>
+                            <td class="ps-3 py-2 label-col">Статус</td>
+                            <td class="py-2 pe-3">
+                                {% if company.company_status == "Действующий" or company.company_status == "Утвержден" %}
+                                    <span class="text-success fw-semibold">{{ company.company_status }}</span>
+                                {% else %}
+                                    <span class="text-warning fw-semibold">{{ company.company_status }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
+
+                    {% if company.registration_date %}
+                        <tr>
+                            <td class="ps-3 py-2 label-col">Регистрация</td>
+                            <td class="py-2 pe-3">{{ company.registration_date }}</td>
+                        </tr>
+                    {% endif %}
+                    {% if company.region %}
+                        <tr>
+                            <td class="ps-3 py-2 label-col">Регион</td>
+                            <td class="py-2 pe-3">{{ company.region }}</td>
+                        </tr>
+                    {% endif %}
+                    {% if company.city %}
+                    <tr>
+                        <td class="ps-3 py-2 label-col">Город</td>
+                        <td class="py-2 pe-3">{{ company.city }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if company.address %}
+                        <tr>
+                            <td class="ps-3 py-2 label-col" style="vertical-align:top;">Адрес</td>
+                            <td class="py-2 pe-3 small">{{ company.address }}</td>
+                        </tr>
+                    {% endif %}
+                    {% if company.phone %}
+                        <tr>
+                            <td class="ps-3 py-2 label-col">Телефон</td>
+                            <td class="py-2 pe-3">
+                                <a href="tel:{{ company.phone }}" class="text-info">{{ company.phone }}</a>
+                            </td>
+                        </tr>
+                    {% endif %}
+                    {% if company.email %}
+                        <tr>
+                            <td class="ps-3 py-2 label-col">Email</td>
+                            <td class="py-2 pe-3">
+                                <a href="mailto:{{ company.email }}"
+                                   class="text-info small"
+                                   style="word-break:break-all;">
+                                    {{ company.email }}
+                                </a>
+                            </td>
+                        </tr>
+                    {% endif %}
+                    {% if company.kopf %}
+                        <tr>
+                            <td class="ps-3 py-2 label-col" style="vertical-align:top;">КОПФ</td>
+                            <td class="py-2 pe-3 small">{{ company.kopf }}</td>
+                        </tr>
+                    {% endif %} {% if company.company_size or company.subject_type %}
+                        <tr>
+                            <td class="ps-3 py-2 label-col">Размер</td>
+                            <td class="py-2 pe-3">
+                                {% if company.company_size %}
+                                    {{ company.company_size }}
+                                {% else %}
+                                    {{ company.subject_type }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
+                    {% if company.website %}
+                        <tr>
+                            <td class="ps-3 py-2 label-col">Сайт</td>
+                            <td class="py-2 pe-3">
+                                <a href="{{ company.website }}"
+                                   target="_blank"
+                                   class="text-info">
+                                    {{ company.website|truncatechars:28 }}
+                                </a>
+                            </td>
+                        </tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 d-flex flex-column gap-3 align-self-stretch">
+        {% if directorships or company.director_name %}
+            <div class="card flex-fill w-100">
+                <div class="card-header">
+                    <i class="bi bi-person-badge"></i> Руководство
+                </div>
+
+                <div class="card-body py-1 d-flex flex-column justify-content-center">
+                    {% if directorships %}
+                        {% for ds in directorships %}
+                            <div class="d-flex justify-content-between align-items-center py-2 {% if not forloop.last %}border-bottom border-secondary{% endif %}">
+                                <div>
+                                    <a href="{% url 'owners:detail' ds.director.pk %}" class="fw-semibold text-white">
+                                        {{ ds.director.full_name }}
+                                    </a>
+                                    {% if ds.director.iin %}
+                                        <br>
+                                        <small style="color:#8b9ab0;">ИИН: {{ ds.director.iin }}</small>
+                                    {% endif %}
+                                </div>
+                                <a href="{% url 'owners:detail' ds.director.pk %}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-arrow-right-square"></i>
+                                </a>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="py-2">
+                            <span class="text-white">{{ company.director_name }}</span>
+                            <br>
+                            <small style="color:#8b9ab0;">Профиль не создан</small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="card flex-fill w-100">
+            <div class="card-header">
+                <i class="bi bi-bar-chart-line"></i> Статистика
+            </div>
+
+            <div class="card-body d-flex flex-column justify-content-center h-100 gap-2">
+                <div class="row g-2 text-center flex-grow-0 align-items-stretch">
+                    <div class="col-6 d-flex">
+                        <div class="rounded p-3 border border-secondary w-100 d-flex flex-column justify-content-center align-items-center" style="background:rgba(74,163,255,0.07);">
+                            <div class="fs-3 fw-bold text-info">{{ contracts.count }}</div>
+                            <div class="small" style="color:#8b9ab0;">контрактов</div>
+                        </div>
+                    </div>
+
+                    <div class="col-6 d-flex">
+                        <div class="rounded p-3 border border-secondary w-100 d-flex flex-column justify-content-center align-items-center" style="background:rgba(25,135,84,0.07);">
+                            <div class="fs-3 fw-bold text-success" style="word-break:break-all;">
+                                {{ total_amount|intcomma }}
+                            </div>
+                            <div class="small" style="color:#8b9ab0;">тенге</div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if company.risk_score > 0 %}
+                    <div class="w-100 mt-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small style="color:#8b9ab0;">Индекс угрозы</small>
+                            <span class="badge bg-{{ risk_color }}">{{ company.risk_score }}/100</span>
+                        </div>
+                        <div class="progress" style="height:6px;background:#1a1f27;">
+                            <div class="progress-bar bg-{{ risk_color }}"
+                                 style="width:{% widthratio company.risk_score 100 100 %}%"></div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 d-flex flex-column gap-3 align-self-stretch">
+        <div class="card flex-fill w-100">
+            <div class="card-header">
+                <i class="bi bi-diagram-3"></i> Подозрительные группы
+            </div>
+
+            <div class="card-body d-flex flex-column justify-content-center {% if clusters %}p-0{% endif %}">
+                {% if clusters %}
+                    <ul class="list-group list-group-flush w-100">
+                        {% for cluster in clusters %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center"
+                                style="background:transparent;border-color:#2d3748;">
+                                <a href="{% url 'graph:cluster_detail' cluster.uuid %}" class="text-white small">
+                                    {{ cluster.name|truncatechars:32 }}
+                                </a>
+
+                                {% if cluster.risk_score >= 80 %}
+                                    <span class="badge bg-danger">{{ cluster.risk_score }}</span>
+                                {% elif cluster.risk_score >= 50 %}
+                                    <span class="badge bg-warning text-dark">{{ cluster.risk_score }}</span>
+                                {% else %}
+                                    <span class="badge bg-success">{{ cluster.risk_score }}</span>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="mb-0 small text-center" style="color:#8b9ab0;">Не состоит в подозрительных группах</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card flex-fill w-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-share"></i> Связи</span>
+
+                {% if total_related > 0 %}
+                    <span class="badge bg-warning text-dark">{{ total_related }}</span>
+                {% endif %}
+            </div>
+
+            <div class="card-body d-flex flex-column justify-content-center">
+                {% if total_related == 0 %}
+                    <p class="mb-0 small text-center" style="color:#8b9ab0;">Прямых связей не обнаружено</p>
+                {% else %}
+                    <div class="w-100">
+                        {% if related_by_director %}
+                            <p class="mb-1 small fw-semibold text-warning">
+                                <i class="bi bi-people"></i> Директор ({{ related_by_director.count }})
+                            </p>
+
+                            <div class="mb-2">
+                                {% for s in related_by_director %}
+                                    <a href="{% url 'companies:detail' s.pk %}"
+                                       class="badge me-1 mb-1 text-decoration-none"
+                                       style="background:#1f2a40;color:#f8f9fa;border:1px solid #35507a;">
+                                        {{ s.name|truncatechars:22 }}
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        {% if related_by_address %}
+                            <p class="mb-1 small fw-semibold text-info">
+                                <i class="bi bi-houses"></i> Адрес ({{ related_by_address.count }})
+                            </p>
+
+                            <div class="mb-2">
+                                {% for s in related_by_address %}
+                                    <a href="{% url 'companies:detail' s.pk %}"
+                                       class="badge me-1 mb-1 text-decoration-none"
+                                       style="background:#1f2a40;color:#f8f9fa;border:1px solid #35507a;">
+                                        {{ s.name|truncatechars:22 }}
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        {% if related_by_phone %}
+                            <p class="mb-1 small fw-semibold text-success">
+                                <i class="bi bi-telephone"></i> Телефон ({{ related_by_phone.count }})
+                            </p>
+
+                            <div class="mb-2">
+                                {% for s in related_by_phone %}
+                                    <a href="{% url 'companies:detail' s.pk %}"
+                                       class="badge me-1 mb-1 text-decoration-none"
+                                       style="background:#1f2a40;color:#f8f9fa;border:1px solid #35507a;">
+                                        {{ s.name|truncatechars:22 }}
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        {% if related_by_email %}
+                            <p class="mb-1 small fw-semibold" style="color:#9b6bff;">
+                                <i class="bi bi-envelope"></i> Email ({{ related_by_email.count }})
+                            </p>
+
+                            <div>
+                                {% for s in related_by_email %}
+                                    <a href="{% url 'companies:detail' s.pk %}"
+                                       class="badge me-1 mb-1 text-decoration-none"
+                                       style="background:#1f2a40;color:#f8f9fa;border:1px solid #35507a;">
+                                        {{ s.name|truncatechars:22 }}
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-file-earmark-text"></i> Реестр сделок</span>
+        <span class="badge bg-secondary">{{ contracts.count }}</span>
+    </div>
+
+    <div class="card-body p-0">
+        {% if contracts %}
+            <div class="table-responsive">
+                <table class="app-table table table-sm mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th class="ps-3">Номер договора</th>
+                            <th>Предмет закупки</th>
+                            <th class="text-end">Сумма, ₸</th>
+                            <th>Заказчик</th>
+                            <th class="pe-3">Дата</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for contract in contracts %}
+                            <tr>
+                                <td class="ps-3 text-nowrap">
+                                    {% if contract.contract_gos_id %}
+                                        <a href="{{ contract.goszakup_url }}" target="_blank" class="text-info fw-semibold">
+                                            {{ contract.contract_number }}
+                                            <i class="bi bi-box-arrow-up-right" style="font-size:.75em;"></i>
+                                        </a>
+                                    {% else %}
+                                        <span style="color:#8b9ab0;">{{ contract.contract_number }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="small">{{ contract.title|truncatechars:50 }}</td>
+                                <td class="text-end text-nowrap text-success fw-semibold">{{ contract.amount|intcomma }}</td>
+                                <td class="small" style="color:#8b9ab0;">{{ contract.customer_name|truncatechars:32 }}</td>
+                                <td class="pe-3 text-nowrap small" style="color:#8b9ab0;">{{ contract.contract_date }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="p-4 text-center" style="color:#8b9ab0;">Контрактов в базе нет</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

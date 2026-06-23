@@ -1,6 +1,7 @@
 import uuid
 
 from django.db import models
+from django.db.models import Sum
 
 from apps.companies.models import Supplier
 
@@ -11,13 +12,17 @@ class Connection(models.Model):
     ADDRESS = "address"
     PHONE = "phone"
     EMAIL = "email"
+    CUSTOMER = "customer"
+
     CONNECTION_TYPES = [
         (OWNER, "Common Owner"),
         (DIRECTOR, "Common Director"),
         (ADDRESS, "Common Address"),
         (PHONE, "Common Phone"),
         (EMAIL, "Common Email"),
+        (CUSTOMER, "Общий заказчик"),
     ]
+
     source_supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name="outgoing_connections")
     target_supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name="incoming_connections")
     connection_type = models.CharField(max_length=20, choices=CONNECTION_TYPES)
@@ -58,3 +63,17 @@ class RiskCluster(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.risk_score})"
+
+    def update_total_amount(self):
+        total = (
+                self.suppliers
+                .aggregate(
+                    total=Sum("contracts__amount")
+                )["total"]
+                or 0
+        )
+
+        self.total_contract_amount = total
+        self.save(
+            update_fields=["total_contract_amount"]
+        )

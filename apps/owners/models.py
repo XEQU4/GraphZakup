@@ -4,7 +4,7 @@ from apps.companies.models import Supplier
 
 
 class Owner(models.Model):
-    iin = models.CharField(max_length=12, unique=True, db_index=True)
+    iin = models.CharField(max_length=12, blank=True, default="", db_index=True)
     full_name = models.CharField(max_length=255)
     risk_score = models.PositiveSmallIntegerField(default=0)
     has_tax_debt = models.BooleanField(default=False)
@@ -21,7 +21,7 @@ class Owner(models.Model):
 
 
 class Director(models.Model):
-    iin = models.CharField(max_length=12, unique=True, db_index=True)
+    iin = models.CharField(max_length=12, blank=True, default="", db_index=True)
     full_name = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -1,4 +1,31 @@
-.idea/
-.env
-.venv/
+# Python
+__pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Виртуальные окружения
+.venv/
+venv/
+env/
+
+# Django
+staticfiles/
+media/
+*.log
+db.sqlite3
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Dev / IDE
+.env
+.idea/
+.vscode/
+*.DS_Store
