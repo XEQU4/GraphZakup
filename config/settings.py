@@ -27,7 +27,7 @@ INSTALLED_APPS = [
     "apps.owners.apps.OwnersConfig",
     "apps.graph.apps.GraphConfig",
     "apps.dashboard.apps.DashboardConfig",
-    "apps.core.apps.CoreConfig",   # ← CoreConfig.ready() вызывает init_logging()
+    "apps.core.apps.CoreConfig",  # ← CoreConfig.ready() вызывает init_logging()
     "apps.ai.apps.AiConfig",
 ]
 
@@ -63,50 +63,50 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE":   "django.db.backends.postgresql",
-        "NAME":     os.getenv("DB_NAME",     "suppliergraph"),
-        "USER":     os.getenv("DB_USER",     "postgres"),
-        "PASSWORD": os.getenv("DB_PASSWORD", ""),
-        "HOST":     os.getenv("DB_HOST",     "localhost"),
-        "PORT":     os.getenv("DB_PORT",     "5432"),
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("PGDATABASE", os.getenv("DB_NAME")),
+        "USER": os.getenv("PGUSER", os.getenv("DB_USER")),
+        "PASSWORD": os.getenv("PGPASSWORD", os.getenv("DB_PASSWORD")),
+        "HOST": os.getenv("PGHOST", os.getenv("DB_HOST")),
+        "PORT": os.getenv("PGPORT", os.getenv("DB_PORT", "5432")),
         "CONN_MAX_AGE": 60,
     }
 }
 
-STATIC_URL  = "static/"
+STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-MEDIA_URL  = "media/"
+MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # ─── CELERY ────────────────────────────────────────────────────────────────────
-CELERY_BROKER_URL        = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
-CELERY_RESULT_BACKEND    = CELERY_BROKER_URL
-CELERY_TASK_SERIALIZER   = "json"
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
-CELERY_ACCEPT_CONTENT    = ["json"]
-CELERY_TIMEZONE          = "Asia/Almaty"
-CELERY_ENABLE_UTC        = True
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TIMEZONE = "Asia/Almaty"
+CELERY_ENABLE_UTC = True
 
 CELERY_BEAT_SCHEDULE = {
     # Каждые 12 часов — парсинг 500 новых контрактов
     "update-procurement-data": {
-        "task":     "apps.core.tasks.update_all_data",
+        "task": "apps.core.tasks.update_all_data",
         "schedule": 60 * 60 * 12,
     },
     # Раз в сутки — очистка логов старше 30 дней
     "cleanup-logs-daily": {
-        "task":     "apps.core.tasks.cleanup_logs",
+        "task": "apps.core.tasks.cleanup_logs",
         "schedule": 60 * 60 * 24,
     },
 }
 
 # ─── ВНЕШНИЕ API ───────────────────────────────────────────────────────────────
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-OPENROUTER_MODEL   = "qwen/qwen3-8b:free"
-GOSZAKUP_TOKEN     = os.getenv("GOSZAKUP_TOKEN", "")
+OPENROUTER_MODEL = "qwen/qwen3-8b:free"
+GOSZAKUP_TOKEN = os.getenv("GOSZAKUP_TOKEN", "")
 
 # ─── ЛОГИРОВАНИЕ ───────────────────────────────────────────────────────────────
 # Логирование настраивается через logging_setup (CoreConfig.ready()),
@@ -114,4 +114,4 @@ GOSZAKUP_TOKEN     = os.getenv("GOSZAKUP_TOKEN", "")
 # и формат из твоего шаблона.
 # Django и Celery пишут через тот же root logger, поэтому настраивать
 # их отдельно не нужно.
-LOGGING_CONFIG = None   # отключаем Django's dictConfig, используем свой init_logging
+LOGGING_CONFIG = None  # отключаем Django's dictConfig, используем свой init_logging
