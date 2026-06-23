@@ -346,6 +346,7 @@ source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "celery" },
+    { name = "colorama" },
     { name = "curl-cffi" },
     { name = "django" },
     { name = "django-celery-beat" },
@@ -366,6 +367,7 @@ dev = [
 requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.12.0" },
     { name = "celery", specifier = ">=5.4.0" },
+    { name = "colorama", specifier = ">=0.4.6" },
     { name = "curl-cffi", specifier = ">=0.7.0" },
     { name = "django", specifier = ">=5.2" },
     { name = "django-celery-beat", specifier = ">=2.7.0" },

@@ -15,6 +15,7 @@ dependencies = [
     "curl-cffi>=0.7.0",
     "requests>=2.32.0",
     "python-dotenv>=1.0.0",
+    "colorama>=0.4.6",
 ]
 
 # setuptools без editable-режима — uv sync работает, hatchling не нужен
