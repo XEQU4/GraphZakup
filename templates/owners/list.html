@@ -1,15 +1,19 @@
 {% extends "base.html" %}
 
-{% block title %}
-Директора
-{% endblock %}
+{% block title %}Директора{% endblock %}
 
 {% block content %}
 
 <div class="d-flex align-items-baseline justify-content-between flex-wrap gap-2 mb-1">
-    <h2 class="mb-0 text-white"><i class="bi bi-people page-icon"></i>Владельцы и директора</h2>
-    <span class="small text-muted">Всего в базе: {{ paginator.count|default:directors.count }}</span>
+    <h2 class="mb-0 text-white">
+        <i class="bi bi-people page-icon"></i> Владельцы и директора
+    </h2>
+
+    <span class="small text-muted">
+        Всего в базе: {{ paginator.count|default:directors.count }}
+    </span>
 </div>
+
 <p class="mb-4 text-muted" style="max-width: 720px;">
     Руководители компаний-поставщиков, обнаруженных в реестре госзакупок. Показаны только директора,
     связанные хотя бы с одной компанией.
@@ -19,104 +23,127 @@
     <div class="table-responsive">
         <table class="app-table table table-hover">
             <thead>
-            <tr>
-                <th class="ps-3">ФИО</th>
-                <th style="width:60px;">Компаний</th>
-                <th class="pe-3">Список компаний</th>
-            </tr>
+                <tr>
+                    <th class="ps-3">
+                        ФИО
+                    </th>
+
+                    <th style="width:60px;">
+                        Компаний
+                    </th>
+
+                    <th class="pe-3">
+                        Список компаний
+                    </th>
+                </tr>
             </thead>
 
             <tbody>
+                {% for director in directors %}
+                    <tr>
+                        <td class="ps-3 text-nowrap fw-semibold">
+                            <a href="{% url 'owners:detail' director.pk %}">
+                                {{ director.full_name }}
+                            </a>
+                        </td>
 
-            {% for director in directors %}
-            <tr>
-                <td class="ps-3 text-nowrap fw-semibold">
-                    <a href="{% url 'owners:detail' director.pk %}">
-                        {{ director.full_name }}
-                    </a>
-                </td>
+                        <td>
+                            {{ director.companies_count }}
+                        </td>
 
-                <td>
-                    {{ director.companies_count }}
-                </td>
+                        <td class="pe-3" style="max-width:420px;">
+                            {% with names=director.directorships.all %}
+                                <span style="color:#8b9ab0;font-size:0.9em;" title="{% for ds in names %}{{ ds.supplier.name }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+                                    {% for ds in names|slice:":3" %}
+                                        <a href="{% url 'companies:detail' ds.supplier.pk %}">
+                                            {{ ds.supplier.name|truncatechars:28 }}
+                                        </a>
+                                        {% if not forloop.last %}
+                                            ,
+                                        {% endif %}
+                                    {% endfor %}
 
-                <td class="pe-3" style="max-width:420px;">
-                    {% with names=director.directorships.all %}
-                        <span style="color:#8b9ab0;font-size:0.9em;" title="{% for ds in names %}{{ ds.supplier.name }}{% if not forloop.last %}, {% endif %}{% endfor %}">
-                            {% for ds in names|slice:":3" %}
-                                <a href="{% url 'companies:detail' ds.supplier.pk %}">
-                                    {{ ds.supplier.name|truncatechars:28 }}
-                                </a>
-                                {% if not forloop.last %},
-                                {% endif %}
-                            {% endfor %}
-
-                            {% if names|length > 3 %}
-                                <span class="badge bg-secondary ms-1">+{{ names|length|add:"-3" }}</span>
-                            {% endif %}
-                        </span>
-                    {% endwith %}
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="3" class="text-center text-muted p-4">
-                    Нет данных
-                </td>
-            </tr>
-            {% endfor %}
-
+                                    {% if names|length > 3 %}
+                                        <span class="badge bg-secondary ms-1">
+                                            +{{ names|length|add:"-3" }}
+                                        </span>
+                                    {% endif %}
+                                </span>
+                            {% endwith %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted p-4">
+                            Нет данных
+                        </td>
+                    </tr>
+                {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
 
 {% if is_paginated %}
-<nav class="mt-4" aria-label="Навигация по страницам">
-    <ul class="pagination justify-content-center">
-
-        {% if page_obj.has_previous %}
-            <li class="page-item">
-                <a class="page-link bg-dark text-info border-secondary"
-                   href="?page={{ page_obj.previous_page_number }}"
-                   aria-label="Предыдущая"><span aria-hidden="true">&laquo;</span></a>
-            </li>
-        {% else %}
-            <li class="page-item disabled">
-                <span class="page-link bg-dark border-secondary">&laquo;</span>
-            </li>
-        {% endif %}
-
-        {% for num in page_obj.paginator.page_range %}
-            {% if page_obj.number == num %}
-                <li class="page-item active">
-                    <span class="page-link bg-info border-info text-dark fw-bold">{{ num }}</span>
-                </li>
-            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+    <nav class="mt-4" aria-label="Навигация по страницам">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
                 <li class="page-item">
-                    <a class="page-link bg-dark text-info border-secondary" href="?page={{ num }}">{{ num }}</a>
+                    <a class="page-link bg-dark text-info border-secondary"
+                       href="?page={{ page_obj.previous_page_number }}"
+                       aria-label="Предыдущая">
+                        <span aria-hidden="true">
+                            &laquo;
+                        </span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link bg-dark border-secondary">
+                        &laquo;
+                    </span>
                 </li>
             {% endif %}
-        {% endfor %}
 
-        {% if page_obj.has_next %}
-            <li class="page-item">
-                <a class="page-link bg-dark text-info border-secondary"
-                   href="?page={{ page_obj.next_page_number }}"
-                   aria-label="Следующая"><span aria-hidden="true">&raquo;</span>
-                </a>
-            </li>
-        {% else %}
-            <li class="page-item disabled">
-                <span class="page-link bg-dark border-secondary">&raquo;</span>
-            </li>
-        {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link bg-info border-info text-dark fw-bold">
+                            {{ num }}
+                        </span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link bg-dark text-info border-secondary" href="?page={{ num }}">
+                            {{ num }}
+                        </a>
+                    </li>
+                {% endif %}
+            {% endfor %}
 
-    </ul>
-</nav>
-<div class="text-center small mt-2">
-    Показано директоров: {{ page_obj.start_index }}–{{ page_obj.end_index }} из {{ paginator.count }}
-</div>
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link bg-dark text-info border-secondary"
+                       href="?page={{ page_obj.next_page_number }}"
+                       aria-label="Следующая">
+                        <span aria-hidden="true">
+                            &raquo;
+                        </span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link bg-dark border-secondary">
+                        &raquo;
+                    </span>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <div class="text-center small mt-2">
+        Показано директоров: {{ page_obj.start_index }}–{{ page_obj.end_index }} из {{ paginator.count }}
+    </div>
 {% endif %}
 
 {% endblock %}

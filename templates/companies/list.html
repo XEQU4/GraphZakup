@@ -5,9 +5,15 @@
 {% block content %}
 
 <div class="d-flex align-items-baseline justify-content-between flex-wrap gap-2 mb-1">
-    <h2 class="mb-0 text-white"><i class="bi bi-building page-icon"></i>Компании</h2>
-    <span class="text-muted small">Всего в базе: {{ paginator.count|default:companies.count }}</span>
+    <h2 class="mb-0 text-white">
+        <i class="bi bi-building page-icon"></i>Компании
+    </h2>
+
+    <span class="text-muted small">
+        Всего в базе: {{ paginator.count|default:companies.count }}
+    </span>
 </div>
+
 <p class="text-muted mb-4" style="max-width: 720px;">
     Реестр поставщиков, участвовавших в государственных закупках, с автоматической оценкой риска аффилированности.
 </p>
@@ -17,56 +23,85 @@
         <table class="app-table table table-hover mb-0 align-middle">
             <thead>
                 <tr>
-                    <th class="ps-3">Название организации</th>
-                    <th>БИН</th>
-                    <th>Руководитель</th>
-                    <th>Контракты</th>
-                    <th class="pe-3 text-center" style="width: 15%;">Средний риск</th>
+                    <th class="ps-3">
+                        Название организации
+                    </th>
+
+                    <th>
+                        БИН
+                    </th>
+
+                    <th>
+                        Руководитель
+                    </th>
+
+                    <th>
+                        Контракты
+                    </th>
+
+                    <th class="pe-3 text-center" style="width: 15%;">
+                        Средний риск
+                    </th>
                 </tr>
             </thead>
+
             <tbody>
                 {% for company in companies %}
-                <tr>
-                    <td class="ps-3">
-                        <a href="{% url 'companies:detail' company.pk %}" class="fw-semibold">
-                            {{ company.name }}
-                        </a>
-                    </td>
+                    <tr>
+                        <td class="ps-3">
+                            <a href="{% url 'companies:detail' company.pk %}" class="fw-semibold">
+                                {{ company.name }}
+                            </a>
+                        </td>
 
-                    <td class="text-light fw-monospace">{{ company.bin }}</td>
+                        <td class="text-light fw-monospace">
+                            {{ company.bin }}
+                        </td>
 
-                    <td>
-                        {% with first_dir=company.directorships.all.0 %}
-                            {% if first_dir %}
-                                <a href="{% url 'owners:detail' first_dir.director.pk %}" class="text-white text-decoration-none border-bottom border-secondary">
-                                    {{ first_dir.director.full_name }}
-                                </a>
+                        <td>
+                            {% with first_dir=company.directorships.all.0 %}
+                                {% if first_dir %}
+                                    <a href="{% url 'owners:detail' first_dir.director.pk %}" class="text-white text-decoration-none border-bottom border-secondary">
+                                        {{ first_dir.director.full_name }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted small">
+                                        Не указан
+                                    </span>
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+
+                        <td class="text-center fw-bold text-success">
+                            {{ company.contracts_count }}
+                        </td>
+
+                        <td class="pe-3">
+                            {% if company.computed_risk >= 80 %}
+                                <span class="badge bg-danger w-100 py-2">
+                                    {{ company.computed_risk|floatformat:0 }}/100
+                                </span>
+                            {% elif company.computed_risk >= 50 %}
+                                <span class="badge bg-warning text-dark w-100 py-2">
+                                    {{ company.computed_risk|floatformat:0 }}/100
+                                </span>
+                            {% elif company.computed_risk > 0 %}
+                                <span class="badge bg-success w-100 py-2">{
+                                    { company.computed_risk|floatformat:0 }}/100
+                                </span>
                             {% else %}
-                                <span class="text-muted small">Не указан</span>
+                                <span class="badge bg-secondary w-100 py-2">
+                                    0/100
+                                </span>
                             {% endif %}
-                        {% endwith %}
-                    </td>
-
-                    <td class="text-center fw-bold text-success">
-                        {{ company.contracts_count }}
-                    </td>
-
-                    <td class="pe-3">
-                        {% if company.computed_risk >= 80 %}
-                            <span class="badge bg-danger w-100 py-2">{{ company.computed_risk|floatformat:0 }}/100</span>
-                        {% elif company.computed_risk >= 50 %}
-                            <span class="badge bg-warning text-dark w-100 py-2">{{ company.computed_risk|floatformat:0 }}/100</span>
-                        {% elif company.computed_risk > 0 %}
-                            <span class="badge bg-success w-100 py-2">{{ company.computed_risk|floatformat:0 }}/100</span>
-                        {% else %}
-                            <span class="badge bg-secondary w-100 py-2">0/100</span>
-                        {% endif %}
-                    </td>
-                </tr>
+                        </td>
+                    </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center text-muted p-4">В базе данных нет записей о компаниях</td>
-                </tr>
+                    <tr>
+                        <td colspan="5" class="text-center text-muted p-4">
+                            В базе данных нет записей о компаниях
+                        </td>
+                    </tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -74,51 +109,65 @@
 </div>
 
 {% if is_paginated %}
-<nav class="mt-4" aria-label="Навигация по страницам">
-    <ul class="pagination justify-content-center">
-
-        {% if page_obj.has_previous %}
-            <li class="page-item">
-                <a class="page-link bg-dark text-info border-secondary"
-                   href="?page={{ page_obj.previous_page_number }}"
-                   aria-label="Предыдущая"><span aria-hidden="true">&laquo;</span></a>
-            </li>
-        {% else %}
-            <li class="page-item disabled">
-                <span class="page-link bg-dark border-secondary">&laquo;</span>
-            </li>
-        {% endif %}
-
-        {% for num in page_obj.paginator.page_range %}
-            {% if page_obj.number == num %}
-                <li class="page-item active">
-                    <span class="page-link bg-info border-info text-dark fw-bold">{{ num }}</span>
-                </li>
-            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+    <nav class="mt-4" aria-label="Навигация по страницам">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
                 <li class="page-item">
-                    <a class="page-link bg-dark text-info border-secondary" href="?page={{ num }}">{{ num }}</a>
+                    <a class="page-link bg-dark text-info border-secondary"
+                       href="?page={{ page_obj.previous_page_number }}"
+                       aria-label="Предыдущая">
+                        <span aria-hidden="true">
+                            &laquo;
+                        </span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link bg-dark border-secondary">
+                        &laquo;
+                    </span>
                 </li>
             {% endif %}
-        {% endfor %}
 
-        {% if page_obj.has_next %}
-            <li class="page-item">
-                <a class="page-link bg-dark text-info border-secondary"
-                   href="?page={{ page_obj.next_page_number }}"
-                   aria-label="Следующая"><span aria-hidden="true">&raquo;</span>
-                </a>
-            </li>
-        {% else %}
-            <li class="page-item disabled">
-                <span class="page-link bg-dark border-secondary">&raquo;</span>
-            </li>
-        {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link bg-info border-info text-dark fw-bold">
+                            {{ num }}
+                        </span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link bg-dark text-info border-secondary" href="?page={{ num }}">
+                            {{ num }}
+                        </a>
+                    </li>
+                {% endif %}
+            {% endfor %}
 
-    </ul>
-</nav>
-<div class="text-center small mt-2">
-    Показано компаний: {{ page_obj.start_index }}–{{ page_obj.end_index }} из {{ paginator.count }}
-</div>
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link bg-dark text-info border-secondary"
+                       href="?page={{ page_obj.next_page_number }}"
+                       aria-label="Следующая">
+                        <span aria-hidden="true">
+                            &raquo;
+                        </span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link bg-dark border-secondary">
+                        &raquo;
+                    </span>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <div class="text-center small mt-2">
+        Показано компаний: {{ page_obj.start_index }}–{{ page_obj.end_index }} из {{ paginator.count }}
+    </div>
 {% endif %}
 
 {% endblock %}
