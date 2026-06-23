@@ -16,6 +16,7 @@ dependencies = [
     "requests>=2.32.0",
     "python-dotenv>=1.0.0",
     "colorama>=0.4.6",
+    "django-fixture-magic>=0.1.5",
 ]
 
 # setuptools без editable-режима — uv sync работает, hatchling не нужен

@@ -328,6 +328,12 @@ wheels = [
 ]
 
 [[package]]
+name = "django-fixture-magic"
+version = "0.1.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9f/bb/13ef0015fd389ddc402661454fbb9afb16dd7c782ca7bbefdbe1afd3a92d/django-fixture-magic-0.1.5.tar.gz", hash = "sha256:d82a4d4f6ade078e942927b5157f0536d0cd0232adfeb943dced0858128dd734", size = 8867, upload-time = "2020-07-15T18:15:31.721Z" }
+
+[[package]]
 name = "django-timezone-field"
 version = "7.2.2"
 source = { registry = "https://pypi.org/simple" }
@@ -350,6 +356,7 @@ dependencies = [
     { name = "curl-cffi" },
     { name = "django" },
     { name = "django-celery-beat" },
+    { name = "django-fixture-magic" },
     { name = "gunicorn" },
     { name = "psycopg2-binary" },
     { name = "python-dotenv" },
@@ -371,6 +378,7 @@ requires-dist = [
     { name = "curl-cffi", specifier = ">=0.7.0" },
     { name = "django", specifier = ">=5.2" },
     { name = "django-celery-beat", specifier = ">=2.7.0" },
+    { name = "django-fixture-magic", specifier = ">=0.1.5" },
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.12" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
