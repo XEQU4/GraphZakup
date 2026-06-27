@@ -1,23 +1,52 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Директора{% endblock %}
 
+{% block extra_styles %}
+    <link rel="stylesheet" href="{% static 'css/search.css' %}">
+{% endblock %}
+
 {% block content %}
 
-<div class="d-flex align-items-baseline justify-content-between flex-wrap gap-2 mb-1">
-    <h2 class="mb-0 text-white">
-        <i class="bi bi-people page-icon"></i> Владельцы и директора
-    </h2>
+<div class="d-flex align-items-start justify-content-between gap-3 mb-3 flex-wrap">
+    <div>
+        <h2 class="mb-1 text-white">
+            <i class="bi bi-people page-icon"></i> Владельцы и директора
+        </h2>
 
-    <span class="small text-muted">
-        Всего в базе: {{ paginator.count|default:directors.count }}
-    </span>
+        <p class="mb-0 text-muted" style="max-width: 600px;">
+            Руководители компаний-поставщиков, обнаруженных в реестре госзакупок. Показаны только директора,
+            связанные хотя бы с одной компанией.
+        </p>
+    </div>
+
+    <div class="d-flex flex-column align-items-end gap-2" style="min-width: 300px; max-width: 420px;">
+        <span class="small text-muted" id="total-count">
+            Всего в базе: {{ paginator.count|default:directors.count }}
+        </span>
+
+        <div class="gz-search-wrap w-100">
+            <div class="gz-search-box">
+                <i class="bi bi-search gz-search-icon"></i>
+
+                <input type="text" class="gz-search-input" id="owners-search"
+                    placeholder="ФИО директора или название компании..."
+                    autocomplete="off" spellcheck="false" value="{{ q }}">
+
+                <span class="gz-search-clear" id="owners-search-clear" style="display:none;">
+                    <i class="bi bi-x-circle-fill"></i>
+                </span>
+
+                <span class="gz-search-spinner" id="owners-search-spinner" style="display:none;">
+                    <span class="spinner-border spinner-border-sm text-info" role="status"></span>
+                </span>
+            </div>
+
+            <div class="gz-search-hint" id="owners-search-hint"></div>
+        </div>
+    </div>
 </div>
-
-<p class="mb-4 text-muted" style="max-width: 720px;">
-    Руководители компаний-поставщиков, обнаруженных в реестре госзакупок. Показаны только директора,
-    связанные хотя бы с одной компанией.
-</p>
 
 <div class="app-table-wrap">
     <div class="table-responsive">
@@ -38,7 +67,7 @@
                 </tr>
             </thead>
 
-            <tbody>
+            <tbody id="owners-tbody">
                 {% for director in directors %}
                     <tr>
                         <td class="ps-3 text-nowrap fw-semibold">
@@ -53,14 +82,12 @@
 
                         <td class="pe-3" style="max-width:420px;">
                             {% with names=director.directorships.all %}
-                                <span style="color:#8b9ab0;font-size:0.9em;" title="{% for ds in names %}{{ ds.supplier.name }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+                                <span style="color:#8b9ab0;font-size:0.9em;">
                                     {% for ds in names|slice:":3" %}
                                         <a href="{% url 'companies:detail' ds.supplier.pk %}">
                                             {{ ds.supplier.name|truncatechars:28 }}
                                         </a>
-                                        {% if not forloop.last %}
-                                            ,
-                                        {% endif %}
+                                        {% if not forloop.last %}, {% endif %}
                                     {% endfor %}
 
                                     {% if names|length > 3 %}
@@ -84,66 +111,67 @@
     </div>
 </div>
 
-{% if is_paginated %}
-    <nav class="mt-4" aria-label="Навигация по страницам">
-        <ul class="pagination justify-content-center">
-            {% if page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link bg-dark text-info border-secondary"
-                       href="?page={{ page_obj.previous_page_number }}"
-                       aria-label="Предыдущая">
-                        <span aria-hidden="true">
-                            &laquo;
-                        </span>
-                    </a>
-                </li>
-            {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link bg-dark border-secondary">
-                        &laquo;
-                    </span>
-                </li>
-            {% endif %}
-
-            {% for num in page_obj.paginator.page_range %}
-                {% if page_obj.number == num %}
-                    <li class="page-item active">
-                        <span class="page-link bg-info border-info text-dark fw-bold">
-                            {{ num }}
-                        </span>
-                    </li>
-                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+<div id="pagination-wrap">
+    {% if is_paginated %}
+        <nav class="mt-4" aria-label="Навигация по страницам">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
                     <li class="page-item">
-                        <a class="page-link bg-dark text-info border-secondary" href="?page={{ num }}">
-                            {{ num }}
+                        <a class="page-link bg-dark text-info border-secondary"
+                           href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}">
+                            &laquo;
                         </a>
                     </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link bg-dark border-secondary">
+                            &laquo;
+                        </span>
+                    </li>
                 {% endif %}
-            {% endfor %}
 
-            {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link bg-dark text-info border-secondary"
-                       href="?page={{ page_obj.next_page_number }}"
-                       aria-label="Следующая">
-                        <span aria-hidden="true">
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link bg-info border-info text-dark fw-bold">
+                                {{ num }}
+                            </span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link bg-dark text-info border-secondary"
+                               href="?page={{ num }}{% if q %}&q={{ q }}{% endif %}">
+                                {{ num }}
+                            </a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link bg-dark text-info border-secondary"
+                           href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}">
+                            &raquo;
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link bg-dark border-secondary">
                             &raquo;
                         </span>
-                    </a>
-                </li>
-            {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link bg-dark border-secondary">
-                        &raquo;
-                    </span>
-                </li>
-            {% endif %}
-        </ul>
-    </nav>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
 
-    <div class="text-center small mt-2">
-        Показано директоров: {{ page_obj.start_index }}–{{ page_obj.end_index }} из {{ paginator.count }}
-    </div>
-{% endif %}
+        <div class="text-center small mt-2">
+            Показано директоров: {{ page_obj.start_index }}–{{ page_obj.end_index }} из {{ paginator.count }}
+        </div>
+    {% endif %}
+</div>
 
+{% endblock %}
+
+{% block scripts %}
+    <script src="{% static 'js/search_owners.js' %}"></script>
 {% endblock %}

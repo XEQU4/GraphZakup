@@ -1,0 +1,81 @@
+/* Shared search widget styles — used on companies/list, owners/list, dashboard/index */
+.gz-search-wrap {
+    position: relative;
+}
+
+.gz-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: #161b22;
+    border: 1px solid #2d3748;
+    border-radius: 10px;
+    transition: border-color .2s, box-shadow .2s;
+    overflow: hidden;
+    width: 325px;
+}
+
+.gz-search-box:focus-within {
+    border-color: #4aa3ff;
+    box-shadow: 0 0 0 3px rgba(74, 163, 255, .15), 0 0 12px rgba(74, 163, 255, .08);
+}
+
+.gz-search-icon {
+    position: absolute;
+    left: 14px;
+    color: #4aa3ff;
+    font-size: 1rem;
+    pointer-events: none;
+    z-index: 1;
+    transition: color .2s;
+}
+
+.gz-search-box:focus-within .gz-search-icon {
+    color: #6cb6ff;
+}
+
+.gz-search-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #f8f9fa;
+    font-size: 0.9rem;
+    padding: 0.65rem 2.8rem 0.65rem 2.6rem;
+}
+
+.gz-search-input::placeholder {
+    color: #4a5568;
+}
+
+.gz-search-clear,
+.gz-search-spinner {
+    position: absolute;
+    right: 12px;
+    cursor: pointer;
+    color: #4a5568;
+    font-size: 0.85rem;
+    transition: color .15s;
+    line-height: 1;
+}
+
+.gz-search-clear:hover {
+    color: #8b9ab0;
+}
+
+.gz-search-hint {
+    font-size: 0.78rem;
+    color: #4a5568;
+    margin-top: 6px;
+    min-height: 1.2em;
+    padding-left: 2px;
+    transition: color .2s;
+}
+
+.gz-search-hint.has-results {
+    color: #4aa3ff;
+}
+
+.gz-search-hint.no-results {
+    color: #e05252;
+}

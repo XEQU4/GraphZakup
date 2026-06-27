@@ -1,7 +1,12 @@
 {% extends "base.html" %}
+{% load static %}
 {% load humanize %}
 
 {% block title %}Главная{% endblock %}
+
+{% block extra_styles %}
+    <link rel="stylesheet" href="{% static 'css/search.css' %}">
+{% endblock %}
 
 {% block content %}
 
@@ -132,7 +137,9 @@
                                     </td>
 
                                     <td class="pe-3 text-end">
-                                        <a href="{% url 'graph:cluster_detail' cluster.uuid %}" class="btn btn-outline-info btn-sm py-0 px-2" style="font-size: 0.85rem;">
+                                        <a href="{% url 'graph:cluster_detail' cluster.uuid %}"
+                                           class="btn btn-outline-info btn-sm py-0 px-2"
+                                           style="font-size: 0.85rem;">
                                             Граф
                                         </a>
                                     </td>
@@ -208,7 +215,8 @@
                                     </td>
 
                                     <td>
-                                        <a href="{% url 'companies:detail' company.pk %}" class="text-info fw-semibold text-decoration-none">
+                                        <a href="{% url 'companies:detail' company.pk %}"
+                                           class="text-info fw-semibold text-decoration-none">
                                             {{ company.name|truncatechars:25 }}
                                         </a>
                                     </td>
@@ -220,7 +228,8 @@
                                     <td class="pe-3">
                                         {% with first_dir=company.directorships.all.0 %}
                                             {% if first_dir %}
-                                                <a href="{% url 'owners:detail' first_dir.director.pk %}" class="text-info text-decoration-none border-bottom border-secondary fw-semibold">
+                                                <a href="{% url 'owners:detail' first_dir.director.pk %}"
+                                                   class="text-info text-decoration-none border-bottom border-secondary fw-semibold">
                                                     {{ first_dir.director.full_name|truncatechars:20 }}
                                                 </a>
                                             {% else %}
@@ -247,8 +256,28 @@
 </div>
 
 <div class="card">
-    <div class="card-header fw-semibold">
-        <i class="bi bi-file-earmark-text"></i> Последние зарегистрированные контракты в системе
+    <div class="card-header fw-semibold d-flex align-items-center justify-content-between gap-3 flex-wrap">
+        <span>
+            <i class="bi bi-file-earmark-text"></i> Последние зарегистрированные контракты в системе
+        </span>
+
+        <div class="gz-search-wrap ms-auto" style="margin-right: -8px;">
+            <div class="gz-search-box">
+                <i class="bi bi-search gz-search-icon"></i>
+
+                <input type="text" class="gz-search-input" id="contract-search"
+                    placeholder="Номер, предмет, поставщик, заказчик..."
+                    autocomplete="off" spellcheck="false" value="{{ q }}">
+
+                <span class="gz-search-clear" id="contract-search-clear" style="display:none;">
+                    <i class="bi bi-x-circle-fill"></i>
+                </span>
+
+                <span class="gz-search-spinner" id="contract-search-spinner" style="display:none;">
+                    <span class="spinner-border spinner-border-sm text-info" role="status"></span>
+                </span>
+            </div>
+        </div>
     </div>
 
     <div class="card-body p-0">
@@ -282,13 +311,12 @@
                     </tr>
                 </thead>
 
-                <tbody>
+                <tbody id="contracts-tbody">
                     {% for contract in latest_contracts %}
                         <tr>
                             <td class="ps-3 text-nowrap">
                                 {% if contract.contract_gos_id %}
-                                    <a href="{{ contract.goszakup_url }}"
-                                       target="_blank" class="text-info text-decoration-none fw-bold">
+                                    <a href="{{ contract.goszakup_url }}" target="_blank" class="text-info text-decoration-none fw-bold">
                                         {{ contract.contract_number }}
                                         <i class="bi bi-box-arrow-up-right" style="font-size: 0.75em;"></i>
                                     </a>
@@ -334,62 +362,67 @@
     </div>
 </div>
 
-{% if is_paginated %}
-    <nav class="mt-4" aria-label="Навигация контрактов">
-        <ul class="pagination justify-content-center">
-            {% if page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link bg-dark text-info border-secondary"
-                       href="?page={{ page_obj.previous_page_number }}"
-                       aria-label="Предыдущая">
-                        <span aria-hidden="true">
-                            &laquo;
-                        </span>
-                    </a>
-                </li>
-            {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link bg-dark border-secondary">
-                        &laquo;
-                    </span>
-                </li>
-            {% endif %}
-
-            {% for num in page_obj.paginator.page_range %}
-                {% if page_obj.number == num %}
-                    <li class="page-item active">
-                        <span class="page-link bg-info border-info text-dark fw-bold">
-                            {{ num }}
-                        </span>
-                    </li>
-                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+<div id="contracts-pagination">
+    {% if is_paginated %}
+        <nav class="mt-4" aria-label="Навигация контрактов">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
                     <li class="page-item">
-                        <a class="page-link bg-dark text-info border-secondary" href="?page={{ num }}">
-                            {{ num }}
+                        <a class="page-link bg-dark text-info border-secondary"
+                           href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}">
+                            &laquo;
                         </a>
                     </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link bg-dark border-secondary">
+                            &laquo;
+                        </span>
+                    </li>
                 {% endif %}
-            {% endfor %}
 
-            {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link bg-dark text-info border-secondary"
-                       href="?page={{ page_obj.next_page_number }}"
-                       aria-label="Следующая">
-                        <span aria-hidden="true">
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link bg-info border-info text-dark fw-bold">
+                                {{ num }}
+                            </span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link bg-dark text-info border-secondary"
+                               href="?page={{ num }}{% if q %}&q={{ q }}{% endif %}">
+                                {{ num }}
+                            </a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link bg-dark text-info border-secondary"
+                           href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}">
+                            &raquo;
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link bg-dark border-secondary">
                             &raquo;
                         </span>
-                    </a>
-                </li>
-            {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link bg-dark border-secondary">
-                        &raquo;
-                    </span>
-                </li>
-            {% endif %}
-        </ul>
-    </nav>
-{% endif %}
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+
+        <div class="text-center small mt-2">
+            Показано контрактов: {{ page_obj.start_index }}–{{ page_obj.end_index }} из {{ page_obj.paginator.count }}
+        </div>
+    {% endif %}
+</div>
+
+{% block scripts %}
+    <script src="{% static 'js/search_dashboard.js' %}"></script>
+{% endblock %}
 
 {% endblock %}
