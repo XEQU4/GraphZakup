@@ -5,7 +5,7 @@ from apps.owners.models import Director
 
 
 class Command(BaseCommand):
-    """Удаляет только записи без ролей и без защищённой истории идентичности."""
+    """Delete only records without roles or protected identity history."""
 
     help = "Remove Director records with zero linked companies"
 

@@ -1,110 +1,96 @@
-# Исходное состояние проекта перед фазой 1
+# Project baseline before Phase 1
 
-Дата фиксации проекта: 5 октября 2026 года. Фаза 0 сохраняет приложение перед реализацией исправлений и создаёт документы для продолжения работы. Git команды выполняет пользователь; коммит или отправка в GitHub в эту фазу агентом не выполняются.
+Recorded on 5 October 2026. Phase 0 preserves the application before fixes and records continuation documents. The user runs Git commands; the agent did not commit/push.
 
-Связанные документы: [аудит](AUDIT.md), [архитектура](ARCHITECTURE.md), [план фаз](ROADMAP.md), [проверка восстановления](RECOVERY.md).
+Related: [audit](AUDIT.md), [architecture](ARCHITECTURE.md), [roadmap](ROADMAP.md), [recovery](RECOVERY.md).
 
-## Состояние выполнения
+## Completion status
 
-Фаза 0 завершена. Документы и утилиты подготовлены, резервное восстановление и целостность снимка исходников проверены. Исходный код приложения и изменения пользователя сохранены. Продуктовые вопросы ниже остаются открытыми и уточняются перед зависимыми работами; фазу 1 агент не начинал.
+Phase 0 complete: documents/utilities prepared, restoration and source integrity verified, application/user changes preserved. Product questions remain open; Phase 1 had not begun at this historical checkpoint.
 
-## Сохранение изменений пользователя
+## Preserved user changes
 
-На начало фазы уже были изменения в трёх файлах. Их контрольные суммы до работ:
+These files already had changes at phase start:
 
-| Файл | SHA-256 |
-|---|---|
+| File | SHA-256 |
+| --- | --- |
 | `test.py` | `d8e280a3856400f65181224360921c65d16bf22abdb4f02d2e6e58c9253ce061` |
 | `pyproject.toml` | `6cf2099096eefcdb2c4c51045df502d5cba1c8f22610f1c57d36c2390c13f035` |
 | `uv.lock` | `ee1ece784fb109509c1deb09be5abb6c45fc4c1ae666de558542409eec1fb6bb` |
 
-Фаза 0 не изменяет эти файлы, существующий код приложений, миграции, парсеры, шаблоны или конфигурацию работающей БД. В исходный снимок включается актуальное содержимое этих файлов, в том числе незакоммиченные изменения.
+Phase 0 did not modify these files, apps, migrations, parsers, templates, or working-database configuration. The archive includes their current/uncommitted contents.
 
-## Окружение и проверки аудита
+## Environment and initial checks
 
-Подтверждены Python 3.13.5, Django 6.0.6, Celery 5.6.3, django-celery-beat 2.9.0 и WhiteNoise 6.12.0. Первоначальная недоступность Python внутри sandbox не означала поломку `.venv`: существующий интерпретатор работает при доступе к установленному runtime.
+Verified Python 3.13.5, Django 6.0.6, Celery 5.6.3, django-celery-beat 2.9.0, WhiteNoise 6.12.0. Initial sandbox runtime access failure did not mean `.venv` was broken; the interpreter worked with installed-runtime access.
 
-Проверки до изменений фазы 0:
+| Check | Result and limits |
+| --- | --- |
+| Python AST | 99 files; no syntax errors |
+| Django system checks | No errors; no database connection |
+| Model/migration state | No drift; applied source state not separately checked |
+| Application tests | 0; app test files were placeholders |
+| Compose configuration | db/redis/web/worker/beat; no build/start |
+| Staticfiles | Ordinary `StaticFilesStorage`; old setting ineffective |
+| collectstatic without SECRET_KEY | Dry-run passed; no Docker failure established |
+| Deployment checks | X-Frame-Options/HTTPS/HSTS/secure-cookie warnings on safe sample configuration; Phase 1 work |
 
-| Проверка | Результат и граница вывода |
-|---|---|
-| AST исходных Python файлов | 99 файлов, ошибок синтаксиса нет |
-| Django system checks | Ошибок нет; подключение к БД не выполнялось |
-| Модели и файлы миграций | Расхождений нет; применённое состояние реальной БД отдельно не проверялось |
-| Обнаружение тестов приложения | 0; `apps/*/tests.py` являются заготовками |
-| Compose configuration | `db`, `redis`, `web`, `worker`, `beat`; сборка и запуск не выполнялись |
-| Staticfiles backend | Фактически обычный `StaticFilesStorage`; прежний `STATICFILES_STORAGE` не включает manifest backend |
-| collectstatic без SECRET_KEY | Dry-run прошёл; ошибку Docker build по этому основанию считать подтверждённой нельзя |
-| Deployment checks на безопасной примерной конфигурации | Предупреждения о X-Frame-Options, HTTPS redirect, HSTS и secure cookies; production настройки относятся к фазе 1 |
+See [AUDIT.md](AUDIT.md) for reproductions. These checks establish neither production readiness nor live HTML correctness.
 
-Дефекты с офлайн-воспроизведениями перечислены в [AUDIT.md](AUDIT.md). Эти проверки не означают готовность приложения к production или корректность текущих внешних HTML страниц.
+## Database backup
 
-## Резервная копия базы
+Preflight confirmed PostgreSQL 17.6, 29 public tables, PostgreSQL 17 tools, and permission for a separate verification DB. No source rows/credentials are published. Original Compose used 16; restoration was verified on 17.6, not 16. Align versions in Phase 1.
 
-Preflight подтвердил доступность локальной PostgreSQL 17.6 и 29 таблиц схемы `public`. Доступны инструменты PostgreSQL 17 и право создать отдельную БД для проверки. Исходные строки и реквизиты подключения в документацию не включаются. Текущий Compose указывает PostgreSQL 16: пробное восстановление фазы 0 проверено на 17.6, а совместимость дампа с контейнером 16 не проверялась. Версию контейнера следует согласовать с проверенным восстановлением в фазе 1.
+Ran `scripts/backup_database.py --pg-bin 'C:/Program Files/PostgreSQL/17/bin' --verify-restore`: passed, no differences, migration log verified, temporary DB dropped. Additional read-only check confirmed temporary DB absence. Source migration plan had no pending migrations at this checkpoint.
 
-Выполнена команда `scripts/backup_database.py --pg-bin 'C:/Program Files/PostgreSQL/17/bin' --verify-restore`. Результат: `status=passed`, `verification.status=passed`, `differences={}`, `tables_verified=29`, `django_migrations_verified=true`, `cleanup=dropped`. Дополнительная read-only проверка подтвердила, что временной БД больше нет и для исходной БД план неприменённых миграций пуст.
+| Item | Value |
+| --- | --- |
+| Dump | `artifacts/phase0/database_20261005T083129Z_919471cd.dump` |
+| Report | `artifacts/phase0/database_20261005T083129Z_919471cd.json` |
+| Size | 181,714 bytes |
+| SHA-256 | `9b73e99cb323a319409861e40fbc77438a8e8f2707ea0e93803b9d166a1f1e0a` |
+| Public snapshot | 29 tables, 1,849 rows |
+| Restore comparison | Rows/hashes/column characteristics matched |
+| Utility safeguards | 10/10 passed |
 
-| Артефакт или проверка | Результат |
-|---|---|
-| Дамп | `artifacts/phase0/database_20261005T083129Z_919471cd.dump` |
-| Отчёт | `artifacts/phase0/database_20261005T083129Z_919471cd.json` |
-| Размер дампа | 181 714 байт |
-| SHA-256 дампа | `9b73e99cb323a319409861e40fbc77438a8e8f2707ea0e93803b9d166a1f1e0a` |
-| Данные `public` | 29 таблиц, 1 849 строк в согласованном снимке |
-| Изолированное восстановление | Строки, их хеши и характеристики столбцов совпали |
-| Защитные офлайн-тесты утилиты | 10 из 10 прошли |
+| Application data | Rows |
+| --- | --- |
+| Companies | 384 |
+| Contracts | 500 |
+| Directors/directorships | 384/384 |
+| Clusters/memberships | 4/11 |
+| Connection | 0 |
+| Owners/ownerships | 0/0 |
+| Tax debts/bankruptcies/court cases | 0 |
 
-Фактическое покрытие данных приложения в этом снимке:
+Empty tables mean missing observations, not confirmed absence of conditions. Source unchanged. Full index/default/constraint definitions, sequences, ownership, ACL were not individually compared; see [RECOVERY.md](RECOVERY.md).
 
-| Данные | Записи |
-|---|---|
-| Компании | 384 |
-| Договоры | 500 |
-| Директора и директорства | 384 и 384 |
-| Кластеры | 4 |
-| Членство компаний в кластерах | 11 |
-| Сохранённые Connection | 0 |
-| Собственники и владение | 0 и 0 |
-| Налоговые долги, банкротства и судебные дела в соответствующих моделях | 0 |
+## Source archive
 
-Нулевое число записей в этих моделях означает отсутствие сохранённых наблюдений, а не проверенное отсутствие соответствующих признаков у компаний или людей. Исходная БД не изменялась. Полные определения индексов, defaults, constraints, значения последовательностей, владельцы и ACL отдельно не сравнивались; границы проверки описаны в [RECOVERY.md](RECOVERY.md).
-
-## Снимок исходников
-
-`scripts/capture_baseline.py` сохраняет ZIP с кодом приложения, текущими изменениями пользователя и документами фазы 0. Рядом создаётся JSON с SHA-256 каждого файла, версиями установленного окружения и офлайн-проверками Django. Скрипт не подключается к БД и не выполняет Git команды.
-
-ZIP не содержит `.env`, `.git`, виртуального окружения, логов, дампов или каталога артефактов. Это снимок приложения перед фазой 1 вместе с документацией фазы 0, а не архив всего содержимого компьютера.
-
-Команда из корня проекта:
+`scripts/capture_baseline.py` saves application/current user changes/Phase 0 documents in ZIP, with per-file SHA-256, environment versions, and offline Django checks in JSON. No database connection/Git commands. Excludes `.env`, `.git`, virtual environments, logs, dumps, artifacts: an application snapshot, not a whole-computer archive.
 
 ```powershell
 .\.venv\Scripts\python.exe -B scripts/capture_baseline.py --label 2026-10-05
 ```
 
-Снимок успешно создан: 135 файлов, проверены CRC ZIP и SHA-256 каждого вложения, расхождений нет. Итоговая копия после закрытия документов фазы 0 сохраняется под именем `artifacts/phase0/source-2026-10-05-*.zip`; рядом находится JSON с тем же именем. При нескольких копиях выбирай последнюю по `captured_at_utc` и проверяй её `status`, `archive_sha256` и манифест, а не только имя файла.
+Created 135 files; CRC and all file hashes matched. Final copy: `artifacts/phase0/source-2026-10-05-*.zip`, matching JSON. Choose latest by `captured_at_utc`, checking status/archive hash/manifest rather than filename alone.
 
-| Итоговая проверка фазы 0 | Результат |
-|---|---|
-| Синтаксис приложения и новых утилит | 103 Python файла, ошибок нет |
-| Django system checks без БД | Ошибок нет |
-| Модели и файлы миграций | Расхождений нет |
-| Обнаружение тестов | 10 тестов утилиты резервного копирования; тесты бизнес-логики приложения ещё предстоит добавить |
-| Запуск офлайн-тестов утилиты | 10 из 10 прошли |
-| Пользовательские файлы | SHA-256 всех трёх файлов совпали с началом фазы |
-| Ссылки документов | Локальные цели существуют |
-| Исключение артефактов | Каталог исключён из Git и Docker; `.env` и runtime каталоги не входят в ZIP |
+| Final Phase 0 check | Result |
+| --- | --- |
+| Syntax | 103 Python files, no errors |
+| Database-free Django checks | No errors |
+| Migration drift | None |
+| Tests | 10 backup tests discovered/passed; application tests still needed |
+| User files | Three hashes unchanged |
+| Documentation links | Local targets exist |
+| Exclusions | Artifacts excluded from Git/Docker; `.env`/runtime directories excluded from archive |
 
-Манифест содержит точные версии файлов на момент capture; последующие обновления документации создают новое состояние и требуют нового снимка, если нужно сохранить именно его. Для повторной фиксации используй ту же команду. Установленный `StaticFilesStorage` и обнаруженные дефекты приложения этой фазой не исправлялись.
+Manifest reflects capture time. Later documentation changes require recapture to preserve that state. Phase 0 did not fix staticfiles/application defects.
 
-## Объём и незакрытые продуктовые вопросы
+## Scope and open questions
 
-Предлагаемый объём диплома и демонстрационные сценарии находятся в [ARCHITECTURE.md](ARCHITECTURE.md). Рабочее предположение — интерфейс аналитика закупок; конкретная аудитория, срок сдачи и лимиты расходов пока ожидают ответа пользователя. Эти вопросы не мешают сохранить данные и исходники, но влияют на приоритеты последующих фаз.
+[ARCHITECTURE.md](ARCHITECTURE.md) proposes thesis scope/scenarios. Analyst audience, deadline, budgets are unconfirmed; these affect priorities but not preservation. Explicit user requirement: substantial graph appearance/interaction improvement in Phase 4; overall UI/UX follows later references, with no final style yet approved.
 
-Обязательное уточнение пользователя: в фазе 4 существенно улучшить сам вид и взаимодействие графа. Общий UI/UX разрабатывать по референсам, которые пользователь предоставит позже. Окончательный визуальный стиль сейчас не утверждён.
+## Next work and Git
 
-## Дальнейшая работа и Git
-
-После подтверждения критериев фазы 0 следующий шаг — фаза 1 по [ROADMAP.md](ROADMAP.md). Реализация DRF, React и нового алгоритма графа в фазе 0 не начинается.
-
-Пользователь самостоятельно проверяет изменения и фиксирует их в Git. Для документов и утилит фазы 0 можно выбрать конкретные пути `AGENTS.md`, `README.md`, `.gitignore`, `.dockerignore`, `docs/`, `scripts/` и `tests/`. Изменения `test.py`, `pyproject.toml` и `uv.lock` относятся к ранее начатой работе пользователя и не должны случайно включаться в отдельный коммит фазы 0.
+After acceptance, Phase 1 follows [ROADMAP.md](ROADMAP.md). DRF/React/new graph algorithms are outside Phase 0. User reviews/records changes. Phase 0 paths include `AGENTS.md`, `README.md`, `.gitignore`, `.dockerignore`, `docs/`, `scripts/`, `tests/`. Existing changes in `test.py`, `pyproject.toml`, `uv.lock` must not accidentally enter a separate Phase 0 commit.

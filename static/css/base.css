@@ -80,7 +80,7 @@ a {
     color: #ffffff;
 }
 
-/* Единый стиль таблиц-реестров (компании, директора, контракты) */
+/* Shared registry table styles (companies, directors, contracts) */
 .app-table-wrap {
     background: rgba(26, 31, 39, 0.85);
     backdrop-filter: blur(4px);
@@ -152,7 +152,7 @@ a {
     margin-right: 0.5rem;
 }
 
-/* Футер */
+/* Footer */
 .app-footer {
     margin-top: auto;
     border-top: 1px solid #2d3748;

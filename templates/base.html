@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>
-        {% block title %}GraphZakup{% endblock %}
+        {% block title %}GrafZakup{% endblock %}
     </title>
     {% load static %}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
@@ -25,8 +25,8 @@
     <div class="container">
         <a class="navbar-brand fw-bold text-info d-flex align-items-center gap-2"
            href="{% url 'dashboard:index' %}">
-            <span class="navbar-brand glitch-text" data-text="GraphZakup">
-                <i class="bi bi-shield-check"></i> GraphZakup
+            <span class="navbar-brand glitch-text" data-text="GrafZakup">
+                <i class="bi bi-shield-check"></i> GrafZakup
             </span>
         </a>
 
@@ -40,25 +40,25 @@
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'dashboard:index' %}">
-                        Главная
+                        Home
                     </a>
                 </li>
 
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'graph:cluster_list' %}">
-                        Подозрительные группы
+                        Suspicious groups
                     </a>
                 </li>
 
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'companies:list' %}">
-                        Компании
+                        Companies
                     </a>
                 </li>
 
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'owners:list' %}">
-                        Владельцы
+                        Owners
                     </a>
                 </li>
             </ul>
@@ -76,43 +76,43 @@
         <div class="row gy-4">
             <div class="col-md-3">
                 <h6>
-                    <i class="bi bi-shield-check"></i> GraphZakup
+                    <i class="bi bi-shield-check"></i> GrafZakup
                 </h6>
 
                 <p class="mb-0">
-                    Система анализа аффилированности поставщиков в государственных
-                    закупках Республики Казахстан. Разработана для конкурса
-                    Агентства по финансовому мониторингу РК.
+                    A system for analysing supplier connections in public procurement
+                    in the Republic of Kazakhstan. Developed for the competition
+                    of the Financial Monitoring Agency of Kazakhstan.
                 </p>
             </div>
 
             <div class="col-md-3">
                 <h6>
-                    <i class="bi bi-people"></i> Проект
+                    <i class="bi bi-people"></i> Project
                 </h6>
 
                 <ul class="list-unstyled mb-0">
                     <li class="mb-1">
                         <i class="bi bi-building-check"></i>
-                        Руководство:
+                        Supervision:
                         <span class="text-light">
-                            ДЭР по Кызылординской области
+                            Economic Investigation Department of Kyzylorda Region
                         </span>
                     </li>
 
                     <li class="mb-1">
                         <i class="bi bi-person-badge"></i>
-                        Руководитель:
+                        Supervisor:
                         <span class="text-light">
-                            Алкебайұлы Нұрбол
+                            Alkebaiuly Nurbol
                         </span>
                     </li>
 
                     <li class="mb-1">
                         <i class="bi bi-code-slash"></i>
-                        Разработчик:
+                        Developer:
                         <span class="text-light">
-                            Барахат Мұхтар Батырұлы
+                            Barakhat Mukhtar Batyruly
                         </span>
                     </li>
 
@@ -127,12 +127,12 @@
 
             <div class="col-md-2">
                 <h6>
-                    <i class="bi bi-stack"></i> Стек
+                    <i class="bi bi-stack"></i> Stack
                 </h6>
 
                 <ul class="list-unstyled mb-0">
                     <li class="mb-1">
-                        <i class="bi bi-box"></i> Django 5
+                        <i class="bi bi-box"></i> Django 6
                     </li>
 
                     <li class="mb-1">
@@ -159,7 +159,7 @@
 
             <div class="col-md-2">
                 <h6>
-                    <i class="bi bi-database"></i> Источники
+                    <i class="bi bi-database"></i> Sources
                 </h6>
 
                 <ul class="list-unstyled mb-0">
@@ -181,7 +181,7 @@
 
             <div class="col-md-2">
                 <h6>
-                    <i class="bi bi-person-lines-fill"></i> Контакты
+                    <i class="bi bi-person-lines-fill"></i> Contacts
                 </h6>
 
                 <ul class="list-unstyled mb-0">
@@ -213,11 +213,11 @@
 
         <div class="d-flex flex-wrap justify-content-between gap-2">
             <span>
-                &copy; {% now "Y" %} GraphZakup. Учебный проект.
+                &copy; {% now "Y" %} GrafZakup. Educational project.
             </span>
 
             <span>
-                Данные обновляются автоматически каждые 12 часов.
+                Automatic collection runs only when enabled.
             </span>
         </div>
     </div>

@@ -2,7 +2,7 @@ from apps.ingestion.management.commands.ingest_data import Command as IngestionC
 
 
 class Command(IngestionCommand):
-    help = 'Обогащение компаний через общий ingestion без обхода договоров'
+    help = 'Enrich companies through shared ingestion without scanning contracts'
 
     def handle(self, *args, **options):
         options['mode'] = 'enrich'

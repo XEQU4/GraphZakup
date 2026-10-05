@@ -26,6 +26,7 @@ from apps.ingestion.tests.helpers import FakeProviders
 FIXTURES = Path(__file__).resolve().parents[2] / "tests" / "fixtures"
 
 
+# Source-language labels and sample values intentionally retain Cyrillic.
 def fixture(name):
     return (FIXTURES / name).read_text(encoding="utf-8")
 

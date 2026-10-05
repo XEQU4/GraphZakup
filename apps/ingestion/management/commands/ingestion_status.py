@@ -3,7 +3,7 @@ from apps.ingestion.models import IngestionRun
 
 
 class Command(BaseCommand):
-    help = 'Прогресс и безопасные коды ошибок последних запусков (без запросов к источникам)'
+    help = 'Progress and safe error codes for recent runs (no source requests)'
 
     def handle(self, *args, **options):
         for run in IngestionRun.objects.order_by('-started_at')[:20]:

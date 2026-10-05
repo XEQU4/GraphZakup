@@ -30,6 +30,9 @@ if not ALLOWED_HOSTS or (not DEBUG and "*" in ALLOWED_HOSTS):
     raise ImproperlyConfigured("ALLOWED_HOSTS must contain explicit hosts in production.")
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
 
+# English is the project baseline; Russian website localisation is planned later.
+LANGUAGE_CODE = "en-us"
+
 # Enable this only behind a proxy that replaces the incoming forwarded header.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https") if env_bool("TRUST_PROXY_SSL_HEADER") else None
 SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT")
@@ -59,7 +62,7 @@ INSTALLED_APPS = [
     "apps.owners.apps.OwnersConfig",
     "apps.graph.apps.GraphConfig",
     "apps.dashboard.apps.DashboardConfig",
-    "apps.core.apps.CoreConfig",  # ← CoreConfig.ready() вызывает init_logging()
+    "apps.core.apps.CoreConfig",  # ← CoreConfig.ready() calls init_logging()
     "apps.ai.apps.AiConfig",
     "apps.ingestion.apps.IngestionConfig",
 ]
@@ -129,7 +132,7 @@ CELERY_ENABLE_UTC = True
 
 ENABLE_SCHEDULED_IMPORT = env_bool("ENABLE_SCHEDULED_IMPORT")
 CELERY_BEAT_SCHEDULE = {
-    # Раз в сутки — очистка логов старше 30 дней
+    # Daily cleanup of logs older than 30 days
     "cleanup-logs-daily": {
         "task": "apps.core.tasks.cleanup_logs",
         "schedule": 60 * 60 * 24,
@@ -148,15 +151,15 @@ INGESTION_LEASE_SECONDS = int(os.getenv('INGESTION_LEASE_SECONDS', '900'))
 INGESTION_SOURCE_CACHE_SECONDS = int(os.getenv('INGESTION_SOURCE_CACHE_SECONDS', '900'))
 INGESTION_REQUEST_INTERVAL = float(os.getenv('INGESTION_REQUEST_INTERVAL', '1.5'))
 
-# ─── ВНЕШНИЕ API ───────────────────────────────────────────────────────────────
+# ─── EXTERNAL APIs ───────────────────────────────────────────────────────────────
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "qwen/qwen3-8b:free")
 GOSZAKUP_TOKEN = os.getenv("GOSZAKUP_TOKEN", "")
 
-# ─── ЛОГИРОВАНИЕ ───────────────────────────────────────────────────────────────
-# Логирование настраивается через logging_setup (CoreConfig.ready()),
-# а не через Django LOGGING dict — чтобы сохранить цвета, ротацию файлов
-# и формат из твоего шаблона.
-# Django и Celery пишут через тот же root logger, поэтому настраивать
-# их отдельно не нужно.
-LOGGING_CONFIG = None  # отключаем Django's dictConfig, используем свой init_logging
+# ─── LOGGING ───────────────────────────────────────────────────────────────
+# Logging is configured by logging_setup (CoreConfig.ready()),
+# rather than Django's LOGGING dictionary, preserving colours, rotation,
+# and the existing format.
+# Django and Celery use the same root logger and need no separate
+# configuration.
+LOGGING_CONFIG = None  # Disable Django dictConfig and use init_logging

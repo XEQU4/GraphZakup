@@ -1,37 +1,38 @@
-# Инструкции для работы над ГрафЗакуп
+# Instructions for working on GrafZakup
 
-Проект развивается как дипломная система анализа связей участников госзакупок Казахстана с возможностью дальнейшего пилота. Основные требования и порядок работы находятся в [docs/ROADMAP.md](docs/ROADMAP.md), целевая архитектура — в [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), исходные дефекты — в [docs/AUDIT.md](docs/AUDIT.md).
+This project is a thesis system for analysing relationships between participants in Kazakhstan's public procurement, with a possible later pilot. Requirements and workflow are in [docs/ROADMAP.md](docs/ROADMAP.md), the target architecture is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and the original findings are in [docs/AUDIT.md](docs/AUDIT.md).
 
-## Порядок работы
+## Workflow and language
 
-- Перед задачей прочитай roadmap и документы, относящиеся к текущей фазе. Выполняй порученную фазу; не начинай следующую автоматически.
-- Отделяй реализованное поведение от проекта решения. Обновляй статус фазы только после выполнения её критериев и проверки результата.
-- Команды Git выполняет пользователь. Не выполняй Git-команды, не создавай коммиты, ветки и pull requests и не отправляй изменения без отдельного поручения.
-- Сохраняй изменения пользователя. `test.py` содержит учебные функции и не является тестовым набором приложения. Не переделывай его для нужд проекта.
-- Пиши технические документы по-русски. Сохраняй решения в репозитории, чтобы следующая задача могла продолжиться без истории чата.
+- Read the roadmap and documents for the current phase before starting a task. Complete the assigned phase; do not start the next one automatically.
+- Distinguish implemented behaviour from proposed designs. Update a phase's status only after meeting its acceptance criteria and checking the result.
+- The user runs Git commands. Do not run Git commands, create commits, branches or pull requests, or push changes without a separate instruction.
+- Preserve the user's changes. `test.py` contains learning exercises, not application tests. Do not repurpose it for this project.
+- Use English for project documentation, instructions, code comments, UI and CLI messages, generated explanations, prompts, and proposed commit messages. Save decisions in the repository so the next task can continue without chat history.
+- Develop and verify the English version first. Add Russian website localisation later, after the English interface is complete. Preserve official source labels, identifiers and original data in their source language; translating parser selectors would break data collection.
 
-## Данные и безопасность изменений
+## Data and safe changes
 
-- Перед изменением схемы или алгоритма, способного затронуть сохранённые данные, проверь наличие актуальной резервной копии и сведения о проверке восстановления в [docs/RECOVERY.md](docs/RECOVERY.md).
-- Не запускай `import_contracts --mode=full`, очистку данных, live-парсинг, Celery pipeline или платную генерацию для проверки рефакторинга. Для них нужно явное поручение пользователя. Используй fixtures и отдельную тестовую БД.
-- Проверяй миграции и импорт на изолированной БД. Исходную БД не удаляй и не используй для пробного восстановления.
-- Не сохраняй пароли, токены, `.env`, дампы и исходные ответы с персональными данными в документации, тестовых fixtures, Git или Docker image. Локальные резервные копии и отчёты находятся в игнорируемом `artifacts/`.
-- Парсеры получают и нормализуют данные; запись в БД и управление стадиями принадлежат сервисам ingestion. Не добавляй новую разрозненную orchestration в views или management-команды.
-- Деньги обрабатывай через `Decimal` из строки. Различай отсутствие результата, временную ошибку источника и подтверждённое отсутствие признака.
+- Before changing a schema or algorithm that can affect saved data, check for a current backup and verified restoration in [docs/RECOVERY.md](docs/RECOVERY.md).
+- Do not run `import_contracts --mode=full`, data cleanup, live parsing, the Celery pipeline, or paid generation to verify refactoring. These require an explicit user instruction. Use fixtures and a separate test database.
+- Test migrations and imports on an isolated database. Do not delete the source database or use it for trial restoration.
+- Do not put passwords, tokens, `.env`, dumps, or original responses containing personal data in documentation, test fixtures, Git or Docker images. Local backups and reports belong in the ignored `artifacts/` directory.
+- Parsers fetch and normalise data; ingestion services own persistence and stage orchestration. Do not add separate orchestration to views or management commands.
+- Parse money as `Decimal` from a string. Distinguish a missing result, a temporary source failure, and confirmed absence of a finding.
 
-## Граф и объяснения
+## Graphs and explanations
 
-- Не объединяй физлиц по одному ФИО. Сходство создаёт кандидата сопоставления с основаниями и уверенностью.
-- Связи должны иметь источник, доказательства и временную применимость. Долг компании относится к компании, а не автоматически к владельцу.
-- Один набор сохранённых доказательств должен питать граф, правила и объяснения. Слабый общий контакт сам по себе не подтверждает нарушение.
-- Сохраняй стабильные идентификаторы кластеров и историю версий. Повторный сбор без значимых изменений не должен пересоздавать граф или объяснение.
-- LLM объясняет подготовленные факты и результаты правил. Идентичность сущностей, связи и скор вычисляются проверяемыми алгоритмами. Предусматривай шаблонное объяснение при сбое LLM.
-- GET читает сохранённые результаты. Генерацию и пересчёт запускай разрешёнными фоновыми задачами с дедупликацией и проверкой версии результата.
+- Do not merge people by name alone. Similarity creates a matching candidate with evidence and confidence.
+- Relationships must have a source, evidence and temporal applicability. Company debt belongs to the company and is not automatically assigned to its owner.
+- Use the same saved evidence for the graph, rules and explanations. A weak shared contact alone does not establish a violation.
+- Preserve stable cluster identifiers and version history. Repeated collection without meaningful changes must not recreate the graph or explanation.
+- An LLM explains prepared facts and rule results. Entity identity, relationships and scores are computed by verifiable algorithms. Provide a template explanation when the LLM fails.
+- GET reads saved results. Start generation and recalculation through authorised background tasks with deduplication and result-version checks.
 
-## Интерфейс и проверки
+## Interface and verification
 
-- В фазе 4 существенно улучшить вид и взаимодействие графа: читаемые подписи, выделение соседей, фильтры связей, просмотр доказательств, удобная навигация и сохранение раскладки.
-- Пользователь пришлёт референсы для общего UI/UX. До их получения не утверждай окончательный визуальный стиль сайта, палитру или решение о замене Bootstrap.
-- В каждой фазе проверяй изменённое поведение. Для импорта, миграций, идентичности, версий графа и ИИ нужны содержательные тесты; не заменяй их проверкой синтаксиса.
-- Не объявляй проверки успешными без запуска. В отчёте различай статический анализ, офлайн-тесты и проверку живых источников.
-- После работы укажи изменённое поведение, выполненные проверки и оставшиеся ограничения. При ограничениях среды сначала отдели sandbox-ошибку от неисправности самого проекта.
+- Phase 4 must substantially improve graph presentation and interaction: readable labels, neighbour highlighting, relationship filters, evidence inspection, convenient navigation and saved layouts.
+- The user will provide overall UI/UX references. Do not finalise the site's visual style, palette or Bootstrap replacement before receiving them.
+- Verify changed behaviour in every phase. Imports, migrations, identity, graph versions and AI require meaningful tests; syntax checks are not a substitute.
+- Do not report checks as successful without running them. Distinguish static analysis, offline tests and live-source checks.
+- Report changed behaviour, completed checks and remaining limitations. For environment restrictions, first distinguish a sandbox error from a defect in the project.

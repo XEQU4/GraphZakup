@@ -1,26 +1,29 @@
-# ГрафЗакуп
+# GrafZakup
 
-ГрафЗакуп — дипломный проект для анализа связей компаний в государственных закупках Казахстана. Система собирает сведения о договорах и компаниях, показывает совпадения и объясняет основания для дальнейшей проверки аналитиком.
+GrafZakup is a thesis project for analysing company relationships in Kazakhstan's public procurement. It collects contract and company information, shows matching attributes, and explains the grounds for further review by an analyst.
 
-Текущая версия — Django-прототип с PostgreSQL, Celery, Redis, HTML-шаблонами и D3.js. Переход на DRF и React, интеграция КГД, сохранение версий анализа и обновление интерфейса запланированы по фазам. Наблюдаемые совпадения и текущий эвристический скор не устанавливают факт нарушения.
+The current version is a Django prototype with PostgreSQL, Celery, Redis, HTML templates and D3.js. Migration to DRF and React, KGD integration, saved analysis versions and interface improvements are planned in phases. Observed matches and the current heuristic score do not establish a violation.
 
-## Документация проекта
+English is the primary language for project documentation, code comments, interfaces and generated explanations. Russian website localisation will be added later, after the English version is complete. Source data and the labels used to parse official websites retain their original language.
 
-| Документ | Содержание |
-|---|---|
-| [Аудит](docs/AUDIT.md) | Подтверждённые дефекты, риски качества данных и ограничения проверки |
-| [План по фазам](docs/ROADMAP.md) | Объём работ, зависимости и критерии завершения |
-| [Архитектура](docs/ARCHITECTURE.md) | Текущее устройство и предлагаемые решения |
-| [Исходное состояние](docs/BASELINE.md) | Результаты фазы 0 и воспроизводимые проверки |
-| [Резервное копирование](docs/RECOVERY.md) | Экспорт базы, проверка восстановления и хранение локальных артефактов |
-| [Результат фазы 1](docs/PHASE1.md) | Исправления, проверки и оставшиеся ограничения |
-| [Результат фазы 2](docs/PHASE2.md) | Единый ingestion, происхождение фактов, история ролей и проверка миграций |
-| [Запуск и обновление](DEPLOY.md) | Docker Compose, переменные окружения и healthchecks |
-| [Инструкции для Codex](AGENTS.md) | Правила работы, сохранения данных и проверки изменений |
+## Project documentation
 
-## Запуск через Docker
+| Document | Contents |
+| --- | --- |
+| [Audit](docs/AUDIT.md) | Confirmed defects, data-quality risks and verification limits |
+| [Phased roadmap](docs/ROADMAP.md) | Scope, dependencies and acceptance criteria |
+| [Architecture](docs/ARCHITECTURE.md) | Current implementation and proposed designs |
+| [Baseline](docs/BASELINE.md) | Phase 0 results and reproducible checks |
+| [Backup and recovery](docs/RECOVERY.md) | Database export, restoration checks and local artifacts |
+| [Phase 1 results](docs/PHASE1.md) | Fixes, verification and remaining limitations |
+| [Phase 2 results](docs/PHASE2.md) | Unified ingestion, provenance, role history and migration checks |
+| [English project baseline](docs/LANGUAGE.md) | Language rules, translated deliverables and offline verification |
+| [Deployment and updates](DEPLOY.md) | Docker Compose, environment variables and health checks |
+| [Codex instructions](AGENTS.md) | Workflow, data preservation and verification rules |
 
-Нужны Docker Desktop с Linux containers и Docker Compose v2. Существующий `.env` с подключением к локальной БД сохрани. Для отдельного Docker окружения создай `.env.docker` из `.env.example`, задай сгенерированный `SECRET_KEY` и свой `DB_PASSWORD`:
+## Run with Docker
+
+Docker Desktop with Linux containers and Docker Compose v2 is required. Preserve any existing `.env` that connects to your local database. For a separate Docker environment, create `.env.docker` from `.env.example`, set a generated `SECRET_KEY` and your own `DB_PASSWORD`:
 
 ```powershell
 if (-not (Test-Path .env.docker)) { Copy-Item .env.example .env.docker }
@@ -28,20 +31,20 @@ python -c "import secrets; print(secrets.token_urlsafe(50))"
 docker compose --env-file .env.docker up --build -d --wait
 ```
 
-Сайт: http://127.0.0.1:8000/ . Стек запускает PostgreSQL 17, Redis, миграции, Gunicorn, Celery worker и один beat. Worker/web ждут миграции; зависимости ставятся по `uv.lock`, статика использует manifest WhiteNoise. База и Redis сохраняются в отдельных volumes. Автоматический сбор выключен (`ENABLE_SCHEDULED_IMPORT=false`); пустая база сама не заполняется.
+Website: http://127.0.0.1:8000/ . The stack starts PostgreSQL 17, Redis, migrations, Gunicorn, a Celery worker and one beat scheduler. Web and worker wait for migrations; dependencies are installed from `uv.lock`, and static assets use manifest WhiteNoise. Database and Redis data are stored in separate volumes. Automatic collection is disabled (`ENABLE_SCHEDULED_IMPORT=false`); an empty database does not populate itself.
 
-Проверка готовности:
+Check readiness:
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8000/health/ready/
 docker compose --env-file .env.docker ps -a
 ```
 
-Подробности запуска, остановки без удаления данных, HTTPS и переноса существующей БД — в [DEPLOY.md](DEPLOY.md) и [RECOVERY.md](docs/RECOVERY.md). Не подключай старый PostgreSQL 16 volume напрямую к 17.
+Startup, shutdown without data loss, HTTPS and migration of an existing database are covered in [DEPLOY.md](DEPLOY.md) and [RECOVERY.md](docs/RECOVERY.md). Do not attach a PostgreSQL 16 volume directly to PostgreSQL 17.
 
-## Локальная разработка и проверки
+## Local development and verification
 
-Python проекта — 3.13 или новее. Зависимости описаны в `pyproject.toml` и `uv.lock`. Локальные реквизиты задаются в `.env`, реальный `SECRET_KEY` обязателен. Для запуска Django с существующей БД сначала проверь резервную копию, затем примени миграции:
+The project requires Python 3.13 or later. Dependencies are defined in `pyproject.toml` and `uv.lock`. Set local credentials in `.env`; a real `SECRET_KEY` is required. Before running Django against an existing database, verify its backup, then apply migrations:
 
 ```powershell
 uv sync --frozen
@@ -49,7 +52,7 @@ uv run python manage.py migrate
 uv run python manage.py runserver
 ```
 
-Офлайн-тесты используют SQLite в памяти и mock HTTP; они не читают `.env` и не подключаются к рабочей БД, Redis или сайтам. Проверки текущего JavaScript используют только стандартные модули Node.js:
+Offline tests use in-memory SQLite and mocked HTTP. They do not load `.env` or connect to the working database, Redis or websites. JavaScript checks use only Node.js standard modules:
 
 ```powershell
 .\.venv\Scripts\python.exe -B manage.py test --settings=config.test_settings
@@ -57,28 +60,28 @@ node tests/frontend_regressions.cjs
 .\.venv\Scripts\python.exe -B manage.py makemigrations --check --dry-run --settings=config.test_settings
 ```
 
-`test.py` содержит учебные функции пользователя и не является тестовым набором проекта. После фазы 2 прошли 128 тестов на PostgreSQL; SQLite пропускает две PostgreSQL проверки конкурентности. Протокол обновления и ограничения находятся в [PHASE2.md](docs/PHASE2.md).
+`test.py` contains the user's learning exercises, not application tests. After Phase 2, all 128 tests passed on PostgreSQL; SQLite skips two PostgreSQL concurrency checks. The update protocol and limitations are in [PHASE2.md](docs/PHASE2.md).
 
-Для сохранения исходников и проверки текущего окружения в PowerShell:
+To capture source files and check the current environment from PowerShell:
 
 ```powershell
 .\.venv\Scripts\python.exe -B scripts/capture_baseline.py --label 2026-10-05
 ```
 
-Для резервной копии и проверки восстановления следуй [docs/RECOVERY.md](docs/RECOVERY.md). Артефакты внутри `artifacts/` исключены из Git и Docker image. Они содержат данные проекта и хранятся локально.
+Follow [docs/RECOVERY.md](docs/RECOVERY.md) for backup and restoration checks. Files under `artifacts/` are excluded from Git and Docker images. They contain project data and are stored locally.
 
-## Работа по фазам
+## Working in phases
 
-Фазы 0–2 завершены. Парсеры находятся в `apps/ingestion/parsers/`; CLI и Celery используют общий сервис. Состояние запусков, ошибки и происхождение значений сохраняются в БД. Однофамильцы становятся кандидатами сопоставления; общий директор в графе требует подтверждённого ИИН и доказательства каждой роли.
+Phases 0-2 are complete. Parsers are in `apps/ingestion/parsers/`; CLI and Celery use one service. Run status, errors and value provenance are saved in the database. People with matching names become identity candidates; a shared director in the graph requires a confirmed IIN and evidence for each role.
 
-Посмотреть сохранённый прогресс без live-запросов после применения миграций:
+Read saved progress without live requests after applying migrations:
 
 ```powershell
 uv run python manage.py ingestion_status
 ```
 
-Намеренный сбор запускается через `ingest_data`: `--mode=initial` продолжает первоначальный обход, `--mode=update` читает окно новых/обновлённых договоров с начала, `--mode=enrich` обновляет карточки компаний. `--resume=UUID` продолжает сохранённый запуск с места сбоя. `full` выполняет upsert без очистки. Эти команды обращаются к реальным источникам; режимы, лимиты и происхождение полей подробно описаны в [PHASE2.md](docs/PHASE2.md). При локальном обновлении нужны новые миграции; рабочая БД в ходе проверки фазы не менялась.
+Intentional collection uses `ingest_data`: `--mode=initial` continues the initial scan, `--mode=update` reads a window of new/updated contracts from the beginning, and `--mode=enrich` refreshes company profiles. `--resume=UUID` continues a saved run from its failed stage. `full` performs upserts without clearing data. These commands contact live sources; modes, limits and field provenance are documented in [PHASE2.md](docs/PHASE2.md). Local updates require the new migrations; the working database was not changed during phase verification.
 
-Следующая реализация начинается после проверки критериев текущей фазы. В фазе 4 изменятся алгоритм, хранение и визуальное представление графа. Общий UI/UX React-сайта будет разработан по референсам пользователя в фазе 7.
+Start the next implementation after verifying the current phase's acceptance criteria. Phase 4 changes the graph algorithm, storage and presentation. The overall React UI/UX will follow the user's references in Phase 7. Russian localisation follows completion of the English interface.
 
-Git-команды выполняет пользователь. Для отдельного чата Codex указывай фазу, границы задачи и критерии проверки; архитектурные решения и актуальный статус бери из документов репозитория.
+The user runs Git commands. For a separate Codex chat, specify the phase, scope and verification criteria; use repository documents for architecture decisions and current status.

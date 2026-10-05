@@ -1,80 +1,80 @@
-# Резервное копирование и проверка восстановления
+# Backups and recovery verification
 
-Этот документ описывает сохранение существующей PostgreSQL перед изменением приложения. Копия считается проверенной после восстановления в отдельную временную БД и сравнения таблиц с согласованным снимком источника. Состояние выполненной проверки находится в [BASELINE.md](BASELINE.md).
+Preserve existing PostgreSQL before application changes. A verified backup requires restoration into a separate temporary database and comparison against a consistent source snapshot. Completed baseline checks are in [BASELINE.md](BASELINE.md).
 
-## Что сохраняется
+## What is preserved
 
-`scripts/backup_database.py` создаёт custom-format дамп одной БД через `pg_dump`. Исходное подключение работает в read-only транзакции REPEATABLE READ. Экспортированный snapshot используется и для подсчёта и хеширования строк, и для самого дампа, поэтому одновременное изменение данных не должно нарушить их сопоставимость.
+`scripts/backup_database.py` creates a custom-format single-database dump with `pg_dump`. A read-only REPEATABLE READ connection exports a snapshot used for both counts/hashes and the dump, keeping concurrent writes from invalidating comparisons.
 
-При `--verify-restore` утилита создаёт новую БД `gpg_restore_verify_<случайный UUID>` на локальном сервере. `pg_restore` восстанавливает дамп в неё с `--exit-on-error`, `--no-owner` и `--no-privileges`. Затем проверяются список таблиц `public`, их столбцы, число строк и SHA-256 содержимого с учётом повторяющихся строк. Порядок чтения не влияет на хеш. Таблица `django_migrations` проверяется отдельно в отчёте и вместе с остальными таблицами.
+`--verify-restore` creates local `gpg_restore_verify_<random UUID>`. Restore uses `--exit-on-error`, `--no-owner`, `--no-privileges`. Compare `public` tables, columns, row counts, SHA-256 content including duplicates; read order is irrelevant. `django_migrations` is included and separately reported.
 
-Проверка не запускает Django, Celery, парсеры или ИИ. Утилита удаляет только временную БД, которую создала в этом запуске; перед удалением сверяет точное сгенерированное имя и исключает исходную БД. При ошибке копия и JSON-отчёт сохраняются. Если очистка не удалась, имя оставшейся временной БД находится в отчёте; её нельзя удалять по приблизительному имени или общему префиксу.
+No Django/Celery/parsers/AI run. Cleanup drops only the database created by that invocation after checking the exact generated name and excluding the source. Failures retain dump/JSON. Failed cleanup records the remaining name; never remove by approximate name or broad prefix.
 
-Дамп сохраняет схему, данные и последовательности одной БД. Автоматическое сравнение охватывает обычные и partitioned таблицы схемы `public` и характеристики их столбцов; полные определения defaults, constraints, индексов и значения последовательностей отдельно не сравниваются. Значения последовательностей не входят в согласованный MVCC snapshot строк. Успешный `pg_restore` подтверждает выполнение восстановления этих объектов, но не заменяет отдельную проверку каждого определения. Пользователи сервера, tablespaces, `.env`, медиа и другие внешние данные требуют отдельного хранения. Пробное восстановление намеренно не воспроизводит владельцев и права исходных объектов.
+The dump includes schema/data/sequences. Comparison covers regular/partitioned public tables and column characteristics, not every default/constraint/index definition or sequence value. Sequences lie outside the row MVCC snapshot. Successful restore verifies execution, not equivalence of every definition. Server users/tablespaces/`.env`/media/external data need separate preservation. Test restore omits original ownership/privileges.
 
-## Подключение и инструменты
+## Connection and tools
 
-Утилита читает `.env` из корня проекта и переменные окружения процесса. Приоритет имён соответствует настройкам Django: `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGHOST`, `PGPORT` выше `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`. Переменные процесса переопределяют значения файла.
+Read root `.env` and process variables. `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGHOST`, `PGPORT` take precedence over corresponding `DB_*`; process values override file values.
 
-Пароль передаётся PostgreSQL-инструментам через окружение дочернего процесса. Утилита не выводит его, не передаёт в аргументах командной строки и не записывает в отчёт. В отчёте сохраняются хеш имени исходной БД, версии, структура таблиц и контрольные суммы, но не строки с персональными данными.
+Passwords pass through child-process environment only, never output/command arguments/reports. Reports contain source-name hash, versions, structure/checksums, not personal rows.
 
-Для проверенного окружения фазы 0 используются Python 3.13.5 и PostgreSQL 17.6. `pg_dump` и `pg_restore` установлены в `C:\Program Files\PostgreSQL\17\bin`. Для другой машины путь необходимо заменить или разрешить автоматический поиск инструментов. Временное восстановление требует права `CREATE DATABASE`; автоматически выполняется только для локального сервера. Утилита не принимает неоднозначные параметры libpq routing и URI с реквизитами вместо простого имени БД.
+Phase 0 verified Python 3.13.5/PostgreSQL 17.6. Tools: `C:\Program Files\PostgreSQL\17\bin`; adjust or use discovery elsewhere. Restore requires `CREATE DATABASE`, automatically only on local servers. Ambiguous libpq routing/credential URIs instead of simple database names are rejected.
 
-## Повторное резервное копирование
+## Repeat a backup
 
-В PowerShell из корня проекта:
+From the root in PowerShell:
 
 ```powershell
 .\.venv\Scripts\python.exe -B scripts/backup_database.py --pg-bin 'C:\Program Files\PostgreSQL\17\bin' --verify-restore
 ```
 
-Копия без пробного восстановления:
+Without verification:
 
 ```powershell
 .\.venv\Scripts\python.exe -B scripts/backup_database.py --pg-bin 'C:\Program Files\PostgreSQL\17\bin'
 ```
 
-Второй вариант сохраняет БД, но сам по себе не доказывает восстановимость. Для закрытия соответствующего критерия фазы нужна первая команда с успешным результатом.
+The second command alone does not prove recoverability. Acceptance requires successful test restoration.
 
-Проверки защитных механизмов без обращения к БД:
+Offline safeguards:
 
 ```powershell
 .\.venv\Scripts\python.exe -B -m unittest tests.test_backup_database -v
 ```
 
-Файлы создаются в `artifacts/phase0/`. Каталог исключён из Git и Docker image. Можно задать `--output-dir`, но только внутри игнорируемого `artifacts/`. Дамп содержит реальные данные: храни его с ограниченным доступом. Копия на том же диске помогает при ошибке изменения, но для защиты от отказа диска нужна отдельная защищённая копия; выгрузка во внешнее хранилище в фазе 0 не выполняется.
+Output defaults to ignored `artifacts/phase0/`, excluded from images. `--output-dir` must stay within `artifacts/`. Restrict dump access. Same-disk backups protect against incorrect changes; disk-failure recovery needs a separate secured copy. External upload was outside Phase 0.
 
-## Проверка результата
+## Check the result
 
-В соответствующем `database_*.json` должны быть:
+Expected `database_*.json`:
 
 - `status: passed`;
 - `verification.status: passed`;
 - `verification.differences: {}`;
 - `verification.django_migrations_verified: true`;
 - `verification.cleanup: dropped`;
-- SHA-256 и размер дампа.
+- dump SHA-256/size.
 
-Если verification не запрашивалась или завершилась ошибкой, проверку восстановления нельзя считать выполненной. При сбое сохраняй исходный дамп и безопасный код ошибки; не повторяй восстановление поверх исходной базы.
+Absent/failed verification is not a successful restore check. Preserve dump/safe error code; never retry over the source database.
 
-## Использование копии при восстановлении проекта
+## Recover the project
 
-При реальном восстановлении сначала проверить SHA-256 дампа по отчёту и подготовить отдельную пустую БД. Восстановить в неё проверенным `pg_restore`, сопоставить таблицы и миграции, затем проверить приложение без запуска сбора и ИИ. Переключение рабочего `.env` на восстановленную БД и возврат фоновых задач выполняются как отдельная согласованная операция.
+Check SHA-256, prepare a separate empty database, restore with verified tools, compare tables/migrations, check the app without collection/AI. Switching `.env` and restarting jobs are separately authorised operations.
 
-Сохранять прежнюю БД до проверки нового окружения. Не использовать `--clean`, удаление исходной БД или destructive import как способ восстановления.
+Retain the previous database until verification. Do not use `--clean`, source deletion, or destructive import for recovery.
 
-Официальные сведения о формате и ограничениях: [pg_dump PostgreSQL 17](https://www.postgresql.org/docs/17/app-pgdump.html), [pg_restore PostgreSQL 17](https://www.postgresql.org/docs/17/app-pgrestore.html).
+Official references: [PostgreSQL 17 pg_dump](https://www.postgresql.org/docs/17/app-pgdump.html), [pg_restore](https://www.postgresql.org/docs/17/app-pgrestore.html).
 
-## Проверенное обновление фазы 1
+## Verified Phase 1 upgrade
 
-5 октября 2026 года копия фазы 0 дополнительно восстановлена в отдельную временную PostgreSQL 17.11 БД Docker. До миграции совпали данные и столбцы 29 таблиц; после `graph.0003_cluster_analysis_state` все прежние значения 28 таблиц вне журнала миграций сохранились. UUID, состав и тексты 4 кластеров не изменились, временная БД удалена. Исходная БД не менялась: отдельная read-only проверка сравнила её с фазой 0. Протокол находится в [PHASE1.md](PHASE1.md).
+On 5 October 2026, Phase 0 backup was additionally restored into separate Docker PostgreSQL 17.11. All 29 tables matched before migration; after `graph.0003_cluster_analysis_state`, original values in 28 tables outside the migration log matched. Four cluster UUIDs/memberships/texts remained unchanged; temporary DB dropped. Read-only source comparison matched Phase 0. See [PHASE1.md](PHASE1.md).
 
-Для локального запуска обновлённого приложения нужна новая миграция. Проверка копии не означает, что она уже применена к исходной БД; перед рабочим обновлением проверь актуальную резервную копию и выполни `python manage.py migrate` с нужным окружением. В Docker миграции выполняет отдельный сервис.
+Verified copy migration does not imply source migration. Check a current backup before `python manage.py migrate` in the intended environment. Docker uses its migration service.
 
-## Проверенное обновление фазы 2
+## Verified Phase 2 upgrade
 
-5 октября 2026 года перед изменением схемы создан новый дамп PostgreSQL 17.6 и проверено его восстановление. Отчёт `artifacts/phase2/database_20261005T155408Z_21f9e0e2.json` содержит `status=passed`, успешное сравнение 29 таблиц и очистку временной БД. SHA-256 дампа повторно проверен перед миграционным испытанием.
+On 5 October 2026, a new PostgreSQL 17.6 dump was created before schema changes and restored successfully. `artifacts/phase2/database_20261005T155408Z_21f9e0e2.json` records passed status, 29-table comparison, cleanup. SHA-256 was rechecked before migration.
 
-Дамп дополнительно восстановлен в отдельную временную БД и обновлён всеми миграциями. Прежние значения строк 28 таблиц вне журнала миграций совпали по исходным PK и столбцам; новые поля/строки добавлены отдельно. Сохранены договоры, исходные люди и роли, UUID/членство/тексты кластеров. Полный набор 128 тестов прошёл в ещё одной изолированной PostgreSQL БД, обе временные БД удалены. Исходная БД до и после сравнения совпала с новым дампом.
+Another restored database was upgraded through all migrations. Existing values in 28 tables outside migration history matched by original PKs/columns, allowing added fields/rows. Contracts/original people/roles/cluster UUIDs/membership/texts survived. All 128 tests passed in another isolated PostgreSQL database; both temporary databases dropped. Source matched the dump before/after checks.
 
-Проверка записана в `artifacts/phase2/postgresql-verification.json`, поведение миграций — в [PHASE2.md](PHASE2.md). Legacy роли архивируются и получают отдельные личности компаний; обратная миграция намеренно не восстанавливает склейку по ФИО. Для возврата прежней схемы восстанавливай проверенную копию отдельно. Рабочая БД не мигрирована в ходе фазы; перед реальным обновлением проверь, что после дампа в неё не поступили новые данные, иначе создай актуальную копию.
+See `artifacts/phase2/postgresql-verification.json` and [PHASE2.md](PHASE2.md). Legacy roles are archived with company-scoped identities; reverse data migration intentionally does not restore name merges. Recover old schema from a separately restored verified backup. The working database was not migrated during Phase 2. Before upgrading, confirm no writes occurred after backup; otherwise create a current one.

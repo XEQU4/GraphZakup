@@ -13,11 +13,11 @@ from .services import analysis_fingerprint, build_director_map, get_connection_t
 
 def build_graph_data(suppliers, cluster=None):
     """
-    Строит данные графа для D3.js.
+    Build graph data for D3.js.
 
-    risk в узле = риск кластера, открытого в данный момент.
-    Если поставщик входит в несколько кластеров — берём среднее по ним,
-    но текущий кластер (cluster) всегда передаётся явно и берётся как основа.
+    Node risk is the score of the currently viewed cluster.
+    Without an explicit cluster, average active-cluster scores for each supplier;
+    an explicitly supplied cluster takes precedence.
     """
     nodes = []
     links = []
@@ -73,7 +73,7 @@ class ClusterListView(ClampedPaginationMixin, ListView):
         try:
             self.minimum_risk = max(0, min(100, int(raw))) if raw else None
         except ValueError:
-            return HttpResponseBadRequest("Порог риска должен быть целым числом от 0 до 100.")
+            return HttpResponseBadRequest("Risk threshold must be an integer between 0 and 100.")
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
@@ -124,7 +124,7 @@ class ClusterDetailView(DetailView):
         current_fingerprint = analysis_fingerprint(suppliers, get_risk_weights(), timezone.localdate())
         context["explanation_stale"] = cluster.explanation_stale or current_fingerprint != cluster.analysis_fingerprint
         context["ai_explanation_html"] = self._linkify_explanation(
-            cluster.ai_explanation or "Объяснение пока не подготовлено.", suppliers
+            cluster.ai_explanation or "Explanation has not been prepared yet.", suppliers
         )
         return context
 

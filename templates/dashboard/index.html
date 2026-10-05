@@ -2,7 +2,7 @@
 {% load static %}
 {% load humanize %}
 
-{% block title %}Главная{% endblock %}
+{% block title %}Home{% endblock %}
 
 {% block extra_styles %}
     <link rel="stylesheet" href="{% static 'css/search.css' %}">
@@ -11,7 +11,7 @@
 {% block content %}
 
 <h2 class="mb-4 text-white fw-bold">
-    <i class="bi bi-speedometer2 page-icon"></i> Панель мониторинга
+    <i class="bi bi-speedometer2 page-icon"></i> Dashboard
 </h2>
 
 <div class="row g-4 mb-4">
@@ -19,7 +19,7 @@
         <div class="card h-100">
             <div class="card-body d-flex flex-column justify-content-center border-start border-4 border-info rounded-start">
                 <h6 class="text-info text-uppercase fw-semibold small mb-1">
-                    Всего компаний
+                    Total companies
                 </h6>
 
                 <h2 class="mb-0 fw-bold">
@@ -33,7 +33,7 @@
         <div class="card h-100">
             <div class="card-body d-flex flex-column justify-content-center border-start border-4 border-success rounded-start">
                 <h6 class="text-success text-uppercase fw-semibold small mb-1">
-                    Контрактов в базе
+                    Contracts in database
                 </h6>
 
                 <h2 class="mb-0 fw-bold">
@@ -47,7 +47,7 @@
         <div class="card h-100">
             <div class="card-body d-flex flex-column justify-content-center border-start border-4 border-warning rounded-start">
                 <h6 class="text-warning text-uppercase fw-semibold small mb-1">
-                    Подозрительных групп
+                    Suspicious groups
                 </h6>
 
                 <h2 class="mb-0 fw-bold">
@@ -61,7 +61,7 @@
         <div class="card h-100">
             <div class="card-body d-flex flex-column justify-content-center border-start border-4 border-danger rounded-start">
                 <h6 class="text-danger text-uppercase fw-semibold small mb-1">
-                    Сумма под риском
+                    Amount at risk
                 </h6>
 
                 <h2 class="mb-0 fw-bold text-danger" style="font-size: 1.6rem;">
@@ -77,12 +77,12 @@
         <div class="card h-100">
             <div class="card-header fw-semibold text-warning d-flex justify-content-between align-middle">
                 <span>
-                    <i class="bi bi-exclamation-triangle"></i> Топ подозрительных групп
+                    <i class="bi bi-exclamation-triangle"></i> Top suspicious groups
                 </span>
 
                 <a href="{% url 'graph:cluster_list' %}"
                    class="btn btn-link p-0 text-info text-decoration-none small">
-                    Все группы &rarr;
+                    All groups &rarr;
                 </a>
             </div>
 
@@ -96,15 +96,15 @@
                                 </th>
 
                                 <th>
-                                    Группа
+                                    Group
                                 </th>
 
                                 <th style="width: 30%" class="text-center">
-                                    Уровень угрозы
+                                    Risk level
                                 </th>
 
                                 <th class="pe-3 text-end" style="width: 25%">
-                                    Действие
+                                    Action
                                 </th>
                             </tr>
                         </thead>
@@ -140,14 +140,14 @@
                                         <a href="{% url 'graph:cluster_detail' cluster.uuid %}"
                                            class="btn btn-outline-info btn-sm py-0 px-2"
                                            style="font-size: 0.85rem;">
-                                            Граф
+                                            Graph
                                         </a>
                                     </td>
                                 </tr>
                             {% empty %}
                                 <tr>
                                     <td colspan="4" class="text-center p-3">
-                                        Нет данных по кластерам
+                                        No cluster data available
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -162,11 +162,11 @@
         <div class="card h-100">
             <div class="card-header fw-semibold text-info d-flex justify-content-between align-middle">
                 <span>
-                    <i class="bi bi-search"></i> Компании под риском (из групп)
+                    <i class="bi bi-search"></i> Companies in risk groups
                 </span>
 
                 <a href="{% url 'companies:list' %}" class="btn btn-link p-0 text-info text-decoration-none small">
-                    Весь реестр &rarr;
+                    Full registry &rarr;
                 </a>
             </div>
 
@@ -180,15 +180,15 @@
                                 </th>
 
                                 <th>
-                                    Организация
+                                    Company
                                 </th>
 
                                 <th>
-                                    БИН
+                                    BIN
                                 </th>
 
                                 <th class="pe-3">
-                                    Руководитель
+                                    Director
                                 </th>
                             </tr>
                         </thead>
@@ -234,7 +234,7 @@
                                                 </a>
                                             {% else %}
                                                 <span class="text-muted small">
-                                                    Не указан
+                                                    Not specified
                                                 </span>
                                             {% endif %}
                                         {% endwith %}
@@ -243,7 +243,7 @@
                             {% empty %}
                                 <tr>
                                     <td colspan="4" class="text-center p-3">
-                                        В базе данных нет компаний
+                                        No companies in the database
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -258,7 +258,7 @@
 <div class="card">
     <div class="card-header fw-semibold d-flex align-items-center justify-content-between gap-3 flex-wrap">
         <span>
-            <i class="bi bi-file-earmark-text"></i> Последние зарегистрированные контракты в системе
+            <i class="bi bi-file-earmark-text"></i> Latest contracts registered in the system
         </span>
 
         <div class="gz-search-wrap ms-auto" style="margin-right: -8px;">
@@ -266,7 +266,7 @@
                 <i class="bi bi-search gz-search-icon"></i>
 
                 <input type="text" class="gz-search-input" id="contract-search"
-                    placeholder="Номер, предмет, поставщик, заказчик..."
+                    placeholder="Number, subject, supplier, customer..."
                     autocomplete="off" spellcheck="false" value="{{ q }}">
 
                 <span class="gz-search-clear" id="contract-search-clear" style="display:none;">
@@ -286,27 +286,27 @@
                 <thead>
                     <tr>
                         <th class="ps-3">
-                            Номер договора
+                            Contract number
                         </th>
 
                         <th>
-                            Предмет закупки
+                            Procurement subject
                         </th>
 
                         <th>
-                            Поставщик
+                            Supplier
                         </th>
 
                         <th>
-                            Заказчик
+                            Customer
                         </th>
 
                         <th class="text-end">
-                            Сумма
+                            Amount
                         </th>
 
                         <th class="pe-3">
-                            Дата
+                            Date
                         </th>
                     </tr>
                 </thead>
@@ -352,7 +352,7 @@
                     {% empty %}
                         <tr>
                             <td colspan="6" class="text-center p-4">
-                                Контракты отсутствуют
+                                No contracts available
                             </td>
                         </tr>
                     {% endfor %}
@@ -364,7 +364,7 @@
 
 <div id="contracts-pagination">
     {% if is_paginated %}
-        <nav class="mt-4" aria-label="Навигация контрактов">
+        <nav class="mt-4" aria-label="Contract navigation">
             <ul class="pagination justify-content-center">
                 {% if page_obj.has_previous %}
                     <li class="page-item">
@@ -416,7 +416,7 @@
         </nav>
 
         <div class="text-center small mt-2">
-            Показано контрактов: {{ page_obj.start_index }}–{{ page_obj.end_index }} из {{ page_obj.paginator.count }}
+            Contracts shown: {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}
         </div>
     {% endif %}
 </div>

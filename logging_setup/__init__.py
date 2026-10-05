@@ -11,17 +11,17 @@ from logging_setup.filters import filter_maker, max_level_filter, handle_excepti
 
 def init_logging(log_dir: str = "logs", to_files: bool = True):
     """
-    Инициализация логирования для ГрафЗакуп.
+    Initialise logging for GrafZakup.
 
-    Вызывается один раз из config/settings.py через Apps.ready()
-    или напрямую в manage.py.
+    Called once through Apps.ready() during Django setup
+    or directly from manage.py.
 
-    Пишет:
-      - В консоль (цветной вывод через colorama):
+    Outputs:
+      - Console (coloured output through colorama):
           DEBUG..WARNING → stdout
           ERROR..CRITICAL → stderr
-      - В файл logs/app.log   (DEBUG..WARNING, ротация ежедневно, 7 дней)
-      - В файл logs/error.log (ERROR+,         ротация ежедневно, 14 дней)
+      - logs/app.log (DEBUG..WARNING, daily rotation, 7-day retention)
+      - logs/error.log (ERROR+, daily rotation, 14-day retention)
     """
     init(autoreset=True)
     if to_files:
@@ -59,7 +59,7 @@ def init_logging(log_dir: str = "logs", to_files: bool = True):
         handlers=handlers,
     )
 
-    # Перехват необработанных исключений → error.log
+    # Capture unhandled exceptions in error.log
     sys.excepthook = handle_exception
 
     logging.getLogger(__name__).info("Logging initialized (log_dir=%s)", log_dir)
@@ -67,7 +67,7 @@ def init_logging(log_dir: str = "logs", to_files: bool = True):
 
 def schedule_log_cleanup():
     """
-    Запускает очистку старых логов.
-    Вызывается из Celery beat (ежедневная задача) или вручную.
+    Clean up old logs.
+    Called by a daily Celery beat task or manually.
     """
     cleanup_old_logs_by_filename(days=30)

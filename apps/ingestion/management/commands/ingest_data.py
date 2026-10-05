@@ -5,7 +5,7 @@ from apps.ingestion.services import IngestionFailure, run_pipeline
 
 
 class Command(BaseCommand):
-    help = 'Первоначальный обход, обновление или enrichment с сохранённым прогрессом'
+    help = 'Initial collection, updates or enrichment with saved progress'
 
     def add_arguments(self, parser):
         parser.add_argument('--mode', choices=['initial', 'new', 'update', 'full', 'enrich'], default='initial')
@@ -13,7 +13,7 @@ class Command(BaseCommand):
         parser.add_argument('--start-page', type=int)
         parser.add_argument('--force', action='store_true')
         parser.add_argument('--days', type=int, default=7)
-        parser.add_argument('--resume', help='UUID запуска; его режим и параметры сохраняются')
+        parser.add_argument('--resume', help='Run UUID; retains the saved mode and parameters')
 
     def handle(self, *args, **options):
         try:

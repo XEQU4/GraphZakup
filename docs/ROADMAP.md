@@ -1,232 +1,208 @@
-# План развития GovernmentProcurementGraph
+# GovernmentProcurementGraph roadmap
 
-Дата плана: 5 октября 2026 года. Пользователь поручил начать фазу 0. Изменения приложения выполняются последовательно после фиксации исходного состояния; Git команды выполняет пользователь.
+Plan date: 5 October 2026. The user authorises phases individually and runs Git commands. Changes follow preservation of the baseline.
 
-Основа плана: [аудит](AUDIT.md), [исходное состояние](BASELINE.md), [проверка восстановления](RECOVERY.md) и [целевая архитектура](ARCHITECTURE.md). Названия будущих моделей и модулей являются предложением до их реализации. Фаза считается завершённой по проверяемым критериям, а не только по наличию кода.
+Based on the [audit](AUDIT.md), [baseline](BASELINE.md), [recovery record](RECOVERY.md), and [architecture](ARCHITECTURE.md). Future model/module names remain proposals until implemented. Completion requires verified criteria, not merely code.
 
-## Текущий статус
+## Current status
 
-| Фаза | Результат | Статус |
+| Phase | Outcome | Status |
 | --- | --- | --- |
-| 0 | Зафиксировать исходное состояние и предлагаемый объём диплома | Завершена |
-| 1 | Устранить опасные дефекты и сделать запуск воспроизводимым | Завершена |
-| 2 | Объединить сбор данных и исправить модель фактов | Завершена |
-| 3 | Подключить доступные сведения КГД | Запланирована |
-| 4 | Сохранять версии графа и существенно улучшить его вид | Запланирована |
-| 5 | Ввести проверяемый анализ и версионируемые объяснения | Запланирована |
-| 6 | Предоставить API через DRF | Запланирована |
-| 7 | Создать React интерфейс по референсам | Запланирована |
-| 8 | Подготовить дипломную демонстрацию и эксплуатацию | Запланирована |
+| 0 | Record baseline and proposed thesis scope | Complete |
+| 1 | Fix dangerous defects and make startup reproducible | Complete |
+| 2 | Consolidate ingestion and correct the fact model | Complete |
+| 3 | Integrate available KGD information | Planned |
+| 4 | Persist graph versions and substantially improve graph interaction | Planned |
+| 5 | Introduce verifiable analysis and versioned explanations | Planned |
+| 6 | Provide a DRF API | Planned |
+| 7 | Build a React interface using user references | Planned |
+| 8 | Prepare thesis demonstration and operations | Planned |
 
-Фазы 0–2 завершены 5 октября 2026 года. Фаза 2 объединила парсеры и сервисный pipeline, добавила происхождение фактов, продолжение запусков и безопасную идентичность людей. Все 128 тестов прошли на PostgreSQL; новая резервная копия восстановлена и мигрирована в отдельной БД с сохранением прежних значений. Исходная БД и пользовательские файлы сохранены. Протоколы и границы проверки находятся в [BASELINE.md](BASELINE.md), [PHASE1.md](PHASE1.md) и [PHASE2.md](PHASE2.md). Аудитория диплома, календарь и лимиты расходов остаются открытыми продуктовыми вопросами.
+Phases 0-2 were completed on 5 October 2026. Phase 2 consolidated parsers/the service pipeline, added provenance, resumable runs, and safe person identity. All 128 tests passed on PostgreSQL; a new backup was restored and migrated separately with existing values preserved. The source database and user files remained unchanged. See [BASELINE.md](BASELINE.md), [PHASE1.md](PHASE1.md), and [PHASE2.md](PHASE2.md) for protocols and limits. Audience, schedule, and spending limits remain open.
 
-## Зависимости
+## Project language
+
+Use English for documentation, instructions, comments, UI/CLI messages, prompts, and newly prepared explanations. Develop and verify the English website first. Add Russian website localisation later, after the English interface is complete. Preserve official source labels and original data in their source language. Translating files does not regenerate existing stored explanations.
+
+## Dependencies
 
 ```text
-0 → 1 → 2 → 4 → 5
-        ├→ 3
-        └→ 6 → 7
-3, 4, 5, 6, 7 → 8
+0 -> 1 -> 2 -> 4 -> 5
+         |-> 3
+         |-> 6 -> 7
+3, 4, 5, 6, 7 -> 8
 ```
 
-После стабилизации модели в фазе 2 отдельные работы КГД и DRF можно вести параллельно. Договорённости по snapshots и объяснениям входят в API до создания соответствующих страниц React. Визуальное улучшение графа начинается в фазе 4; итоговый дизайн сайта создаётся в фазе 7 по референсам пользователя.
+KGD and DRF work can proceed independently after Phase 2 stabilises the model. Include snapshot/explanation contracts in the API before the corresponding React pages. Graph improvements begin in Phase 4; final website design follows user references in Phase 7. Tests, documentation, migrations, and data-preservation checks belong to every phase; Phase 8 assembles verified results.
 
-Тесты, документация, миграции и проверка сохранности данных входят в каждую фазу. Фаза 8 собирает итоговые результаты, а не откладывает всю проверку на конец.
+## Phase 0 Baseline and scope
 
-## Фаза 0 Исходное состояние и объём работы
+Goal: control refactoring and preserve a recovery path.
 
-Цель: сделать переделку контролируемой и сохранить возможность вернуться к исходному состоянию.
+- Record the tree, versions, significant user changes, and audit boundaries without secrets.
+- Save audit, architecture, roadmap, and repository rules.
+- Back up accessible existing data/schema; restore separately and compare tables/counts.
+- Record unavailable data and how to resolve access. Backup instructions alone do not prove recovery.
+- Define proposed minimum thesis scope, demonstration scenarios, and open questions.
+- Record Phase 4 graph improvements and obtain references before final UI/UX approval.
 
-Работы:
+Deliverables: `docs/`, repository rules, and a verified baseline. Personal archives/backups stay outside Git.
 
-- Зафиксировать дерево проекта, версии зависимостей, существенные локальные изменения и границы выполненного аудита без публикации секретов.
-- Сохранить аудит, архитектуру, roadmap и правила работы в репозитории.
-- Подготовить резервную копию существующей БД, если она доступна; сохранить структуру и данные. Восстановить копию в отдельную БД и сравнить ключевые таблицы и количества записей.
-- Если данные недоступны или БД не обнаружена, явно записать ограничение и способ его закрыть. Создание инструкции резервного копирования не является успешной проверкой восстановления.
-- Определить предлагаемый минимальный объём диплома, демонстрационные сценарии и вопросы, которые остаются открытыми.
-- Зафиксировать требование улучшить сам граф в фазе 4 и получить референсы перед утверждением окончательного UI/UX.
+Acceptance: user changes preserved without hidden application refactoring; confirmed defects distinguished from risks/unverified areas; verified recovery or confirmed absence of a database, with inaccessible data unresolved; scope/deferred decisions saved independently of chat history.
 
-Результат: документы в `docs/`, правила проекта и проверенная запись исходного состояния. Личные архивы и резервные копии не включаются в Git.
+## Phase 1 Defect fixes and startup
 
-Критерии завершения:
+Dependency: Phase 0, especially preserved data before changing imports.
 
-- Локальные изменения пользователя сохранены, приложение не переделывается скрыто в рамках этой фазы.
-- Аудит различает подтверждённые дефекты, архитектурные риски и непроверенные участки.
-- Существует проверенная резервная копия с протоколом восстановления либо подтверждено отсутствие существующей БД; недоступная БД фиксируется как незакрытый пункт.
-- Предлагаемый объём диплома и отложенные решения записаны так, чтобы следующая фаза не требовала восстановления контекста из чата.
+- Escape source values in graphs/tables; prevent untrusted HTML insertion.
+- Stop deletion before successful collection; define full import preserving related records.
+- Stop deleting all clusters; retain IDs/texts and mark outdated analysis before full snapshots.
+- Correct checkpoints for empty/error/partial pages; retain unconfirmed records for retry.
+- Normalise dates; parse Decimal directly from strings, never substituting zero for errors; distinguish missing data from source failure.
+- Validate filters, unify thresholds, deduplicate counts, fix log cleanup.
+- Use frozen Docker dependencies, current staticfiles settings, a dedicated migration stage, startup ordering, and health checks.
+- Align PostgreSQL with verified recovery: baseline local 17.6 versus original Compose 16; verify transfer separately.
+- Provide `.env.example` and safe startup instructions without real credentials.
 
-## Фаза 1 Исправление дефектов и запуск
+Verification: malicious HTML, invalid dates, exact money, empty/partial pages, and database-failure fixtures; isolated Compose startup without destructive import.
 
-Зависимость: фаза 0, особенно сохранение существующих данных перед изменениями импорта.
+Acceptance: source failure cannot delete data or skip unprocessed pages; invalid values are handled deliberately; after configuring `.env`, one command starts the stack with migrations preceding application services.
 
-Работы:
+Outcome: complete. [PHASE1.md](PHASE1.md) records 83 PostgreSQL tests, restored-copy migration, HTTP/Compose verification, and remaining Phase 2-5 limitations.
 
-- Экранировать значения источников в графе и таблицах; убрать вставку непроверенного текста как HTML.
-- Устранить удаление договоров и поставщиков до успешного получения новой выборки. Определить безопасную семантику полного импорта без потери связанных записей.
-- Устранить удаление всех кластеров в штатном pipeline; до полноценной модели snapshots сохранить существующие идентификаторы и объяснения, явно обозначая необходимость обновления анализа.
-- Исправить advancement курсора при пустом ответе, ошибке сохранения и частичной странице. Сохранять неподтверждённые записи для повторной обработки.
-- Нормализовать даты, использовать точный Decimal для сумм, не подменять ошибку разбора нулём. Отделить отсутствие данных от ошибки источника.
-- Валидировать фильтры, унифицировать существующие пороги, исправить повторный подсчёт связанных компаний и ошибки очистки логов.
-- Устанавливать Docker зависимости по lockfile; обновить настройки статических файлов; настроить миграции как отдельную стадию, порядок запуска и healthchecks.
-- Согласовать версию PostgreSQL контейнера с проверенным восстановлением: локальная база использует 17.6, текущий Compose — 16. Проверить перенос данных на выбранную версию отдельно.
-- Добавить понятные `.env.example` и инструкции безопасного запуска. Реальные токены и пароли не попадут в документацию.
+## Phase 2 Unified ingestion and fact model
 
-Проверка: fixtures вредоносного HTML, повреждённой даты, точной денежной суммы, пустого ответа, частичной страницы и ошибки БД; запуск Compose на отдельном окружении без выполнения реального destructive import.
+Dependency: Phase 1.
 
-Критерии завершения: ошибка источника не удаляет данные и не пропускает необработанную страницу; типовые некорректные значения обрабатываются контролируемо; после заполнения `.env` стек запускается одной командой, миграции успешно предшествуют прикладным сервисам.
+- Consolidate registry/Adata adapters in `apps/ingestion/parsers/` with verified behaviour.
+- Add shared transport, normalisers, and request results; services persist data/manage stages.
+- Add runs, observations, checkpoints, retries; CLI/Celery call one pipeline.
+- Separate initial traversal, updates, and enrichment; add pacing/cache/concurrency protection.
+- Preserve raw facts, dates, parser versions; select values after normalisation/quality checks.
+- Name matches create identity candidates; repair legacy false merges without losing evidence.
+- Preserve role intervals/history; changed roles do not remain current indefinitely.
+- Support supplier/customer companies; directorship does not imply ownership/shares.
 
-Фактический результат: критерии выполнены. [PHASE1.md](PHASE1.md) фиксирует исправления, 83 PostgreSQL теста, миграцию восстановленной копии и HTTP/Compose проверки, включая оставшиеся ограничения фаз 2–5.
+Verification: repeat/interrupted imports, source conflicts, namesakes, director changes, mass service contacts.
 
-## Фаза 2 Единый сбор данных и модель фактов
+Acceptance: idempotence, visible progress/errors, significant fact provenance, no verified company links from unreliable person matches.
 
-Зависимость: фаза 1.
+Outcome: complete. [PHASE2.md](PHASE2.md) documents CLI/Celery, observations, field selection, role history, legacy isolation, and migrations. No live collection. Confirmed IIN/ownership scenarios use fixtures; an external confirming source is still needed. Apply prepared migrations to the working database separately.
 
-Работы:
+## Phase 3 KGD integration
 
-- Создать `apps/ingestion/parsers/` и перенести туда адаптеры реестров и Adata, сохранив их проверенное поведение.
-- Выделить общий транспорт, нормализаторы и единый результат запроса. Парсеры возвращают данные; сервис выполняет сохранение и управляет стадиями.
-- Ввести `IngestionRun`, наблюдения источников, checkpoints и повторную обработку ошибок. Команды и Celery вызывают один сервисный процесс.
-- Разделить первоначальный обход, регулярное обновление и enrichment. Добавить ограничения частоты, кэширование и защиту от конфликтующих запусков.
-- Сохранять исходные факты, даты и версии парсеров; выбирать итоговое значение после нормализации и проверки качества.
-- Исправить идентичность людей: совпадение ФИО создаёт кандидата, а не подтверждённую общую личность. Проработать исправление существующих ложных объединений.
-- Сохранять временные интервалы директорства и владения; смена роли не оставляет прежнюю роль бессрочно актуальной.
-- Спроектировать компанию в ролях поставщика и заказчика. Не выводить владельца или долю владения из факта директорства.
+Dependency: Phase 2 ingestion/subject model. Read-only access research may start earlier.
 
-Проверка: повторный запуск одной выборки, прерывание и продолжение, конфликт источников, однофамильцы, смена директора и массовый служебный контакт.
+- Verify official services, access conditions, tokens, and fields; one API does not expose all tax information.
+- Choose the first supported service and add its adapter to the common directory.
+- Store result, effective date, source, and subject; company debt belongs to the company.
+- Add limits/timeouts/retries, preserving the last reliable observation.
+- Prepare anonymised fixtures; separately verify live integration when access is available.
 
-Критерии завершения: импорт идемпотентен; прогресс и ошибки видны; значимые факты имеют происхождение; ненадёжное совпадение человека не превращается в достоверную связь компаний.
+Acceptance: identifier-confirmed subjects; distinct `not_found`, `unavailable`, `not_checked`; reproducible results. Live official-source verification is required for completion. Without access, document the limitation rather than claim fixture-only integration is complete.
 
-Фактический результат: критерии выполнены. [PHASE2.md](PHASE2.md) описывает общий процесс CLI/Celery, наблюдения, правила выбора полей, историю ролей, изоляцию старых ФИО объединений и проверку миграций. Live-сбор не запускался; подтверждение ИИН и сведения владельцев проверены fixtures, их фактический внешний источник ещё нужен. Рабочая БД требует применения подготовленных миграций.
+## Phase 4 Graph state and appearance
 
-## Фаза 3 Интеграция КГД
+Dependency: Phase 2 entities, temporal facts, and observations; add KGD inputs when ready.
 
-Зависимость: общие механизмы ingestion и модель субъекта из фазы 2. Разведка доступа может начаться раньше без изменения приложения.
+Data work:
 
-Работы:
+- Create shared evidence service/`EvidenceEdge` for both UI and analysis.
+- Replace all-pairs comparisons with feature indexes; avoid huge cliques from common contacts.
+- Preserve UUIDs, immutable snapshots, `graph_hash`, change provenance, merge/split history.
+- Recompute affected components within a verified impact boundary; publish atomically.
+- Save coordinates/viewing state separately from analytical state.
 
-- Проверить актуальные официальные сервисы, условия доступа, способ получения токена и доступные поля. Не считать один найденный API доступом ко всем видам налоговых сведений.
-- Определить первый поддерживаемый сервис и добавить адаптер КГД в общую директорию парсеров.
-- Сохранять результат проверки, дату актуальности, источник и субъект. Долг компании хранить у компании, не у владельца.
-- Реализовать лимиты, timeout, повторные попытки и обновление сведений без удаления последнего достоверного наблюдения.
-- Подготовить обезличенные fixtures и отдельно проверить live интеграцию, если получен доступ.
+Interaction work:
 
-Критерии завершения: найденный субъект подтверждается идентификатором; состояния «не найдено», «недоступно» и «не проверено» различаются; сведения воспроизводимы. Для реально работающего подключения необходима подтверждённая проверка официального источника. Если доступа нет, ограничение записывается, а фазу интеграции нельзя выдавать за завершённую только по fixtures.
+- Prototype/select graph libraries by readability, performance, layout persistence.
+- Distinguish companies, people, and links; add legend/confidence indicators.
+- Highlight selected nodes/neighbours; add search, link filters, zoom/pan, reset/restore.
+- Show edge evidence/sources/intervals; distinguish direct links from paths.
+- Verify dense graphs, long labels, small-screen selection; meaning cannot rely on colour alone.
+- Preserve existing positions, place new nodes carefully, indicate historical versions.
 
-## Фаза 4 Состояние и внешний вид графа
+Final style awaits user references. Technical/functional graph work may precede them. References received in Phase 4 inform the graph before React integration in Phase 7.
 
-Зависимость: качественные сущности, временные факты и наблюдения из фазы 2. Новые типы сведений КГД подключаются по готовности фазы 3.
+Verification: unchanged rebuild, added/removed edge, merge/split, non-overlapping roles, coordinate restore, several graph sizes.
 
-Работы с данными:
+Acceptance: stable links, explained group transitions, readable evidence, correct new-company versions without needless view resets, no global recreation for a single component change.
 
-- Создать единый сервис доказательств и `EvidenceEdge`; интерфейс и анализ используют одни и те же связи.
-- Заменить глобальное сравнение всех пар индексами признаков; обработать массовые контакты и адреса без огромных клик.
-- Сохранить постоянные UUID, неизменяемые snapshots, `graph_hash`, происхождение изменений и историю слияний и разделений.
-- Выполнять адресный пересчёт затронутых компонент с проверяемой границей затронутых данных. Публиковать готовую версию атомарно.
-- Ввести сохранение координат и пользовательского состояния просмотра отдельно от аналитического состояния.
+## Phase 5 Analysis and explanations
 
-Работы с видом и взаимодействием:
+Dependency: Phase 4 versions/evidence; behavioural rules depend on available procurement inputs.
 
-- Подготовить прототипы графа и выбрать библиотеку по читаемости, производительности и сохранению раскладки.
-- Улучшить обозначение компаний, людей и типов связей; добавить понятную легенду и обозначение уверенности.
-- Реализовать выделение выбранного узла и соседей, поиск участника, фильтры связей, удобные zoom и pan, сброс и восстановление раскладки.
-- Добавить панель выбранного ребра с доказательствами, источниками и временными интервалами. Различать прямую связь и путь через других участников.
-- Проверить плотные группы, длинные названия и выбор объектов на небольшом экране. Цвет не должен быть единственным носителем значения.
-- После обновления сохранить положение существующих узлов и аккуратно добавить новые. Обозначать просмотр исторической версии.
+- Version rules, evidence, temporal conditions, and limitations.
+- Separate identity confidence, link strength, behavioural risk; assess false scoring conclusions.
+- Add `AnalysisSnapshot`, findings, `analysis_hash`, shared text/UI metrics.
+- Save English template explanations by analysis version with uncertainty. Include language in reuse keys for later localisation.
+- Select LLM/model/budget only for measurable benefit; supply structured evidence, validate/store output.
+- Deduplicate jobs; version prompts; add generation states/fallback; reject stale-result publication.
+- Do not claim coordinated bidding without participants, bids, and outcomes.
 
-Окончательный стиль сайта пока не утверждается. Референсы пользователя используются, когда начинается работа над UI/UX; технические и функциональные улучшения графа можно готовить до этого. Если референсы доступны в фазе 4, граф проектируется с их учётом, затем интегрируется в React в фазе 7.
+Verification: unchanged inputs, changed rules/facts, repeats, LLM failure, invented output identifiers, late old-version jobs.
 
-Проверка: неизменённая пересборка, добавление и удаление связи, слияние, разделение, непересекающиеся роли, восстановление координат и измерение на графах нескольких размеров.
+Acceptance: significant claims have evidence; identical inputs reuse text; significant changes create versions; useful without LLM; many weak matches alone do not force maximum risk.
 
-Критерии завершения: повторный расчёт не меняет стабильные ссылки; история объясняет переходы между группами; граф читаем и позволяет проверить основания связи; новая компания создаёт корректную версию и не сбрасывает состояние просмотра без причины. Изменение одной компоненты не пересоздаёт весь набор кластеров.
+## Phase 6 DRF API
 
-## Фаза 5 Анализ и объяснения
+Dependency: stable Phase 2 model; refine graph/explanation contracts with Phases 4-5.
 
-Зависимость: версии графа и доказательства из фазы 4. Конкретные правила закупочного поведения зависят от доступности необходимых исходных данных.
+- Add `/api/v1/` serializers for companies, people, contracts, clusters, snapshots, evidence, explanations.
+- Define filters/order/pagination/errors/OpenAPI; return data without HTML.
+- Separate reads/job starts; expose job state and exact result version.
+- Define roles/permissions; verify same-origin sessions/CSRF initially.
+- Keep Django admin; retire old pages when replacement scenarios are ready.
 
-Работы:
+Verification: permissions, invalid filters, query limits, job status, schema consistency.
 
-- Создать каталог версионируемых правил с основаниями, временными условиями и ограничениями.
-- Разделить уверенность идентичности, силу связи и риск поведения; оценить ложные выводы текущего скоринга.
-- Ввести `AnalysisSnapshot`, findings, `analysis_hash` и единый источник показателей для интерфейса и текста.
-- Реализовать шаблонные объяснения, сохранение по версии анализа и понятное обозначение неопределённости.
-- Выбрать LLM провайдера, модель и бюджет, если генерация даёт измеримую пользу. Передавать структурированные доказательства, проверять ответ и сохранять результат.
-- Добавить дедупликацию задач, версии промптов, состояния генерации, fallback и защиту актуальной версии от запоздалого ответа.
-- Не заявлять паттерны согласованных торгов при отсутствии участников, заявок и результатов.
+Acceptance: documented API supports main scenarios; GET never generates or changes domain data; unauthorised users cannot launch collection/resource-consuming jobs.
 
-Проверка: неизменные входы, изменение правила и факта, повторные запросы, недоступный LLM, выдуманный идентификатор в ответе и поздняя задача старой версии.
+## Phase 7 React and reference-based design
 
-Критерии завершения: значимое утверждение связано с доказательствами; одинаковые входы повторно используют объяснение; значимые изменения создают новую версию; расчёт полезен без LLM; риск не повышается до максимального только из-за множества слабых совпадений.
+Dependency: Phase 6 contracts and Phase 4 graph; user supplies references before visual approval.
 
-## Фаза 6 DRF API
+- Build React/TypeScript; record build/component choices after review.
+- Analyse layouts, typography, colours, density, navigation, graph behaviour; agree on key-screen mockups.
+- Move dashboard/search/company details/cluster lists/analysis.
+- Integrate graph/evidence/version history/saved views.
+- Show loading, empty, source-error, KGD-check, explanation-generation states.
+- Verify accessibility/responsiveness/contrast; decide on Bootstrap based on design/migration cost.
+- Complete and verify English first. Add Russian localisation later as a separate task with language selection and translated UI/explanation handling, retaining original source data.
 
-Зависимость: устойчивая модель из фазы 2. Контракты графа и объяснений уточняются совместно с фазами 4 и 5.
+Acceptance: React supports main scenarios and approved references; refresh restores views; source-confirmed facts and opened analysis versions are clear.
 
-Работы:
+## Phase 8 Thesis readiness and pilot preparation
 
-- Добавить DRF и `/api/v1/` с serializers для компаний, людей, договоров, кластеров, snapshots, доказательств и объяснений.
-- Определить фильтры, сортировку, пагинацию, ошибки и OpenAPI. Отдавать структурированные данные без HTML.
-- Разделить чтение результатов и запуск задач; предоставить статус фоновой работы и точную версию результата.
-- Определить роли и права. Для первого варианта проверить единый origin, сессии и CSRF.
-- Сохранить Django admin как технический интерфейс управления. Старые страницы выводить из эксплуатации после готовности соответствующего frontend сценария.
+Dependency: Phase 1-7 functions and documented external-access limits.
 
-Проверка: права разных пользователей, некорректные фильтры, ограничение выборок, статус задач и соответствие схемы фактическим ответам.
+- Prepare reproducible data/scenarios from the [architecture](ARCHITECTURE.md#thesis-version-and-further-development).
+- Run end-to-end/load/baseline comparisons.
+- Complete README purpose/features/limits/architecture/startup/upgrades/tests/demo, consistent with DEPLOY/`.env.example`.
+- Verify final-schema recovery, clean installation, upgrade.
+- Prepare defence materials with measurements/examples/stated limits.
 
-Критерии завершения: основные пользовательские сценарии доступны через документированный API; GET не запускает генерацию и не изменяет предметные данные; неавторизованный пользователь не запускает импорт или расходующие ресурсы задачи.
+Before a pilot: action audit, operational roles, sensitive-identifier protection, monitoring, resource/AI budgets, source-use conditions, disputed-data corrections. These are proposed follow-up tasks, not an approved public product.
 
-## Фаза 7 React и дизайн по референсам
+Acceptance: another person can reproduce startup/demo; measured quality/performance; verified recovery; explicit unavailable sources/unsupported patterns.
 
-Зависимость: контракты API из фазы 6 и компоненты графа из фазы 4. До утверждения визуального решения пользователь предоставляет референсы.
+## Evaluation
 
-Работы:
-
-- Создать React frontend на TypeScript; выбор сборки и UI компонентов зафиксировать после проверки проекта и референсов.
-- Разобрать референсы: структура страниц, типографика, цвета, плотность информации, навигация и поведение графа. Согласовать конкретные макеты ключевых экранов.
-- Перенести dashboard, поиск, карточки компании, список кластеров и просмотр анализа.
-- Интегрировать улучшенный граф, доказательства, историю версий и сохранение состояния просмотра.
-- Добавить понятные состояния загрузки, пустых результатов, ошибки источника, проверки КГД и генерации объяснения.
-- Проверить доступность, адаптивность и контраст. Решение об удалении Bootstrap принять по итоговому дизайну и стоимости миграции.
-
-Критерии завершения: ключевые сценарии доступны через React; интерфейс соответствует выбранным референсам без копирования непригодных деталей; после обновления страницы восстанавливается просмотр; пользователю понятно, что подтверждено источником и какая версия анализа открыта.
-
-## Фаза 8 Дипломная готовность и подготовка к пилоту
-
-Зависимость: завершённые функции фаз 1–7; ограничения внешнего доступа документированы.
-
-Работы для диплома:
-
-- Подготовить воспроизводимые демонстрационные данные и сценарии из [архитектуры](ARCHITECTURE.md#дипломная-версия-и-дальнейшее-развитие).
-- Провести сквозную проверку, нагрузочные измерения и сравнение с baseline.
-- Заполнить README: назначение, возможности, ограничения, архитектура, запуск, обновление, тесты и демонстрация. Согласовать его с DEPLOY и `.env.example`.
-- Проверить резервное копирование и восстановление итоговой схемы, чистую установку и обновление версии.
-- Подготовить материалы защиты с измерениями, воспроизводимыми примерами и честным описанием ограничений.
-
-Дополнительные задачи перед реальным пилотом: аудит действий, эксплуатационные роли, защита чувствительных идентификаторов, мониторинг, лимиты ресурсов и расходов ИИ, условия использования источников и процедура исправления спорных данных. Это предлагаемый следующий объём, а не уже согласованный публичный продукт.
-
-Критерии завершения: другой человек запускает проект по документации и повторяет демонстрацию; качество и производительность подтверждены измерениями; резервное восстановление проверено; недоступные источники и неподдерживаемые паттерны явно обозначены.
-
-## Оценка результатов
-
-| Направление | Как измерять |
+| Area | Measurement |
 | --- | --- |
-| Идентичность | Precision и recall сопоставления на ручной разметке; отдельная оценка однофамильцев |
-| Доказательства | Доля ложных рёбер по типам признаков и источникам |
-| Временные факты | Корректность утверждений об одновременных ролях на специально подготовленных примерах |
-| Объяснения | Доля существенных утверждений с доказательствами; число неподтверждённых утверждений |
-| Производительность | Время, запросы БД и память на фиксированной выборке; сравнение до и после |
-| Повторное использование | Число новых snapshots и LLM вызовов при неизменных данных; ожидается отсутствие новой генерации |
-| Продолжение импорта | Потери и дубликаты после прерывания, сетевой ошибки и повторного запуска |
-| Удобство графа | Успешность и время поиска компании, проверки связи и восстановления просмотра на одинаковых задачах |
+| Identity | Precision/recall on manual labels; namesakes separately |
+| Evidence | False edges by feature/source |
+| Temporal facts | Simultaneous-role correctness on independent examples |
+| Explanations | Supported significant claims and unsupported-claim count |
+| Performance | Runtime/SQL/memory on fixed inputs, before/after |
+| Reuse | New snapshots/LLM calls for unchanged inputs: no generation expected |
+| Recovery | Losses/duplicates after interruption/network failure/retry |
+| Usability | Success/time to find companies, inspect links, restore views |
 
-Численные пороги фиксируются после измерения исходного состояния и выбора демонстрационной выборки. Без реальной разметки качество нельзя оценивать только на примерах, составленных под текущий алгоритм.
+Set thresholds after baseline measurement/sample selection. Algorithm-tailored examples do not replace independent labels.
 
-## Открытые решения
+## Open decisions
 
-- Доступ к КГД и первый сервис для live интеграции.
-- Размер демонстрационной выборки и перечень доступных данных торгов.
-- Референсы и окончательная UI система; конкретная библиотека графа.
-- Основная аудитория, роли пользователей и схема публикации первой версии. Пока рабочий сценарий — аналитик закупок; подтверждения пользователя нет.
-- Необходимость LLM, модель и лимит расходов.
-- Срок защиты диплома и бюджет внешних API и ИИ.
-- Сроки фаз: календарь определяется после завершения исходной фиксации и подтверждения объёма, без выдуманной оценки трудозатрат.
+KGD access/first service; sample size/bidding data; references/UI/graph library; audience/roles/publication (procurement analyst is unconfirmed); LLM need/model/budget; thesis deadline/API costs; phase calendar after scope confirmation without invented estimates.
 
-Следующий рабочий шаг по порядку — фаза 3: разведка доступных сведений КГД и интеграция первого подтверждённого сервиса. Она начинается только по поручению пользователя. Каждый завершённый этап обновляет этот документ и инструкции в репозитории.
+Next ordered step: Phase 3 KGD research/integration, only on user instruction. Completed phases update this roadmap and repository instructions.

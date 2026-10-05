@@ -20,7 +20,7 @@ class Connection(models.Model):
         (ADDRESS, "Common Address"),
         (PHONE, "Common Phone"),
         (EMAIL, "Common Email"),
-        (CUSTOMER, "Общий заказчик"),
+        (CUSTOMER, "Shared customer"),
     ]
 
     source_supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name="outgoing_connections")

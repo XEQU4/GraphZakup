@@ -1,14 +1,12 @@
 """
-ВАЖНО: предыдущая версия читала связи из модели graph.Connection, но эта
-таблица никогда не заполняется (build_clusters.py вычисляет связи "на лету"
-через сравнение полей Supplier, не создавая записи Connection) — поэтому
-объяснение всегда было пустым/общим, какие бы реальные связи ни были у
-группы. Эта версия считает связи напрямую по тем же правилам, что и
-build_clusters.calculate_risk, и явно перечисляет КАКИЕ компании через
-ЧТО связаны, а не просто абстрактно "выявлены признаки".
+The earlier version read graph.Connection, which the current pipeline does
+not populate. Cluster building compares Supplier fields without creating
+Connection rows, so those explanations were empty or generic. This version
+uses the same matching rules as graph analysis and names the companies and
+specific values that connect them.
 
-В будущем это будет заменено на полноценный AI-эксплейнер; пока что —
-подробный детерминированный текст на основе реальных данных кластера.
+This is a deterministic English template. Versioned evidence-based analysis
+and controlled LLM explanations are planned for Phase 5.
 """
 
 from collections import defaultdict
@@ -26,15 +24,15 @@ def _director_map(suppliers):
 
 
 def _format_company_list(names):
-    """«А», «Б» и «В» — с союзом перед последним элементом."""
+    """Quote company names and join the final item with an English conjunction."""
     names = list(names)
     if not names:
         return ""
     if len(names) == 1:
         return f'«{names[0]}»'
     if len(names) == 2:
-        return f'«{names[0]}» и «{names[1]}»'
-    return ", ".join(f'«{n}»' for n in names[:-1]) + f' и «{names[-1]}»'
+        return f'«{names[0]}» and «{names[1]}»'
+    return ", ".join(f'«{n}»' for n in names[:-1]) + f' and «{names[-1]}»'
 
 
 def explain_cluster(cluster):
@@ -42,9 +40,7 @@ def explain_cluster(cluster):
         "directorships__director", "directorships__person_identity", "directorships__source_observation", "ownerships__owner"))
     director_map = _director_map(suppliers)
 
-    # Группируем компании по конкретному совпадающему значению —
-    # не просто "есть общий адрес", а "вот ЭТИ 3 компании сидят по ОДНОМУ
-    # конкретному адресу X".
+    # Group by the exact shared value to identify which companies match.
     by_director = defaultdict(set)  # director_name -> {supplier_id}
     by_address = defaultdict(set)  # address -> {supplier_id}
     by_phone = defaultdict(set)  # phone -> {supplier_id}
@@ -65,15 +61,14 @@ def explain_cluster(cluster):
 
     sentences = []
 
-    # Общие директора — каждый отдельной фразой, упоминая ФИО (для
-    # последующей кликабельности на фронтенде по точному совпадению имени)
+    # Name each shared director so the frontend can link exact names.
     for (director_id, director_name), supplier_ids in by_director.items():
         if len(supplier_ids) < 2:
             continue
         names = _format_company_list(supplier_by_id[i].name for i in sorted(supplier_ids))
         sentences.append(
-            f"В имеющихся сведениях {director_name} указан руководителем компаний {names}; "
-            "периоды руководства требуют подтверждения."
+            f"Available records list {director_name} as director of companies {names}; "
+            "leadership periods require confirmation."
         )
 
     for address, supplier_ids in by_address.items():
@@ -81,7 +76,7 @@ def explain_cluster(cluster):
             continue
         names = _format_company_list(supplier_by_id[i].name for i in sorted(supplier_ids))
         sentences.append(
-            f'Компании {names} зарегистрированы по одному адресу: "{address}".'
+            f'Companies {names} are registered at the same address: "{address}".'
         )
 
     for phone, supplier_ids in by_phone.items():
@@ -89,7 +84,7 @@ def explain_cluster(cluster):
             continue
         names = _format_company_list(supplier_by_id[i].name for i in sorted(supplier_ids))
         sentences.append(
-            f'Компании {names} указывают один и тот же контактный телефон ({phone}).'
+            f'Companies {names} list the same contact phone number ({phone}).'
         )
 
     for email, supplier_ids in by_email.items():
@@ -97,12 +92,11 @@ def explain_cluster(cluster):
             continue
         names = _format_company_list(supplier_by_id[i].name for i in sorted(supplier_ids))
         sentences.append(
-            f'Компании {names} используют один email для связи ({email}).'
+            f'Companies {names} use the same contact email ({email}).'
         )
 
-    # Данные о владельцах (Ownership) — пока что эта таблица в проекте
-    # обычно тоже не заполнена (нет источника данных по бенефициарам),
-    # но если появится — учитывается отдельно.
+    # Ownership has no current external source; include saved owner facts
+    # separately if records exist.
     owners_with_debts = 0
     owners_with_bankruptcy = 0
     owners_with_courts = 0
@@ -123,35 +117,35 @@ def explain_cluster(cluster):
 
     if owners_with_debts:
         sentences.append(
-            f"У {owners_with_debts} собственников компаний группы выявлены налоговые задолженности."
+            f"Tax debts are recorded for {owners_with_debts} company owners in the group."
         )
     if owners_with_bankruptcy:
         sentences.append(
-            f"У {owners_with_bankruptcy} собственников компаний группы есть признаки банкротства."
+            f"Bankruptcy indicators are recorded for {owners_with_bankruptcy} company owners in the group."
         )
     if owners_with_courts:
         sentences.append(
-            f"У {owners_with_courts} собственников компаний группы имеются судебные дела."
+            f"Court cases are recorded for {owners_with_courts} company owners in the group."
         )
 
     risk = cluster.risk_score
     if risk >= 80:
-        level = "высокий"
+        level = "high"
     elif risk >= 50:
-        level = "средний"
+        level = "medium"
     else:
-        level = "низкий"
+        level = "low"
 
-    intro = f"В группе выявлено {len(suppliers)} компаний с признаками аффилированности."
+    intro = f"The group contains {len(suppliers)} companies with indicators of affiliation."
 
     if sentences:
         body = " ".join(sentences)
     else:
-        body = "Конкретных признаков связи между компаниями группы на момент анализа не обнаружено."
+        body = "No specific indicators of links between group companies were found at the time of analysis."
 
     outro = (
-        f"С учётом количества компаний и характера выявленных связей "
-        f"совокупный риск аффилированности оценивается как {level} ({risk} из 100)."
+        f"Based on the number of companies and the nature of the observed links, "
+        f"the overall affiliation risk is assessed as {level} ({risk} out of 100)."
     )
 
     return f"{intro} {body} {outro}"

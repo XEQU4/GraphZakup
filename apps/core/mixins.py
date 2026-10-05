@@ -1,15 +1,11 @@
 class ClampedPaginationMixin:
     """
-    Стандартный Django ListView.paginate_queryset() бросает Http404, если
-    запрошенная страница вне диапазона (например ?page=999 при 5 страницах,
-    ?page=0 или ?page=-3). Для публичного сайта это плохой UX — лучше
-    молча показать ближайшую существующую страницу:
+    Clamp out-of-range page requests instead of Django's default Http404.
 
-      - запрошенная страница больше последней  -> показываем последнюю
-      - запрошенная страница меньше первой (0, отрицательная, не число)
-        -> показываем первую
+    Requests beyond the last page show the last page. Zero, negative,
+    and nonnumeric values show the first page.
 
-    Подключается как примесь к любому ListView с paginate_by:
+    Use with any ListView that specifies paginate_by:
 
         class SomeListView(ClampedPaginationMixin, ListView):
             paginate_by = 25

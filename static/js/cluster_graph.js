@@ -65,7 +65,7 @@ if (graphElement && graphDataElement) {
         .attr("dx", 0).attr("dy", 2).attr("stdDeviation", 4)
         .attr("flood-color", "#000").attr("flood-opacity", 0.8);
 
-    // Glow фильтры
+    // Glow filters
     const makeGlow = (id, r, g, b, std) => {
         const f = defs.append("filter").attr("id", id)
             .attr("x", "-80%").attr("y", "-80%").attr("width", "260%").attr("height", "260%");
@@ -81,7 +81,7 @@ if (graphElement && graphDataElement) {
     makeGlow("glow-yellow", 1.00, 0.76, 0.03, 4);
     makeGlow("glow-link", 1.00, 0.49, 0.08, 2.5);
 
-    // Градиенты узлов
+    // Node gradients
     [
         ["ng-high", "#ff4d60", "#8b0000"],
         ["ng-mid", "#ffd065", "#9a6800"],
@@ -93,10 +93,10 @@ if (graphElement && graphDataElement) {
         g.append("stop").attr("offset", "100%").attr("stop-color", c2);
     });
 
-    // ЕДИНЫЙ КОНТЕЙНЕР ДЛЯ ZOOM/PAN
+    // Shared zoom/pan container
     const container = svg.append("g").attr("class", "zoom-container");
 
-    // СТИЛИ СВЯЗЕЙ
+    // Link styles
     const LINK_STYLES = {
         owner: {color: "#f1556c", dash: "8,3"},
         director: {color: "#4aa3ff", dash: null},
@@ -106,9 +106,9 @@ if (graphElement && graphDataElement) {
         customer: {color: "#6c757d", dash: "4,4"},
     };
     const LINK_LABELS = {
-        owner: "Общий владелец", director: "Общий директор",
-        address: "Общий адрес", phone: "Общий телефон",
-        email: "Общий email", customer: "Общий заказчик",
+        owner: "Shared owner", director: "Shared director",
+        address: "Shared address", phone: "Shared phone",
+        email: "Shared email", customer: "Shared customer",
     };
     const ls = t => LINK_STYLES[t] || LINK_STYLES.customer;
 
@@ -117,7 +117,7 @@ if (graphElement && graphDataElement) {
     const getGlowFilter = r => r >= 80 ? "url(#glow-red)" : r >= 50 ? "url(#glow-yellow)" : null;
     const getNodeR = r => r >= 80 ? 26 : r >= 50 ? 23 : 20;
 
-    // СВЯЗИ (фон + основная линия) — рисуются ПЕРВЫМИ (под узлами)
+    // Links (background and main line) draw first, beneath nodes
     const linkBg = container.append("g").selectAll("path")
         .data(graphData.links).enter().append("path")
         .attr("fill", "none")
@@ -138,12 +138,12 @@ if (graphElement && graphDataElement) {
         .classed("link-flow", d => !!ls(d.type).dash)
         .style("cursor", "pointer");
 
-    // УЗЛЫ — группы <g> поверх связей
+    // Nodes: <g> groups above links
     const nodeGroups = container.append("g").selectAll("g")
         .data(graphData.nodes).enter().append("g")
         .style("cursor", "pointer");
 
-    // Внешнее кольцо
+    // Outer ring
     nodeGroups.append("circle")
         .attr("r", d => getNodeR(d.risk) + 7)
         .attr("fill", "none")
@@ -152,7 +152,7 @@ if (graphElement && graphDataElement) {
         .attr("opacity", 0.4)
         .attr("class", d => d.risk >= 80 ? "node-pulse-high glitch-node" : d.risk >= 50 ? "node-pulse-mid" : "");
 
-    // Основной круг
+    // Main circle
     nodeGroups.append("circle")
         .attr("r", d => getNodeR(d.risk))
         .attr("fill", d => `url(#${getNodeGrad(d.risk)})`)
@@ -161,7 +161,7 @@ if (graphElement && graphDataElement) {
         .attr("filter", "url(#node-shadow)")
         .attr("class", d => d.risk >= 80 ? "node-pulse-high" : "");
 
-    // Иконка внутри
+    // Inner icon
     nodeGroups.append("text")
         .text(d => d.risk >= 80 ? "!" : d.risk >= 50 ? "~" : "✓")
         .attr("text-anchor", "middle").attr("dominant-baseline", "central")
@@ -169,7 +169,7 @@ if (graphElement && graphDataElement) {
         .attr("font-weight", "bold")
         .style("pointer-events", "none");
 
-    // ПОДПИСИ — поверх всего
+    // Labels above all other elements
     const labels = container.append("g").selectAll("text")
         .data(graphData.nodes).enter().append("text")
         .text(d => d.name.length > 22 ? d.name.substring(0, 20) + "…" : d.name)
@@ -193,7 +193,7 @@ if (graphElement && graphDataElement) {
         .style("pointer-events", "none").style("z-index", "9999").style("white-space", "pre-line")
         .style("box-shadow", "0 4px 24px rgba(0,0,0,0.7)");
 
-    // ПУТЬ СВЯЗИ (дуга при параллельных рёбрах)
+    // Link path (curved for parallel edges)
     function linkPath(d) {
         const sx = d.source.x, sy = d.source.y;
         const tx = d.target.x, ty = d.target.y;
@@ -213,15 +213,15 @@ if (graphElement && graphDataElement) {
         return `M${sx},${sy} Q${mx + (-dy / len) * offset},${my + (dx / len) * offset} ${tx},${ty}`;
     }
 
-    // СОБЫТИЯ УЗЛОВ — ховер + клик
+    // Node hover and click events
     nodeGroups
         .on("mouseover", function (event, d) {
-            // Увеличить этот узел
+            // Enlarge this node
             d3.select(this).selectAll("circle")
                 .transition().duration(120)
                 .attr("r", (_, i) => i === 0 ? getNodeR(d.risk) + 13 : getNodeR(d.risk) + 5);
 
-            // Затемнить несвязанные
+            // Dim unconnected nodes
             const connectedIds = new Set([d.id]);
             graphData.links.forEach(l => {
                 const s = typeof l.source === "object" ? l.source.id : l.source;
@@ -245,7 +245,7 @@ if (graphElement && graphDataElement) {
             tooltip.style("display", "block")
                 .style("left", (event.pageX + 14) + "px")
                 .style("top", (event.pageY - 36) + "px")
-                .text(`${d.name}\nРиск: ${d.risk}/100`);
+                .text(`${d.name}\nRisk: ${d.risk}/100`);
         })
         .on("mousemove", function (event) {
             tooltip.style("left", (event.pageX + 14) + "px").style("top", (event.pageY - 36) + "px");
@@ -265,7 +265,7 @@ if (graphElement && graphDataElement) {
             window.location.href = `${companyUrl}${d.id}/`;
         });
 
-    // СОБЫТИЯ СВЯЗЕЙ — ховер
+    // Link hover events
     linkMain
         .on("mouseover", function (event, d) {
             d3.select(this).transition().duration(100).attr("stroke-width", 5).attr("opacity", 1);
@@ -282,14 +282,14 @@ if (graphElement && graphDataElement) {
             tooltip.style("display", "none");
         });
 
-    // СИМУЛЯЦИЯ
+    // Simulation
     const simulation = d3.forceSimulation(graphData.nodes)
         .force("link",
             d3.forceLink(graphData.links).id(d => d.id).distance(220))
         .force("charge", d3.forceManyBody().strength(-1200))
         .force("center", d3.forceCenter(width / 2, height / 2))
         .force("collide", d3.forceCollide().radius(88))
-        .alphaDecay(0.03);   // медленнее остывает → узлы лучше расходятся
+        .alphaDecay(0.03);   // Slower cooling lets nodes spread further apart
 
     simulation.on("tick", () => {
         linkMain.attr("d", linkPath);
@@ -298,12 +298,12 @@ if (graphElement && graphDataElement) {
         labels.attr("x", d => d.x).attr("y", d => d.y + getNodeR(d.risk) + 16);
     });
 
-    // DRAG УЗЛОВ
+    // Node dragging
     nodeGroups.call(
         d3.drag()
-            .filter(event => !event.button)          // только ЛКМ
+            .filter(event => !event.button)          // Left mouse button only
             .on("start", function (event, d) {
-                event.sourceEvent.stopPropagation();  // не захватывать pan
+                event.sourceEvent.stopPropagation();  // Do not capture pan gestures
                 if (!event.active) simulation.alphaTarget(0.3).restart();
                 d.fx = d.x;
                 d.fy = d.y;
@@ -319,18 +319,18 @@ if (graphElement && graphDataElement) {
             })
     );
 
-    // ZOOM + PAN (трансформируем ТОЛЬКО container, не весь svg)
+    // Zoom and pan transform only the container, not the entire SVG
     const zoom = d3.zoom()
         .scaleExtent([0.2, 4])
         .on("zoom", event => {
             container.attr("transform", event.transform);
         });
 
-    // Применяем zoom на SVG — pan работает по фону, скролл — всегда
+    // Apply zoom to SVG: background supports pan, scroll always works
     svg.call(zoom)
-        .on("dblclick.zoom", null);   // двойной клик не зумит
+        .on("dblclick.zoom", null);   // Disable double-click zoom
 
-    // Начальный масштаб: центрируем граф
+    // Initial zoom: centre the graph
     svg.call(zoom.transform, d3.zoomIdentity.translate(0, 0).scale(1));
 
 } // end if

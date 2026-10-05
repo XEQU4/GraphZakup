@@ -8,7 +8,7 @@
         const paginationWrap = document.getElementById('pagination-wrap');
         const totalCount = document.getElementById('total-count');
 
-        // Сохраняем исходное состояние при загрузке
+        // Preserve the initial state on page load
         const originalTbody = tbody.innerHTML;
         const originalPagination = paginationWrap.innerHTML;
         const originalCount = totalCount.textContent;
@@ -32,12 +32,12 @@
 
         function renderRows(rows) {
             if (!rows.length) {
-                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted p-4">Ничего не найдено</td></tr>';
-                hint.textContent = 'Нет результатов';
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted p-4">Nothing found</td></tr>';
+                hint.textContent = 'No results';
                 hint.className = 'gz-search-hint no-results';
                 return;
             }
-            hint.textContent = `Найдено: ${rows.length}${rows.length === 50 ? '+' : ''}`;
+            hint.textContent = `Found: ${rows.length}${rows.length === 50 ? '+' : ''}`;
             hint.className = 'gz-search-hint has-results';
             tbody.innerHTML = rows.map(r => `
             <tr>
@@ -89,7 +89,7 @@
                 .catch(err => {
                     if (version === requestVersion && err.name !== 'AbortError') {
                         setLoading(false);
-                        hint.textContent = 'Ошибка поиска';
+                        hint.textContent = 'Search failed';
                         hint.className = 'gz-search-hint no-results';
                     }
                 });

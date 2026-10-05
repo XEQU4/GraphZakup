@@ -1,329 +1,211 @@
-# Аудит GovernmentProcurementGraph
+# GovernmentProcurementGraph audit
 
-Дата: **2026-10-05**, часовой пояс Asia/Qyzylorda. Доказательства ниже фиксируют исходный аудит; статус последующих исправлений приведён отдельно. План находится в [ROADMAP.md](ROADMAP.md), протокол исправлений — в [PHASE1.md](PHASE1.md).
-Цель: подготовить проект к защите диплома и дальнейшему пилоту, сохранив накопленные данные и возможность объяснить каждую связь.
+Date: **2026-10-05**, Asia/Qyzylorda. Evidence describes the original audit; later fixes have separate status sections. See [ROADMAP.md](ROADMAP.md), [PHASE1.md](PHASE1.md), and [PHASE2.md](PHASE2.md). Goal: prepare a thesis/pilot while preserving accumulated data and explaining every link.
 
-## Область и границы проверки
+## Scope and limits
 
-Проверены Django apps, модели и миграции, management commands, парсеры в `services/`, граф, объяснения, шаблоны/JavaScript, конфигурация Celery, Docker и документация.
-Исходники приложения не изменялись в ходе аудита. Существующие пользовательские изменения в `pyproject.toml`, `test.py` и `uv.lock` сохранены; `test.py` содержит самостоятельные упражнения, а не тесты приложения.
-Проверки с базой выполнялись на изолированной SQLite в памяти. Рабочие PostgreSQL данные, парсеры и очереди задач этими проверками не изменялись.
-Проверка резервного копирования и восстановления фазы 0 документируется отдельно; её результат нельзя выводить из проверки моделей и исходников.
+Reviewed Django apps/models/migrations/commands, original `services/` parsers, graph/explanations, templates/JS, Celery/Docker/documentation. Application sources were not changed during the audit. Existing `pyproject.toml`, `test.py`, `uv.lock` changes preserved; `test.py` is educational work, not application tests.
 
-| Проверка | Фактический результат | Что результат не доказывает |
-|---|---|---|
-| AST всех 99 Python файлов проекта | PASS | Корректность бизнес-логики и внешних ответов |
-| Django system checks без обращения к БД | PASS, ошибок нет | Production readiness, отсутствие XSS и корректность импорта |
-| Сопоставление моделей и состояний миграций без БД | Изменения `{}` | Успешное применение миграций на PostgreSQL с существующими данными |
-| Обнаружение Django тестов в исходном аудите | **0 тестов приложения** | Проект не имел автоматической регрессионной проверки; utility tests фазы 0 учитываются отдельно |
-| `docker compose config --services` | PASS: db, redis, web, worker, beat | Образы не собирались, контейнеры не запускались |
-| `collectstatic --dry-run` без SECRET_KEY | PASS | Полная сборка Docker и безопасный runtime без ключа |
-| Пустой импорт при сохранённой странице 5 | Cursor стал 6 | Ошибку HTTP нельзя считать успешно обработанной страницей |
-| Импорт `total=51` при страницах по 50 строк | Подтверждена потеря остатка второй страницы | Контрольная сумма импорта отсутствует |
-| Суммы, разобранные через float | Подтверждена потеря точности для подходящих значений | `Decimal(str(float))` не восстанавливает исходные цифры |
-| Дата регистрации `dd.mm.yyyy` | Подтверждён ValidationError при сохранении DateField | Внешние даты не нормализуются до сохранения |
-| Граф из 5 компаний с prefetched директорами | **20 SQL запросов** внутри построения связей | Prefetch не устраняет вызовы `values_list()` для каждой пары |
-| 19 компаний с одним общим email | **100/100** по текущей формуле | Балл не является вероятностью нарушения |
-| Очистка/ротация логов | TypeError для naive/aware datetime; архивы не распознаны штатным retention | Наличие backupCount само по себе не обеспечивает очистку |
+Reproductions used isolated in-memory SQLite, without changing source PostgreSQL, live sources, or queues. Phase 0 backup/recovery verification is separate and cannot be inferred from model checks.
 
-Рабочая среда Python 3.13.5 проверена вне ограничений sandbox; `.venv` не признана сломанной.
-Проверенные версии: Django 6.0.6, Celery 5.6.3, django-celery-beat 2.9.0, WhiteNoise 6.12.0. Beat допускает Django `<6.1`; прямого конфликта этих установленных версий не обнаружено.
-Compose уже объединяет пять сервисов. Проблема состоит в надёжности их запуска и сохранении состояния.
-Текущий GET страницы кластера вызывает **детерминированный** `apps.ai.explainer`; внешняя LLM к этому пути не подключена.
+| Check | Actual result | Limit |
+| --- | --- | --- |
+| Python AST | 99 files passed | Not business/source correctness |
+| Database-free Django checks | Passed | Not production/XSS/import verification |
+| Model/migration comparison | Changes `{}` | Not migration of existing PostgreSQL |
+| Initial application tests | **0** | No regression coverage; later utility tests separate |
+| Compose service config | Five services passed | No image build/container startup |
+| collectstatic without SECRET_KEY | Dry-run passed | Not full build/safe keyless runtime |
+| Empty import at page 5 | Cursor became 6 | Source error treated as progress |
+| `total=51`, 50-row pages | Remaining page-2 rows lost | No import completeness checksum |
+| Float money parsing | Precision loss reproduced | Decimal from float cannot recover original digits |
+| Registration `dd.mm.yyyy` | DateField ValidationError | No pre-save date normalisation |
+| Five-company graph with prefetched directors | **20 SQL queries** during links | Per-pair values_list ignores prefetch |
+| 19 companies sharing one email | **100/100** | Not wrongdoing probability |
+| Log cleanup/rotation | Naive/aware TypeError; archives missed | backupCount alone cannot ensure retention |
 
-Приоритеты: **P0** — потеря данных или исполняемый чужой HTML; **P1** — неверные результаты, ненадёжное состояние или запуск; **P2** — ограничения сопровождения, интерфейса и расширения.
-Нумерация фаз: 0 baseline; 1 срочные исправления/инфраструктура; 2 единый сбор/модель; 3 КГД; 4 сохранённый граф и его интерфейс; 5 объяснимые правила/ИИ; 6 DRF; 7 React и общий UI/UX; 8 дипломная проверка/документация/пилот.
+Python 3.13.5 worked outside sandbox runtime limits; `.venv` was not broken. Verified Django 6.0.6/Celery 5.6.3/beat 2.9.0/WhiteNoise 6.12.0; beat allows Django <6.1, no installed-version conflict found. Compose already grouped five services; reliable startup/state were the problem. Original cluster GET used the **deterministic** explainer, not external LLM.
 
-## Подтверждённые ошибки и ограничения реализации
+Priorities: **P0** data loss/executable untrusted HTML; **P1** incorrect results/state/startup; **P2** maintenance/UI/extensibility. Phases: 0 baseline; 1 fixes/infrastructure; 2 ingestion/model; 3 KGD; 4 graph state/UI; 5 rules/AI; 6 DRF; 7 React/UI; 8 thesis/pilot.
 
-### Статус после фазы 1
+## Confirmed defects and implementation limits
 
-| Findings | Статус на 5 октября 2026 года |
+### Status after Phase 1
+
+| Findings | Status on 5 October 2026 |
 | --- | --- |
-| AUD-001, 003–005, 007–008 | Опасные удаления, XSS, checkpoint, даты и денежный разбор исправлены и покрыты регрессиями |
-| AUD-002, 017 | UUID/тексты сохраняются, rebuild атомарный; GET читает и проверяет устаревание. Полные snapshots и версии остаются фазам 4–5 |
-| AUD-006, 009–012 | Атомарная страница, ошибки источников, BIN проверка и нормализованный fallback исправлены; run/staging/history и общий identity контракт остаются фазе 2 |
-| AUD-014–015 | Автоматическая склейка по ФИО отключена, известные интервалы используются. Исправление старых identity и сбор истории остаются фазе 2 |
-| AUD-018 | SQL на каждую пару устранён; O(n²) и пересчёт текущих рёбер остаются до фазы 4 |
-| AUD-020–026, 028 | Docker, lockfile, STORAGES, migrations gate, настройки, логи, пороги и risk validation исправлены и проверены |
-| AUD-027 | Связанные компании и поисковые counts учитываются без дублей; единый версионируемый денежный показатель остаётся последующим фазам |
-| AUD-030 | README/DEPLOY и тестовый набор добавлены; 83 теста PostgreSQL прошли |
-| Остальные findings | Остаются в назначенных фазах; live-качество источников и полноценный ИИ пока не подтверждены |
+| 001, 003-005, 007-008 | Deletions/XSS/checkpoints/dates/money fixed with regressions |
+| 002, 017 | UUID/text preserved, atomic rebuild, read-only GET/staleness; full snapshots/versions remain Phases 4-5 |
+| 006, 009-012 | Atomic pages/source failures/BIN/fallback fixed; runs/history/common identity contract Phase 2 |
+| 014-015 | Automatic name merges disabled, known intervals used; legacy repair/history Phase 2 |
+| 018 | Per-pair SQL removed; quadratic comparisons/current-edge recomputation remain until Phase 4 |
+| 020-026, 028 | Docker/lock/STORAGES/migration gate/settings/logs/thresholds/filter validation fixed/verified |
+| 027 | Counts deduplicated; versioned monetary metric remains future work |
+| 030 | README/DEPLOY/tests added; all 83 PostgreSQL tests passed |
+| Others | Assigned future phases; live source quality/full AI unverified |
 
-Номера строк и описания в исходных доказательствах ниже относятся к состоянию до исправлений. Они сохранены для прослеживаемости и не описывают текущий код как всё ещё содержащий каждый дефект.
+Original paths/line numbers below predate fixes. They are retained for traceability, not assertions that all defects remain in current code.
 
-### Статус после фазы 2
+### Status after Phase 2
 
-| Findings | Результат |
+| Findings | Outcome |
 | --- | --- |
-| AUD-006, 009–010, 012–013 | Общий ingestion, типизированные состояния источников, checkpoints, retry/resume, raw/normalized наблюдения и выбранные поля; ошибки видны по UUID |
-| AUD-014–015 | ФИО создаёт кандидата, legacy роли изолируются, смена руководства сохраняет историю; общая личность требует подтверждённого ИИН и доказательств компании |
-| AUD-030 | 128 PostgreSQL тестов прошли; восстановленная копия мигрирована без изменения прежних значений; README и протокол обновлены |
-| AUD-033 | Статусы сбора различаются; налоговые/судебные bool-флаги старой модели не стали подтверждёнными проверками. Источник и применение таких сведений остаются фазам 3 и 5 |
-| Остальные findings | Продолжают действовать решения назначенных фаз; live-источники, граф snapshots, DRF, React и LLM в фазе 2 не проверялись и не реализовывались |
+| 006, 009-010, 012-013 | Unified ingestion/typed states/checkpoints/retry-resume/raw-normalised observations/selected fields; failures visible by UUID |
+| 014-015 | Names create candidates, legacy roles isolated, changes preserve history; shared identity requires confirmed IIN/company evidence |
+| 030 | All 128 PostgreSQL tests passed; restored-copy migration preserved original values; documentation updated |
+| 033 | Collection states distinct; legacy tax/court booleans still not verified checks; sources/use remain Phases 3/5 |
+| Others | Assigned phases remain; no live sources/snapshots/DRF/React/LLM verification or implementation in Phase 2 |
 
-Точные границы реализации, source priority, ограничения текущих HTML-адаптеров и результаты миграции находятся в [PHASE2.md](PHASE2.md).
+See [PHASE2.md](PHASE2.md) for priorities, HTML-adapter limits, and migration results.
 
-### AUD 001 Удаление данных до успешного полного импорта
+### AUD 001 Deletion before successful full import
 
-**ID:** AUD-001. **Priority:** P0.
-**Доказательство:** `apps/companies/management/commands/import_contracts.py:29` удаляет все Contract и Supplier до первого сетевого запроса; удаление поставщиков каскадно удаляет связанные записи.
-**Последствие:** ошибка источника оставляет базу без прежних контрактов и компаний; операция не имеет staging, атомарного переключения и восстановления.
-**Исправление:** фаза 1 — закрыть опасный режим; фаза 2 — импортировать в отдельный run/staging, проверять полноту и переключать состояние после успешной проверки.
+**ID:** AUD-001. **Priority:** P0. **Evidence:** original `apps/companies/management/commands/import_contracts.py:29` deleted all contracts/suppliers before requesting data; supplier deletion cascaded. **Impact:** failure leaves no original data, without staging/atomic switch/recovery. **Fix:** Phase 1 disable destructive behaviour; Phase 2 run/staging/completeness and safe publication.
 
-### AUD 002 Пересборка уничтожает кластеры и их историю
+### AUD 002 Rebuild destroys cluster identity/history
 
-**ID:** AUD-002. **Priority:** P0.
-**Доказательство:** `apps/graph/management/commands/build_clusters.py:158` удаляет все RiskCluster; новые объекты получают новые UUID в `apps/graph/models.py:50`.
-**Последствие:** теряются сохранённые объяснения, ссылки и идентичность кластеров; сбой посередине оставляет неполный результат. Это выполняется и после обычного импорта.
-**Исправление:** фаза 1 — остановить разрушительную пересборку; фаза 4 — стабильные идентификаторы, версии состава/рёбер, история merge/split и атомарная публикация snapshot.
+**ID:** AUD-002. **Priority:** P0. **Evidence:** `build_clusters.py:158` deleted every cluster; `apps/graph/models.py:50` assigned new UUIDs. **Impact:** explanations/links/identity lost, failure leaves partial results even after ordinary imports. **Fix:** Phase 1 stop deletion; Phase 4 stable IDs/composition-edge versions/merge-split history/atomic snapshots.
 
-### AUD 003 Stored XSS через данные внешних источников
+### AUD 003 Stored XSS through source values
 
-**ID:** AUD-003. **Priority:** P0.
-**Доказательство:** `static/js/cluster_graph.js:248` передаёт имя компании в `.html()`; `apps/companies/views.py:69`, `apps/owners/views.py:63`, `apps/dashboard/views.py:33` собирают HTML из неэкранированных данных.
-**Последствие:** содержимое имени, ФИО или номера контракта может исполняться при просмотре tooltip или AJAX результатов; JSON и `json_script` не защищают последующую HTML вставку.
-**Исправление:** фаза 1 — безопасные текстовые DOM узлы/экранирование; фазы 6–7 — возвращать JSON данные и рендерить их средствами React без HTML строк.
+**ID:** AUD-003. **Priority:** P0. **Evidence:** `static/js/cluster_graph.js:248` used `.html()` with company names; companies/views.py:69, owners/views.py:63, dashboard/views.py:33 interpolated unescaped fields. **Impact:** names/contract numbers can execute HTML in tooltips/AJAX; JSON/json_script does not protect later insertion. **Fix:** Phase 1 text DOM/escaping; Phases 6-7 structured JSON/React.
 
-### AUD 004 Пустая или ошибочная страница продвигает cursor
+### AUD 004 Empty/error pages advance cursor
 
-**ID:** AUD-004. **Priority:** P1.
-**Доказательство:** `services/contract_registry_parser.py:105` и `:119` возвращают `[]` для ошибок; `import_contracts.py:90` использует `max(1, ...)` и сохраняет следующую страницу даже при нуле контрактов.
-**Последствие:** воспроизведение с cursor 5 и пустым ответом записало 6; недоступность источника превращается в пропуск данных и отметку успешного импорта.
-**Исправление:** фаза 1 — не продвигать cursor при ошибке; фаза 2 — различать success/empty/error/rate_limited и сохранять подтверждённый checkpoint страницы.
+**ID:** AUD-004. **Priority:** P1. **Evidence:** contract_registry_parser.py:105/:119 returned [] on errors; import_contracts.py:90 used max(1, ...) even with zero records. **Impact:** cursor 5 became 6, turning unavailability into missing data/success. **Fix:** Phase 1 no error advancement; Phase 2 explicit results/confirmed checkpoints.
 
-### AUD 005 Обрезка последней страницы теряет контракты
+### AUD 005 Truncation loses the final page remainder
 
-**ID:** AUD-005. **Priority:** P1.
-**Доказательство:** `services/contract_registry_parser.py:200` возвращает `contracts[:total]`; `import_contracts.py:90` рассчитывает следующий cursor из длины этого обрезанного списка.
-**Последствие:** при `total=51` сохраняется одна строка второй страницы, а следующий запуск начинается уже с третьей; остальные 49 строк второй страницы пропущены.
-**Исправление:** фазы 1–2 — обрабатывать страницы полностью либо хранить page+offset; checkpoint должен отражать обработанные записи, а не запрошенный лимит.
+**ID:** AUD-005. **Priority:** P1. **Evidence:** parser.py:200 sliced `contracts[:total]`; import_contracts.py:90 calculated progress from slice length. **Impact:** total=51 retains one page-2 row and resumes page 3, losing 49. **Fix:** full pages or page+offset; checkpoint reflects processed records, not requested limits.
 
-### AUD 006 Ошибки отдельных записей не согласованы с retry
+### AUD 006 Record errors do not participate in retry
 
-**ID:** AUD-006. **Priority:** P1.
-**Доказательство:** `import_contracts.py:86` перехватывает ошибки сохранения, но `:92` всё равно продвигает cursor; `apps/core/tasks.py:25` повторяет всю management command лишь при вышедшем наружу исключении.
-**Последствие:** пропущенные строки не попадают в retry; падение enrichment после записи cursor повторяет пайплайн с другой страницы. Конкурирующие запуски не защищены lock.
-**Исправление:** фаза 1 — не терять строки с ошибками при advancement; фаза 2 — run со статусами этапов, per-record retry, идемпотентные upsert, блокировка run и checkpoint в транзакции с результатом.
+**ID:** AUD-006. **Priority:** P1. **Evidence:** import_contracts.py:86 caught save errors but :92 advanced; tasks.py:25 retried only escaping exceptions. **Impact:** rows lost; enrichment failure retries from another page; concurrent runs unlocked. **Fix:** Phase 1 retain failures; Phase 2 staged runs/record retry/idempotence/locking/transactional checkpoints.
 
-### AUD 007 Дата регистрации поступает в DateField сырой строкой
+### AUD 007 Raw registration dates reach DateField
 
-**ID:** AUD-007. **Priority:** P1.
-**Доказательство:** `services/supplier_registry_parser.py:185` возвращает текст даты; `services/enricher.py:50` передаёт его без преобразования; `enrich_suppliers.py:141` присваивает DateField и `:175` сохраняет объект.
-**Последствие:** формат `dd.mm.yyyy` вызывает ValidationError; исключение сохранения находится вне блока обработки ошибки получения данных и способно прервать enrichment.
-**Исправление:** фазы 1–2 — типизированный результат с date, явные допустимые форматы, карантин ошибочной записи и независимый retry остальных компаний.
+**ID:** AUD-007. **Priority:** P1. **Evidence:** supplier_registry_parser.py:185 returned text; enricher.py:50 forwarded it; enrich_suppliers.py:141/:175 saved outside fetch-error handling. **Impact:** dd.mm.yyyy raises ValidationError and aborts enrichment. **Fix:** explicit date formats/typed results/quarantine/independent company retry.
 
-### AUD 008 Суммы теряют точность и ошибочное значение превращается в ноль
+### AUD 008 Money loses precision and invalid values become zero
 
-**ID:** AUD-008. **Priority:** P1.
-**Доказательство:** `services/contract_registry_parser.py:148` использует float, `:150` заменяет ошибку нулём; `import_contracts.py:76` строит Decimal уже из float.
-**Последствие:** точность исходной денежной суммы потеряна до БД; некорректный вход становится внешне корректным контрактом с нулевой стоимостью.
-**Исправление:** фаза 1 — Decimal непосредственно из нормализованной строки; фаза 2 — сохранить raw значение, currency и parse_error вместо подмены нулём.
+**ID:** AUD-008. **Priority:** P1. **Evidence:** parser.py:148 used float/:150 substituted zero; command.py:76 constructed Decimal afterwards. **Impact:** inaccurate/invalid data appears valid. **Fix:** direct Decimal; retain raw value/currency/parse error.
 
-### AUD 009 Идентификаторы и поля источника не имеют единого контракта
+### AUD 009 Identifiers lack a shared contract
 
-**ID:** AUD-009. **Priority:** P1.
-**Доказательство:** `import_contracts.py:60` только strip для supplier_bin; `services/supplier_registry_parser.py:87` берёт первую найденную карточку; `apps/contracts/models.py:19` делает номер договора глобально уникальным.
-**Последствие:** возможны неверная карточка, повреждённый BIN/IIN и конфликт идентичности контракта; полнота/уникальность номера во внешнем реестре live не подтверждена.
-**Исправление:** фаза 2 — валидация 12 цифр с сохранением начальных нулей, проверка identity ответа, ключ `(source, external_id)` и правила договоров/допсоглашений.
+**ID:** AUD-009. **Priority:** P1. **Evidence:** import_contracts.py:60 only stripped BIN; supplier parser.py:87 selected first card; contracts/models.py:19 made contract number globally unique. **Impact:** wrong subjects/malformed identifiers/key collisions; registry numbering uniqueness not live-verified. **Fix:** validate 12 digits/leading zeros/response identity; source/external-ID keys and amendment rules.
 
-### AUD 010 Недоступность источника смешана с отсутствием данных
+### AUD 010 Unavailability conflated with missing data
 
-**ID:** AUD-010. **Priority:** P1.
-**Доказательство:** `services/adata_parser.py:22` и `:98` возвращают None для HTTP/parse ошибок; `services/contract_registry_parser.py:97` скрывает ошибку BIN lookup; `enrich_suppliers.py:82` помечает пустой результат свежим.
-**Последствие:** временная ошибка может отложить повторную проверку на семь дней; импорт пропускает записи без BIN, а ошибки становятся похожими на отсутствие компании.
-**Исправление:** фазы 1–2 — структурированные статусы, bounded retry/backoff, last_attempt_at отдельно от last_success_at и наблюдаемость по каждому источнику.
+**ID:** AUD-010. **Priority:** P1. **Evidence:** adata_parser.py:22/:98 returned None for HTTP/parse errors; contract parser.py:97 hid BIN failures; enrich_suppliers.py:82 marked empty results fresh. **Impact:** retry delayed seven days, missing BIN skipped, errors resemble absence. **Fix:** typed source states/observations/retries; freshness only after confirmed checks.
 
-### AUD 011 Adata контакты извлекаются из всей страницы
+### AUD 011 Adata contact/status extraction can be misleading
 
-**ID:** AUD-011. **Priority:** P1.
-**Доказательство:** `services/adata_parser.py:65` выбирает первый подходящий телефон, `:79` — первый email из общего HTML; `:95` безусловно возвращает `status="active"`.
-**Последствие:** контакт поддержки, навигации или другого блока может стать общим признаком компаний; активный статус не доказывается ответом и не переносится как достоверный факт.
-**Исправление:** фаза 2 — извлекать поля из конкретного блока/структурированного ответа, проверять identity, покрыть fixtures и хранить происхождение каждого значения.
+**ID:** AUD-011. **Priority:** P1. **Evidence:** adata_parser.py:65/:79 chose first phone/email in entire HTML; :95 always returned active. **Impact:** support/navigation contacts falsely link companies; active status unproven. **Fix:** labelled/structured fields, subject verification, fixtures/provenance.
 
-### AUD 012 Нормализация и fallback создают пропуски и устаревшие значения
+### AUD 012 Normalisation/fallback retain bad or stale values
 
-**ID:** AUD-012. **Priority:** P1.
-**Доказательство:** `services/enricher.py:40` выбирает значение Adata до нормализации, поэтому некорректный контакт не переключается на валидный registry; `enrich_suppliers.py:121` сохраняет старое значение через `or`.
-**Последствие:** исчезнувшие/невалидные контакты остаются в базе, а valid fallback теряется; адреса и ФИО сравниваются сырыми строками, blacklist продублирован в нескольких модулях.
-**Исправление:** фаза 2 — единые normalizers для BIN/date/contacts/address/name, normalize-before-fallback, статусы absent/unknown и политика обновления по источнику.
+**ID:** AUD-012. **Priority:** P1. **Evidence:** enricher.py:40 chose Adata before normalising; command.py:121 retained old values with `or`; raw addresses/names compared, blacklist duplicated. **Impact:** invalid preferred contacts block valid fallback; disappearing values remain. **Fix:** shared normalisers, normalise-before-fallback, absent/unknown states/source policies.
 
-### AUD 013 Сбор данных разбит между адаптерами и оркестрацией
+### AUD 013 Collection fragmented across parsers and commands
 
-**ID:** AUD-013. **Priority:** P2.
-**Доказательство:** HTTP/HTML логика находится в `services/*_parser.py`, обработка/сохранение в `apps/companies/management/commands/*`; `enrich_suppliers.py:13` обещает eGov, но `services/enricher.py:1` подключает только Adata и registry.
-**Последствие:** перенос файлов сам по себе не объединит retry, schemas и checkpoint; названия команд/полей вводят в заблуждение о реально используемых источниках.
-**Исправление:** фаза 2 — единая директория ingestion с адаптерами источников, общим HTTP клиентом, DTO и orchestration; команды и Celery оставить тонкими точками входа.
+**ID:** AUD-013. **Priority:** P2. **Evidence:** HTTP/HTML in services parsers, persistence in company commands; enrichment help mentioned eGov despite Adata/registry only. **Impact:** moving files alone cannot unify retry/schema/checkpoints; misleading source names. **Fix:** common ingestion/transport/DTO/orchestration; thin commands/Celery.
 
-### AUD 014 Люди автоматически объединяются по одинаковому ФИО
+### AUD 014 People automatically merged by name
 
-**ID:** AUD-014. **Priority:** P1.
-**Доказательство:** `apps/companies/management/commands/link_directors.py:43` делает get_or_create по full_name; `apps/owners/models.py:25` не содержит уникальности identity.
-**Последствие:** тёзки становятся одним Director и создают ложные связи компаний; конкурентное создание возможно без ограничения БД. Совпадение ФИО нельзя считать подтверждённым identity.
-**Исправление:** фаза 2 — отдельные source identities и кандидаты на совпадение; точный проверенный IIN либо evidence/confidence и подтверждение неоднозначных случаев.
+**ID:** AUD-014. **Priority:** P1. **Evidence:** link_directors.py:43 get_or_create(full_name); owners/models.py:25 lacked identity uniqueness. **Impact:** namesakes falsely link companies; concurrent duplicates. **Fix:** source identities/candidates/verified exact IIN/evidence/confidence/review.
 
-### AUD 015 Связи директоров не отражают смену руководства
+### AUD 015 Director links ignore role changes
 
-**ID:** AUD-015. **Priority:** P1.
-**Доказательство:** `link_directors.py:49` только добавляет Directorship; поля start_date/end_date в `apps/owners/models.py:54` не заполняются и не учитываются в `build_clusters.py:21`.
-**Последствие:** прежний директор остаётся текущей связью; `apps/ai/explainer.py:73` утверждает одновременное руководство без временного подтверждения.
-**Исправление:** фазы 2 и 4 — effective_from/effective_to, источник наблюдения, анализ на выбранную дату и закрытие старой связи после подтверждённого обновления.
+**ID:** AUD-015. **Priority:** P1. **Evidence:** command.py:49 only added roles; dates unused/unfilled; explainer.py:73 claimed simultaneous leadership. **Impact:** former directors remain current without temporal proof. **Fix:** effective intervals/observations/as-of analysis/confirmed closure.
 
-### AUD 016 Connection существует в модели, но сбор её не заполняет
+### AUD 016 Connection is not populated
 
-**ID:** AUD-016. **Priority:** P1.
-**Доказательство:** `apps/graph/models.py:9` определяет Connection, а `build_clusters.py:191` создаёт только RiskCluster; views/детерминированное объяснение повторно сравнивают поля компаний.
-**Последствие:** нет сохранённых рёбер и доказательств; несколько реализаций правил расходятся; `apps/ai/openrouter.py:20` читает таблицу, которую текущий pipeline не заполняет.
-**Исправление:** фаза 4 — материализованные edges с source/evidence/confidence/validity и единый snapshot, используемый графом, правилами и объяснением.
+**ID:** AUD-016. **Priority:** P1. **Evidence:** graph/models.py:9 declares Connection; command.py:191 creates only RiskCluster; views/explainer compare fields again; OpenRouter reads empty edges. **Impact:** no shared saved evidence, divergent implementations. **Fix:** Phase 4 materialised evidence/confidence/validity edges and shared snapshots.
 
-### AUD 017 Объяснение сохраняется на GET без проверки актуальности
+### AUD 017 GET persists explanations without freshness checks
 
-**ID:** AUD-017. **Priority:** P1.
-**Доказательство:** `apps/graph/views.py:130` генерирует текст только при пустом ai_explanation и `:133` сохраняет объект; `apps/graph/models.py:56` хранит текст без fingerprint/version/status.
-**Последствие:** изменение данных не инвалидирует непустой текст; параллельные GET повторяют работу. Текущий генератор детерминированный, внешних LLM расходов здесь нет.
-**Исправление:** фазы 4–5 — explanation привязан к immutable snapshot и rule/prompt/model версиям; генерация в job, dedup по fingerprint, GET только читает готовый статус/результат.
+**ID:** AUD-017. **Priority:** P1. **Evidence:** graph/views.py:130/:133 generated/saved only when empty; model.py:56 had no version/fingerprint/status. **Impact:** stale nonempty text, duplicate concurrent work; deterministic path incurred no external cost. **Fix:** snapshots/rule-prompt-model versions/jobs/dedup/read-only GET.
 
-### AUD 018 Квадратичная обработка и запросы на каждую пару
+### AUD 018 Quadratic work and per-pair SQL
 
-**ID:** AUD-018. **Priority:** P1.
-**Доказательство:** `build_clusters.py:72` и `:115` перебирают пары; `apps/graph/views.py:44` и `:45` вызывают ORM values_list для каждой пары. На пяти компаниях подтверждено 20 SQL запросов.
-**Последствие:** стоимость построения растёт как O(n²), а запросы игнорируют prefetch cache; каждый просмотр пересчитывает граф. Для 100 компаний только этот участок даёт около 9900 запросов.
-**Исправление:** фаза 4 — inverted indexes по нормализованным признакам, чтение готовых edges/snapshot, лимиты больших графов и измеряемый budget запросов.
+**ID:** AUD-018. **Priority:** P1. **Evidence:** command.py:72/:115 all pairs; graph/views.py:44/:45 ORM values_list per pair; five companies used 20 queries. **Impact:** O(n squared), prefetch ignored; 100 companies roughly 9,900 queries in that section, each view rebuilds. **Fix:** indexes/saved edges/large-graph limits/measured query budgets.
 
-### AUD 019 Неиспользуемый OpenRouter клиент содержит некорректные исключения
+### AUD 019 Inactive OpenRouter raises strings
 
-**ID:** AUD-019. **Priority:** P2.
-**Доказательство:** `apps/ai/openrouter.py:76` и `:88` пытаются `raise` строку; активный view импортирует другой модуль в `apps/graph/views.py:131`.
-**Последствие:** после подключения ошибка API будет маскироваться TypeError; prompt опирается на незаполняемые Connection и не содержит конкретных доказательств.
-**Исправление:** фаза 5 — typed exceptions/results, retries и schema validation, provider abstraction, evidence-only prompt, версии модели/шаблона и лимит затрат.
+**ID:** AUD-019. **Priority:** P2. **Evidence:** ai/openrouter.py:76/:88 raise strings; active view imports another explainer. **Impact:** TypeError masks provider errors; prompt has no concrete evidence. **Fix:** Phase 5 typed results/errors/retry/schema/provider/evidence-only/version/cost controls.
 
-### AUD 020 В Compose не задан порт Gunicorn
+### AUD 020 Gunicorn port absent from Compose
 
-**ID:** AUD-020. **Priority:** P1.
-**Доказательство:** `Dockerfile:19` использует `0.0.0.0:$PORT`; `docker-compose.yml:38` и `.env.example:1` не определяют PORT.
-**Последствие:** обычная конфигурация Compose не задаёт рабочий bind; EXPOSE и mapping 8000 не заменяют переменную внутри CMD.
-**Исправление:** фаза 1 — явный 8000/default PORT, единый entrypoint и smoke test запуска с чистого clone.
+**ID:** AUD-020. **Priority:** P1. **Evidence:** Dockerfile:19 bound `$PORT`; Compose/:env omitted it. **Impact:** EXPOSE/mapping do not populate CMD variable. **Fix:** explicit/default 8000, entrypoint, clean-start smoke test.
 
-### AUD 021 Docker установка игнорирует lock
+### AUD 021 Docker ignores lockfile
 
-**ID:** AUD-021. **Priority:** P1.
-**Доказательство:** `Dockerfile:13` использует `uv pip install --system .`, тогда как `uv.lock` присутствует; `pyproject.toml:7` задаёт широкие нижние границы версий.
-**Последствие:** повторная сборка получает новые версии зависимостей и отличается от проверенной среды. Это риск воспроизводимости, а не доказанный текущий конфликт beat/Django.
-**Исправление:** фаза 1 — frozen sync/install с lock, осознанная поддерживаемая Django линия, одинаковые версии в dev/CI/Docker.
+**ID:** AUD-021. **Priority:** P1. **Evidence:** Dockerfile:13 `uv pip install --system .`; broad lower dependency bounds. **Impact:** rebuilds differ; reproducibility risk, not proven beat conflict. **Fix:** frozen install/supported Django/equal dev-CI-Docker versions.
 
-### AUD 022 Настройка staticfiles backend не действует
+### AUD 022 Staticfiles setting ineffective
 
-**ID:** AUD-022. **Priority:** P1.
-**Доказательство:** `config/settings.py:88` задаёт старый STATICFILES_STORAGE; runtime проверка Django 6.0.6 показала `STORAGES["staticfiles"]` с обычным StaticFilesStorage.
-**Последствие:** ожидаемые manifest hashes и compression WhiteNoise не включены. `collectstatic --dry-run` без SECRET_KEY прошёл; build failure по этой причине не заявляется.
-**Исправление:** фаза 1 — `STORAGES` с CompressedManifestStaticFilesStorage и проверка фактических артефактов/раздачи статики.
+**ID:** AUD-022. **Priority:** P1. **Evidence:** settings.py:88 old STATICFILES_STORAGE; Django 6 runtime used ordinary storage. **Impact:** manifest hashes/compression absent. Keyless dry-run passed, so no build failure claimed. **Fix:** STORAGES/CompressedManifestStaticFilesStorage and real asset serving checks.
 
-### AUD 023 Worker и beat могут стартовать до миграций
+### AUD 023 Worker/beat can precede migrations
 
-**ID:** AUD-023. **Priority:** P1.
-**Доказательство:** миграции находятся в web CMD (`Dockerfile:19`), а worker/beat зависят лишь от healthcheck db/redis (`docker-compose.yml:60`, `:78`).
-**Последствие:** свежая БД уже отвечает pg_isready, но нужных таблиц ещё нет; готовность Redis не означает готовность schema или worker.
-**Исправление:** фаза 1 — отдельный migrate service, ожидание успешного завершения, health/readiness для приложения и очередей; один beat на deployment.
+**ID:** AUD-023. **Priority:** P1. **Evidence:** migrations in web CMD; worker/beat only wait for db/redis. **Impact:** database readiness does not mean tables exist. **Fix:** dedicated migrate gate/app-queue readiness/one beat per deployment.
 
-### AUD 024 Небезопасные значения настроек по умолчанию
+### AUD 024 Unsafe default settings
 
-**ID:** AUD-024. **Priority:** P1.
-**Доказательство:** `config/settings.py:11` включает DEBUG при отсутствии переменной, `:12` разрешает все hosts, `:10` не валидирует обязательный SECRET_KEY; production secure cookies отдельно не настроены.
-**Последствие:** ошибка окружения способна открыть debug детали и принять неожиданный host; ключ должен проверяться при runtime, а HTTPS настройки соответствовать proxy.
-**Исправление:** фаза 1 — отдельные dev/test/prod настройки, fail-fast validation обязательных переменных, DEBUG false, точные hosts и secure cookies/HTTPS после настройки proxy.
+**ID:** AUD-024. **Priority:** P1. **Evidence:** settings.py:11 debug defaults on/:12 all hosts/:10 no required key validation; secure-cookie settings absent. **Impact:** accidental debug exposure/unexpected hosts. **Fix:** dev-test-prod separation/fail-fast key/debug false/hosts/proxy-aware HTTPS.
 
-### AUD 025 Очистка логов не обеспечивает retention
+### AUD 025 Log retention fails
 
-**ID:** AUD-025. **Priority:** P2.
-**Доказательство:** `logging_setup/cleanup_old_logs.py:11` создаёт aware cutoff, `:21` naive file_date, `:23` сравнивает их; `logging_setup/formats.py:29` меняет имя архива, не меняя алгоритм его поиска.
-**Последствие:** TypeError перехватывается как warning, старые файлы остаются; offline проверка также показала, что штатный поиск архивов не распознаёт изменённое имя.
-**Исправление:** фаза 1 — единые datetime/имена и проверяемый retention; для контейнеров structured stdout с ротацией на уровне платформы.
+**ID:** AUD-025. **Priority:** P2. **Evidence:** cleanup.py:11 aware cutoff/:21 naive date/:23 comparison; formats.py:29 renamed archives without discovery changes. **Impact:** caught TypeError leaves files; retention misses archives. **Fix:** consistent UTC/names/tested cleanup; container stdout/platform rotation.
 
-### AUD 026 Риск и цвета отображаются неодинаково
+### AUD 026 Inconsistent risk representation
 
-**ID:** AUD-026. **Priority:** P2.
-**Доказательство:** `static/js/cluster_graph.js:115` использует пороги 70/40, `templates/clusters/detail.html:70` — 80/50; `apps/companies/views.py:24` берёт средний риск, а отдельные блоки показывают Supplier.risk_score.
-**Последствие:** одна компания выглядит опаснее или безопаснее на разных экранах; рейтинг может опираться на значение, которое пересборка кластеров не обновляет.
-**Исправление:** фаза 1 — унифицировать существующие пороги; фазы 4–5 — один контракт score/level/version и объяснение принадлежности балла; фаза 7 — единые компоненты визуализации.
+**ID:** AUD-026. **Priority:** P2. **Evidence:** graph JS thresholds 70/40 versus detail 80/50; company views average risk versus stored Supplier.risk_score elsewhere. **Impact:** inconsistent severity/nonupdated score. **Fix:** Phase 1 thresholds; Phases 4-5 shared score-level-version; Phase 7 components.
 
-### AUD 027 Счётчики допускают повторный учёт компаний и контрактов
+### AUD 027 Duplicate company/contract counts
 
-**ID:** AUD-027. **Priority:** P2.
-**Доказательство:** `apps/companies/views.py:174` суммирует связанные queryset по признакам; `apps/dashboard/views.py:64` суммирует totals кластеров; `apps/owners/views.py:21` использует Count без distinct до поиска по связям.
-**Последствие:** одна компания считается несколько раз при нескольких признаках; пересекающиеся кластеры повторно учитывают контракты, поисковые joins могут завышать число связей директора.
-**Исправление:** фаза 1 — исправить повторный подсчёт существующих связей; фазы 4 и 6 — определить сущность счётчика, distinct IDs/контрактов и независимые агрегаты; закрепить примеры пересечений в тестах.
+**ID:** AUD-027. **Priority:** P2. **Evidence:** company/view.py:174 sums feature querysets; dashboard.py:64 cluster totals; owner.py:21 Count without distinct. **Impact:** repeated signals/overlapping clusters/search joins inflate counts. **Fix:** deduplicate current counts; define independent versioned metrics/distinct IDs/contracts and overlap tests.
 
-### AUD 028 Фильтр риска не валидируется
+### AUD 028 Risk filter unvalidated
 
-**ID:** AUD-028. **Priority:** P2.
-**Доказательство:** `apps/graph/views.py:93` передаёт сырой GET параметр в числовой ORM filter; числовой формат и диапазон до фильтрации не проверяются.
-**Последствие:** `?risk=abc` способен вызвать ValueError/500; отрицательные/запредельные значения не имеют согласованной пользовательской семантики.
-**Исправление:** фаза 1 — безопасный разбор и ответ ошибки; фаза 6 — serializer/filter schema, диапазон 0–100 и тесты неверного ввода.
+**ID:** AUD-028. **Priority:** P2. **Evidence:** graph/views.py:93 raw GET into numeric filter. **Impact:** risk=abc raises 500; out-of-range semantics undefined. **Fix:** safe parse/error; DRF schema 0-100/tests.
 
-### AUD 029 Текущие JSON ответы не являются полноценным API
+### AUD 029 JSON responses are not a complete API
 
-**ID:** AUD-029. **Priority:** P2.
-**Доказательство:** `apps/companies/views.py:92` возвращает HTML поля, `:61` ограничивает 50 строками, `:97` называет их длину total; аналогичные пути есть в owners/dashboard.
-**Последствие:** клиент связан с Bootstrap/server markup, не знает полного количества результатов; стандартизированных схем, permissions и API pagination нет.
-**Исправление:** фаза 6 — DRF `/api/v1`, чистые serializers, pagination/filtering, OpenAPI и permissions; существующий Django admin сохранить.
+**ID:** AUD-029. **Priority:** P2. **Evidence:** company views return HTML, limit 50, total equals returned length; similar owners/dashboard. **Impact:** Bootstrap markup coupling/no real totals/schema/permissions/pagination. **Fix:** DRF serializers/filtering/pagination/OpenAPI/permissions; retain admin.
 
-### AUD 030 Исходный проект не имел README и тестов приложения
+### AUD 030 Original README/tests absent
 
-**ID:** AUD-030. **Priority:** P1.
-**Доказательство:** на момент исходного аудита README.md имел размер 0 bytes; семь `apps/*/tests.py:3` были placeholders, Django обнаружил 0 тестов; DEPLOY.md описывал systemd отдельно от Compose.
-**Последствие:** исходный setup/demo не воспроизводится по проверенной инструкции, приложение не защищено regression tests. В фазе 0 добавлен README с навигацией и документационный каркас; это не проверка полного запуска.
-**Исправление:** фаза 0 — baseline и критерии фаз; с фазы 1 — целевые tests приложения и проверенная инструкция запуска; фаза 8 — итоговый README, CI, demo и эксплуатационная документация.
+**ID:** AUD-030. **Priority:** P1. **Evidence:** README 0 bytes, seven app placeholders/0 tests; DEPLOY systemd separate from Compose. **Impact:** unreproducible setup/no regressions. **Fix:** Phase 0 records; Phase 1 meaningful tests/startup; Phase 8 final README/CI/demo/operations. Documentation scaffolding alone is not startup verification.
 
-### AUD 031 Snapshot и пользовательское состояние графа не сохраняются
+### AUD 031 Graph snapshots/views not saved
 
-**ID:** AUD-031. **Priority:** P2.
-**Доказательство:** `apps/graph/views.py:127` строит graph_data на просмотре; `static/js/cluster_graph.js:287` запускает новую forceSimulation, `:335` сбрасывает zoom; модель snapshot/layout отсутствует.
-**Последствие:** одинаковый анализ нельзя воспроизвести по версии, расположение узлов и масштаб меняются при открытии; состав/описание не имеют общего состояния.
-**Исправление:** фаза 4 — immutable snapshots, отдельно layout/zoom пользователя, обновление по изменению evidence; улучшить внешний вид графа. Общий UI/UX по будущим референсам — фаза 7.
+**ID:** AUD-031. **Priority:** P2. **Evidence:** views.py:127 builds data on read; graph JS:287 starts forceSimulation/:335 resets zoom; no snapshot/layout model. **Impact:** unstable layout/no reproducible shared graph-text version. **Fix:** Phase 4 immutable snapshots/separate layout-zoom/evidence updates/graph improvement; Phase 7 reference-based site design.
 
-## Методологические риски
+## Methodological risks
 
-### AUD 032 Эвристический балл не калиброван на подтверждённых случаях
+### AUD 032 Uncalibrated heuristic score
 
-**ID:** AUD-032. **Priority:** P1.
-**Доказательство:** `build_clusters.py:119` складывает веса типов и `:125` добавляет 5 за каждую компанию сверх двух; 19 компаний с общим email дают `15 + 17 × 5 = 100`.
-**Последствие:** массовый адрес/контакт посредника может выглядеть как максимальный риск; связность цепочки не доказывает связь каждой пары и тем более нарушение закупок.
-**Решение:** фаза 5 — различать силу evidence и риск-сигнал, учитывать частоту признака, временное пересечение и закупочные паттерны; оценить false positives на размеченных примерах.
+**ID:** AUD-032. **Priority:** P1. **Evidence:** sums feature weights plus five per company over two; 19 shared-email companies: 15 + 17 * 5 = 100. **Impact:** service contacts look maximum-risk; component membership proves neither every pair nor wrongdoing. **Decision:** separate evidence strength/risk, feature frequency/time/behaviour, labelled false-positive evaluation.
 
-### AUD 033 Отсутствие сведений смешивается с отрицательным результатом
+### AUD 033 Missing checks resemble negative checks
 
-**ID:** AUD-033. **Priority:** P1.
-**Доказательство:** `apps/owners/models.py:10` и соседние flags имеют default=False; действующий pipeline не заполняет Ownership/TaxDebt/Bankruptcy/CourtCase из подтверждённых источников.
-**Последствие:** «не проверяли/источник недоступен» нельзя отличить от «проверили, задолженности нет»; объяснение и интерфейс могут приписывать данным неоправданную полноту.
-**Решение:** фазы 2–3 — checked/unknown/error/not_found, observed_at, source и evidence; фаза 5 — выводы только из подтверждённых observations.
+**ID:** AUD-033. **Priority:** P1. **Evidence:** owner booleans default false; pipeline lacks verified ownership/debt/bankruptcy/court sources. **Impact:** not checked/unavailable resembles checked absent. **Decision:** states/dates/source/evidence in Phases 2-3; confirmed observations only in Phase 5.
 
-### AUD 034 Объяснение не отделяет наблюдение от интерпретации
+### AUD 034 Observation and interpretation conflated
 
-**ID:** AUD-034. **Priority:** P1.
-**Доказательство:** `apps/ai/explainer.py:142` называет группу аффилированной по контактным совпадениям; `apps/dashboard/views.py:63` обозначает все суммы кластеров как money_at_risk.
-**Последствие:** пользователь может принять совпадение за установленную юридическую аффилированность, сумму контрактов за ущерб, score за вероятность правонарушения.
-**Решение:** фазы 5 и 7 — язык проверяемых признаков, источники/даты, альтернативные объяснения и ограничения анализа; деньги обозначать как объём анализируемых контрактов.
+**ID:** AUD-034. **Priority:** P1. **Evidence:** explainer.py:142 calls contact groups affiliated; dashboard money_at_risk totals all group contracts. **Impact:** contact similarity mistaken for legal affiliation, amounts for damage, score for probability. **Decision:** evidence-based language/sources/dates/alternatives/limits; label amounts as analysed contract volume.
 
-### AUD 035 Подключение LLM потребует собственного контроля качества
+### AUD 035 LLM requires independent quality control
 
-**ID:** AUD-035. **Priority:** P2.
-**Доказательство:** неактивный `apps/ai/openrouter.py:31` передаёт имена, типы связей и балл, но не evidence; текущий рабочий текст генерируется правилами, а не LLM.
-**Последствие:** будущая LLM может добавить неподтверждённые обвинения или выполнить инструкции из source fields; сейчас расходы/галлюцинации через GET не подтверждены.
-**Решение:** фаза 5 — правила строят evidence JSON и score, LLM только формулирует текст; ограниченный output schema, fact validation, безопасный fallback и версии/fingerprint результата.
+**ID:** AUD-035. **Priority:** P2. **Evidence:** inactive OpenRouter prompt gives names/types/score without evidence; working explanation is deterministic. **Impact:** future unsupported accusations/source prompt injection; current GET cost/hallucinations not established. **Decision:** evidence JSON/rules determine score; LLM formulates validated structured text with fallback/versioning.
 
-## Известные сведения и непроверенные внешние источники
+## External information and unverified access
 
-КГД имеет [официальный каталог API](https://portal.kgd.gov.kz/pages/api-services). [Документация поиска налогоплательщика, PDF](https://portal.kgd.gov.kz/ru/pages/info-services/find-taxpayer/_/attachment/download/591204a8-1450-4824-afc1-8298245e6f6c%3A7e918a95b376cd46c2af2f60a387d81996b03f47/ipn_ru%20%281%29.pdf) указывает GET `taxpayer-data` и выдаваемый администратором `X-Portal-Token`.
-Это подтверждает документированный API, но не получение токена проектом, live доступ, квоты или наличие в этом endpoint налоговой задолженности/бенефициаров. Адаптер КГД должен пройти отдельную проверку в фазе 3.
-Актуальная разметка goszakup/Adata, полнота страниц, ограничения доступа и правильность текущих selectors не проверялись массовым live сбором. Локальные reproductions подтверждают ошибки кода независимо от доступности сайтов.
-Доступность выбранной OpenRouter модели, стоимость, квоты и качество ответов live не проверялись; `config/settings.py:117` фиксирует конкретную free модель. При интеграции модель должна быть конфигурируемой.
-Правила доступа к источникам, обработка/публикация IIN и условия внешней передачи данных необходимо определить для конкретного пилота; этот аудит не является юридическим заключением.
+KGD has an [official API catalogue](https://portal.kgd.gov.kz/pages/api-services). [Taxpayer lookup documentation](https://portal.kgd.gov.kz/ru/pages/info-services/find-taxpayer/_/attachment/download/591204a8-1450-4824-afc1-8298245e6f6c%3A7e918a95b376cd46c2af2f60a387d81996b03f47/ipn_ru%20%281%29.pdf) describes GET `taxpayer-data` and administrator-issued `X-Portal-Token`. This establishes documentation, not project access/token/quotas/debt/beneficial-owner coverage. Verify separately in Phase 3.
 
-## Решения для последующих фаз
+Current goszakup/Adata markup/completeness/access/selectors were not checked through mass live collection. Local reproductions establish code defects independently. OpenRouter model availability/cost/quality unverified; the original configured free model must become configurable when integrated. Define source access/personal IIN/publication/external transfer conditions for the specific pilot; this audit is not legal advice.
 
-Исправления P0 и целостности импорта идут раньше расширения источников. Перенос парсеров должен сопровождаться единым результатом/ошибками и доказуемыми checkpoint, иначе старые дефекты переедут в новую папку.
-Граф строится из сохранённых фактов и рёбер; snapshot и объяснение имеют одну revision. Добавление компании пересчитывает затронутый состав/evidence и создаёт следующую версию, неизменный fingerprint использует сохранённый результат.
-Similarity поиск создаёт кандидатов на проверку, а не необратимо объединяет компании. Проверенный BIN задаёт компанию; схожие имена и контакты являются evidence с ограниченной уверенностью.
-DRF добавляется к существующему Django домену; React потребляет API. Удаление Bootstrap можно решить при работе по пользовательским референсам, оно не требуется самим React.
-Для диплома нужны воспроизводимый demo, объяснимые правила и измерение качества на примерах. Пилот потребует также доступа к источникам, наблюдаемости, восстановления и ясных ограничений результатов.
-Обновления findings следует фиксировать с датой, проверкой и ссылкой на изменение. **Наличие этого документа не означает, что описанные дефекты уже исправлены.**
+## Decisions for later phases
+
+Fix P0/import integrity before adding sources. Parser relocation requires shared states/errors/checkpoints. Persist evidence/snapshots with matching explanation revision; changed membership creates a version, unchanged fingerprints reuse results. Similarity yields review candidates, not irreversible identity merges; verified BIN identifies companies. Add DRF to Django and React to API; Bootstrap decision awaits references. Thesis needs reproducible demonstration/rules/measured quality; pilots also need access/observability/recovery/limits. Record finding updates with date/check/change reference. **This document alone does not mean a defect is fixed.**

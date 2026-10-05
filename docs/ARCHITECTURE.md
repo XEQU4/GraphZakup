@@ -1,196 +1,191 @@
-# Архитектура GovernmentProcurementGraph
+# GovernmentProcurementGraph architecture
 
-Дата фиксации: 5 октября 2026 года, состояние после фазы 2. Документ разделяет реализованную систему и целевую архитектуру дипломной версии. Ingestion, происхождение фактов и модель идентичности реализованы; КГД, snapshots, DRF и React остаются планом.
+Recorded on 5 October 2026 after Phase 2. This document distinguishes implemented behaviour from the target thesis architecture. Ingestion, provenance, and identity are implemented; KGD, snapshots, DRF, and React remain planned.
 
-Проект должен собирать сведения о закупках и компаниях, показывать доказуемые связи между ними и объяснять выявленные паттерны. Наличие связи само по себе не устанавливает нарушение, а объём договоров группы не является оценкой ущерба. Для каждого вывода нужны источники, временной контекст и степень уверенности.
+Collect procurement/company information, show verifiable links, and explain observed patterns. A link does not establish wrongdoing; group contract volume is not damage. Conclusions require sources, temporal context, and confidence.
 
-Связанные документы: [аудит](AUDIT.md), [исходное состояние](BASELINE.md), [резервное копирование и восстановление](RECOVERY.md), [план фаз](ROADMAP.md), [правила работы в репозитории](../AGENTS.md).
+Related: [audit](AUDIT.md), [baseline](BASELINE.md), [recovery](RECOVERY.md), [roadmap](ROADMAP.md), [repository rules](../AGENTS.md).
 
-Рабочее предположение для проектирования первой версии — пользователь, анализирующий закупки и проверяющий связи компаний. Основная аудитория, срок диплома и допустимый бюджет внешних API и ИИ пока не подтверждены. Эти вопросы могут изменить приоритеты интерфейса и объём первой версии.
+A procurement analyst checking company links is the initial design assumption. Audience, thesis deadline, and API/AI budgets are unconfirmed and may change priorities. All project deliverables use English; Russian website localisation follows completion of the English interface. Original source labels/data retain their source language.
 
-## Состояние требований
+## Requirements status
 
-| Требование | Статус |
+| Requirement | Status |
 | --- | --- |
-| Объединить сбор данных и оптимизировать парсеры | Выполнено в фазе 2: общая сессия, pacing, кэши, checkpoints, lease и продолжение стадий |
-| Добавить сведения КГД | Запрошено; состав доступных сервисов и получение доступа требуется проверить в фазе 3 |
-| Перевести backend на DRF и добавить React | Запрошено; переход планируется постепенно с сохранением Django и миграций |
-| Сохранять граф, версии анализа и объяснения | Запрошено; модель хранения предложена в этом документе |
-| Обновлять объяснение при значимом изменении группы | Фаза 1 сохраняет текст и проверяет устаревание fingerprint; фоновые версии объяснения запланированы |
-| Существенно улучшить внешний вид и взаимодействие графа | Запрошено дополнительно; включено в фазу 4 |
-| Разработать красивый и удобный интерфейс по референсам | Запрошено; пользователь предоставит референсы позднее, окончательный стиль пока не выбран |
-| Запускать backend, Celery, Redis и БД через Docker | Исправлено и проверено в фазе 1: единый build, migrations gate и healthchecks |
-| Обновить README и инструкции запуска | Запрошено; документация развивается вместе с каждой фазой |
-| Конкретный LLM провайдер, бюджет и публичный запуск стартапа | Не согласовано; решения принимаются после измерения потребности и стоимости |
+| Consolidate/optimise parsers | Implemented in Phase 2: shared session, pacing, caches, checkpoints, lease, resumable stages |
+| KGD information | Requested; verify service coverage/access in Phase 3 |
+| DRF backend and React | Requested; gradual transition retaining Django/migrations |
+| Persist graph/analysis/explanations | Requested; proposed storage below |
+| Update explanations after significant changes | Phase 1 preserves texts/checks fingerprint staleness; background versioning planned |
+| Substantial graph improvement | Explicitly requested; Phase 4 |
+| Attractive, usable reference-based UI | Requested; user references pending, final style undecided |
+| Docker backend/Celery/Redis/database | Fixed and verified in Phase 1: shared build, migration gate, health checks |
+| README/startup documentation | Updated as phases progress |
+| Specific LLM/budget/public startup | Unapproved; decide after measuring need/cost |
 
-## Существующая система
+## Existing system
 
-Backend построен на Django. PostgreSQL хранит поставщиков, договоры, владельцев, руководителей и кластеры. Страницы используют Django templates и JavaScript; граф рисуется через D3. DRF и React в текущей структуре отсутствуют.
+Django/PostgreSQL store suppliers, contracts, owners, directors, and clusters. Pages use templates/JavaScript/Bootstrap; D3 draws graphs. DRF/React are absent.
 
-Три парсера находятся в [apps/ingestion/parsers](../apps/ingestion/parsers): реестр договоров, реестр участников и Adata. Общий [сервис](../apps/ingestion/services.py) сохраняет наблюдения, роли и прогресс стадий; management-команды и [Celery](../apps/core/tasks.py) вызывают его напрямую. [Compose](../docker-compose.yml) объявляет PostgreSQL, Redis, отдельные миграции, web, worker и beat. Автосбор выключен по умолчанию. Проверенные изменения находятся в [PHASE1.md](PHASE1.md) и [PHASE2.md](PHASE2.md).
+Three [parsers](../apps/ingestion/parsers) handle contracts, participants, and Adata. The shared [service](../apps/ingestion/services.py) stores observations/roles/stage progress; commands and [Celery](../apps/core/tasks.py) call it directly. [Compose](../docker-compose.yml) defines PostgreSQL, Redis, migrate, web, worker, and beat. Automatic collection defaults off. See [PHASE1.md](PHASE1.md)/[PHASE2.md](PHASE2.md).
 
-| Область | Текущая реализация | Ограничение |
+| Area | Implementation | Limitation |
 | --- | --- | --- |
-| Компании и закупки | [Supplier](../apps/companies/models.py) с ролями supplier/customer, [Contract](../apps/contracts/models.py) с FK заказчика, SourceObservation/SelectedFact | Имя Supplier сохранено для совместимости; полнота и актуальность внешних сведений не доказаны |
-| Люди и роли | [PersonIdentity, Owner, Director, Ownership, Directorship](../apps/owners/models.py), SourceIdentity и IdentityCandidate | Роли имеют доказательства и наблюдаемую историю; подтверждённые ИИН/юридические периоды/владельцы требуют внешнего источника |
-| Граф | [Connection, RiskCluster](../apps/graph/models.py), [graph service](../apps/graph/services.py) | UUID и тексты сохраняются; Connection и immutable snapshots ещё не используются как единый источник связей |
-| Объяснение | [Детерминированный explainer](../apps/ai/explainer.py) и сохранённый текст | GET читает текст и проверяет fingerprint участников; версионируемый анализ/генерация ещё не реализованы |
-| LLM | Отдельная интеграция в приложении ai | В основной путь показа кластера не подключена; механизм версий и дедупликации отсутствует |
-| Фоновые работы | Celery, django-celery-beat, IngestionRun и fenced lease | Общий процесс возобновляется; lease действует для вызовов сервиса, а не произвольных скриптов |
-| Интерфейс | Templates, Bootstrap и D3 | Граф нуждается в переработке; его данные, раскладка и объяснение не образуют сохраняемую версию |
+| Companies/contracts | [Supplier](../apps/companies/models.py) supplier/customer roles; [Contract](../apps/contracts/models.py) customer FK; SourceObservation/SelectedFact | Supplier name retained for compatibility; source completeness/freshness unproven |
+| People/roles | [PersonIdentity, Owner, Director, Ownership, Directorship](../apps/owners/models.py), source identities/candidates | Evidence and observed history exist; confirmed IIN/legal periods/ownership require external sources |
+| Graph | [Connection/RiskCluster](../apps/graph/models.py), [service](../apps/graph/services.py) | UUID/text retained; Connection/immutable snapshots not a shared evidence source yet |
+| Explanations | [Deterministic explainer](../apps/ai/explainer.py), saved text | GET reads/checks member fingerprint; versioned analysis/generation absent |
+| LLM | Separate ai integration | Outside normal cluster viewing; no deduplication/version mechanism |
+| Background work | Celery, beat, IngestionRun, fenced lease | Resumable shared pipeline; lease protects service calls, not arbitrary scripts |
+| UI | Templates/Bootstrap/D3 | Graph data/layout/explanation do not form a persisted version |
 
-Наблюдаемые дефекты и границы проведённых проверок перечислены в [аудите](AUDIT.md). Документ архитектуры не подтверждает качество или полноту данных внешних источников.
+The [audit](AUDIT.md) records defects/check boundaries. Architecture documentation does not verify source quality/completeness.
 
-## Целевая схема
+## Target design
 
-Предлагается модульный Django backend с DRF, отдельный React frontend, PostgreSQL, Celery и Redis. На дипломном этапе это один backend, разделённый по предметным областям. Введение отдельной графовой БД или микросервисов требует измеримого основания и пока не планируется.
+A modular Django/DRF backend, React frontend, PostgreSQL, Celery, and Redis. The thesis uses one backend divided by domain. Graph databases/microservices require a measured reason and are not planned now.
 
 ```mermaid
 flowchart LR
-    S[Реестры закупок Adata КГД] --> I[Ingestion и наблюдения]
-    I --> E[Компании люди роли договоры]
-    E --> G[Доказательства связей и версии графа]
-    G --> A[Правила и версии анализа]
-    A --> X[Сохранённые объяснения]
+    S[Procurement registries Adata KGD] --> I[Ingestion and observations]
+    I --> E[Companies people roles contracts]
+    E --> G[Link evidence and graph versions]
+    G --> A[Rules and analysis versions]
+    A --> X[Stored explanations]
     A --> API[DRF API]
     G --> API
     X --> API
-    API --> UI[React и интерактивный граф]
-    Q[Celery и Redis] --> I
+    API --> UI[React and interactive graph]
+    Q[Celery and Redis] --> I
     Q --> G
     Q --> A
     Q --> X
 ```
 
-PostgreSQL хранит долговременные результаты и состояние задач. Redis используется для очередей и вспомогательного кэша; потеря кэша не должна удалять версии графа или объяснения. Для исключения повторных работ нужны ограничения БД и проверка текущей версии, а не только временная блокировка в Redis.
+PostgreSQL holds durable results/job state; Redis provides queues/cache. Cache loss must not remove graph/explanation versions. Deduplication needs database constraints/current-version checks as well as temporary locks.
 
-Предлагаемые границы модулей:
-
-| Модуль | Ответственность |
+| Module | Responsibility |
 | --- | --- |
-| `apps.ingestion` | Адаптеры источников, транспорт, нормализация, наблюдения, запуски и checkpoints |
-| `apps.companies` | Компании и их проверенные идентификаторы; роли поставщика и заказчика |
-| `apps.owners` или будущий модуль людей | Люди, сопоставление идентичности, директорство и владение во времени |
-| `apps.contracts` | Договоры и их изменения; расширение до лотов и участников только при наличии источника |
-| `apps.graph` | Доказательства связей, постоянные группы, snapshots и история состава |
-| `apps.ai` | Правила, результаты анализа, шаблонные и LLM объяснения |
-| `apps.core` | Общие технические механизмы; без скрытого управления всем бизнес-процессом |
-| `frontend` | React, запросы к API, страницы и взаимодействие с графом |
+| `apps.ingestion` | Source adapters, transport, normalisation, observations, runs, checkpoints |
+| `apps.companies` | Companies, verified identifiers, supplier/customer roles |
+| `apps.owners` or future people module | Identity matching, temporal directorship/ownership |
+| `apps.contracts` | Contracts/changes; lots/bidders only with available sources |
+| `apps.graph` | Link evidence, stable groups, snapshots, membership history |
+| `apps.ai` | Rules/findings/template and LLM explanations |
+| `apps.core` | Shared technical mechanisms without hidden business orchestration |
+| `frontend` | React/API requests/pages/graph interaction |
 
-Названия будущего модуля людей и расположение API serializers уточняются при реализации. Миграция существующих таблиц должна сохранять связь с первоначальными записями.
+Future people-module naming/serializer placement will be decided during implementation. Table migration must preserve original-record links.
 
-## Сбор данных и происхождение фактов
+## Ingestion and provenance
 
-Парсеры размещены в `apps/ingestion/parsers/`. Они не вызывают следующие стадии и не сохраняют модели напрямую. Общий транспорт обеспечивает timeout, повторные попытки, ограничение частоты и повторное использование соединений. Сервис ingestion выполняет дополнительную проверку, сохраняет наблюдения и выбирает итоговые значения. Фактические source priority, режимы, политика отсутствующих полей и ограничения описаны в [PHASE2.md](PHASE2.md).
+Parsers in `apps/ingestion/parsers/` neither invoke later stages nor persist models. Transport handles timeouts/retries/pacing/connection reuse. Ingestion validates, saves observations, and selects fields. Actual priorities/modes/missing-field policy are in [PHASE2.md](PHASE2.md).
 
-Результат запроса различает успешное наблюдение, отсутствие объекта, недоступность источника, ошибку формата и отсутствие проверки. Эти состояния нельзя сводить к пустому значению или нулевой задолженности.
+Distinguish success, object absence, source unavailability, malformed response, and not checked. Never reduce these to empty values or zero debt.
 
-Сущности ingestion (налоговое наблюдение остаётся предложением фазы 3):
-
-| Сущность | Что сохраняет |
+| Entity | Stored information |
 | --- | --- |
-| `IngestionRun` | Источник, режим, стадии, начало и завершение, статус, счётчики и диагностические сведения |
-| `SourceCheckpoint` | Подтверждённый прогресс конкретного источника и потока данных |
-| `SourceObservation` | Субъект, поле или факт, исходное и нормализованное значение, источник, даты и версия парсера |
-| `IdentityCandidate` | Возможное совпадение сущностей, основания, уверенность и решение о сопоставлении |
-| `SelectedFact`, `IngestionIssue`, `IngestionLease` | Происхождение итогового поля, повторяемая ошибка и защита публикации от конкурирующего процесса |
-| `PersonIdentity`, `PersonSourceIdentity` | Точная подтверждённая либо изолированная личность; источник и наблюдавшееся имя |
-| Налоговое наблюдение | Компания или человек, вид сведений КГД, значение, дата актуальности и состояние проверки |
+| `IngestionRun` | Source/mode/stages/times/status/counters/diagnostics |
+| `SourceCheckpoint` | Confirmed source/stream progress |
+| `SourceObservation` | Subject/field/raw and normalised values/source/dates/parser version |
+| `IdentityCandidate` | Possible match, evidence, confidence, decision |
+| `SelectedFact`, `IngestionIssue`, `IngestionLease` | Selected provenance, retryable errors, concurrent publication fencing |
+| `PersonIdentity`, `PersonSourceIdentity` | Verified or isolated identity, source, observed name |
+| Tax observation (Phase 3 proposal) | Company/person, KGD information type, value, effective date, check state |
 
-Первоначальная загрузка, регулярное обновление и повторная обработка ошибок выполняются отдельно. Checkpoint продвигается после подтверждённой обработки; частично обработанная страница сохраняет достаточное состояние для продолжения. Повторный запуск должен приводить к тем же предметным данным, а не к дубликатам.
+Initial loading, regular updates, and retries are separate. Checkpoints advance after confirmed processing, retaining partial-page state. Repeats produce the same domain data without duplicates.
 
-Компания с подтверждённым БИН имеет точный ключ идентичности. Сходство названий помогает находить кандидатов и варианты написания. Для людей ФИО недостаточно: без надёжного идентификатора и подтверждающих фактов записи не объединяются автоматически. Ошибку прежнего объединения нужно уметь исправить без потери наблюдений.
+Verified BIN is an exact company key. Name similarity finds candidates/variants. Names alone cannot merge people without reliable identifiers/supporting evidence. Legacy false merges must be reversible without losing observations.
 
-У факта отдельно хранятся дата получения и период действия. Неизвестный период отмечается как неизвестный. Фраза об одновременном руководстве допустима только при доказанном пересечении периодов. Налоговые сведения компании относятся к компании; долг компании не записывается как долг её владельца.
+Keep retrieval dates separate from effective periods. Unknown periods stay unknown. Simultaneous leadership requires proven overlap. Company tax debt is not owner debt.
 
-## Доказательства и анализ
+## Evidence and analysis
 
-`EvidenceEdge` представляет связь с конкретными наблюдениями: тип, участники, нормализованный признак, временной интервал, источники и уверенность. Основной граф и объяснение используют один набор доказательств.
+`EvidenceEdge` links observations with type, participants, normalised feature, interval, sources, and confidence. Graph and explanation use the same evidence.
 
-Индекс признаков заменяет полный перебор всех пар компаний. Частые адреса и контакты учитываются отдельно: массовый признак может быть слабым основанием связи и отображаться как самостоятельный узел либо агрегат. Конкретное представление выбирается после проверки производительности и удобства.
+Feature indexes replace all-pairs comparison. Common contacts/addresses require separate treatment, possibly dedicated feature nodes/aggregates; choose after performance/usability tests.
 
-Нужно разделить идентичность, достоверность связи и риск поведения. Принадлежность одной связной компоненте не означает прямой связи каждой пары и не означает одинакового риска всех участников. Правила формирования аналитической группы и её скоринга версионируются.
+Separate identity, link reliability, and behavioural risk. Connected-component membership proves neither every pair's direct relation nor uniform risk. Version group rules/scoring.
 
-Правило возвращает структурированный finding: код и версию правила, участников, доказательства, период, уверенность, вклад в скор и ограничение интерпретации. Общий бизнес-центр или контакт обслуживающей организации рассматривается как возможное объяснение совпадения. Шкала риска калибруется на проверочных примерах; текущие пороги не переносятся автоматически.
+A rule returns a finding with code/version, participants, evidence, period, confidence, score contribution, and interpretation limits. A business centre/service provider may explain shared contacts. Calibrate risk on labelled cases rather than automatically inheriting current thresholds.
 
-Для паттернов поведения в торгах нужны заявки, участники, лоты и результаты. Пока таких данных нет, система не заявляет обнаружение согласованных заявок или ротации победителей только по договорам.
+Coordinated-bidding patterns need bidders, bids, lots, and results. Contracts alone cannot establish coordinated bids or winner rotation.
 
-## Сохранение графа и объяснений
+## Persisting graph and explanations
 
-Предлагается разделить постоянную группу, её версии и персональное состояние просмотра.
+Separate persistent groups, versions, and personal views.
 
-| Сущность | Назначение |
+| Entity | Purpose |
 | --- | --- |
-| `Cluster` | Постоянный UUID и указатель на актуальную опубликованную версию |
-| `ClusterSnapshot` | Неизменяемый состав, значимые узлы и доказательства связей |
-| `ClusterLineage` | Переходы между группами при слиянии и разделении |
-| `AnalysisSnapshot` | Входы анализа, findings, скор и версии правил |
-| `Explanation` | Текст, статус, язык, модель, версия шаблона или промпта и ссылка на анализ |
-| `GraphViewState` | Пользователь, версия схемы состояния, координаты, закрепления, масштаб и фильтры |
+| `Cluster` | Permanent UUID/current published version |
+| `ClusterSnapshot` | Immutable membership, significant nodes, link evidence |
+| `ClusterLineage` | Merge/split transitions |
+| `AnalysisSnapshot` | Inputs/findings/score/rule versions |
+| `Explanation` | Text/status/language/model/template or prompt version/analysis link |
+| `GraphViewState` | User/state-schema version/coordinates/pins/zoom/filters |
 
-`graph_hash` вычисляется из канонического представления значимых узлов и связей. `analysis_hash` дополнительно учитывает факты и показатели, используемые правилами, а также версии правил и нормализаторов, влияющих на результат. Повторное получение того же факта не меняет эти хеши только из-за новой даты скачивания. Порядок строк и технические ID запуска также исключаются. Если правило использует возраст факта, явная дата анализа или период оценки входят в его значимые входы.
+`graph_hash` covers canonical significant nodes/edges. `analysis_hash` also covers rule-used facts/metrics and relevant rule/normaliser versions. Repeat retrieval dates, row order, and run IDs do not change hashes alone. If a rule uses fact age, include an explicit analysis date/evaluation period.
 
-Текст повторно используется по `analysis_hash`, версии промпта или шаблона, модели и языку. Изменение значимых фактов, правил либо параметров объяснения создаёт новый результат. Ограничение уникальности обеспечивает дедупликацию даже при одновременных запросах.
+Reuse text by `analysis_hash`, prompt/template version, model, and language. Changed facts/rules/explanation parameters create new results. Database uniqueness handles concurrent deduplication. Initially prepare English; add Russian variants with later localisation.
 
-При изменении компании пересчитываются затронутая компонента и необходимые соседи. Старые snapshots сохраняются. Для слияния предлагается сохранять UUID выбранной продолжающейся группы и ссылку на предшественников; для разделения — оставлять UUID у одной продолжающейся группы, создавая новые UUID другим. Правила выбора продолжающейся группы должны быть детерминированы и протестированы; они пока не утверждены. Старые ссылки разрешаются через историю переходов, а не исчезают.
+Recompute affected components/necessary neighbours and retain old snapshots. Proposed merge policy continues a deterministically chosen UUID with predecessor links; splits continue one old UUID and assign new ones to others. Selection rules require approval/tests in Phase 4. Old links resolve through lineage.
 
-Фоновая задача привязана к точному snapshot. Поздний ответ для старого анализа сохраняется в истории, но не заменяет актуальное объяснение. Пользователь видит, какая версия открыта, когда она рассчитана и готово ли объяснение. GET читает сохранённые результаты. Разрешённый POST запускает новую работу.
+Jobs target exact snapshots. Late output stays in history without replacing current text. Show version, calculation time, and explanation state. GET reads saved results; authorised POST starts work.
 
-Состояние просмотра не влияет на аналитические хеши. При добавлении компании сохранённые координаты существующих узлов по возможности переносятся, новый узел получает начальное положение рядом со связанными узлами. Предусматривается явная команда сброса раскладки.
+Viewing state does not affect analytical hashes. Preserve existing coordinates where possible; place added nodes near neighbours and provide explicit reset.
 
-## Роль ИИ
+## AI role
 
-Детерминированные правила устанавливают проверяемые совпадения и паттерны. Шаблонный текст служит первым работающим объяснением и резервом при недоступности LLM.
+Deterministic rules establish matches/patterns. Templates provide the first explanation and LLM fallback.
 
-LLM получает структурированные findings и разрешённые доказательства, затем составляет связный текст. Он не создаёт новые рёбра и не принимает окончательное решение об идентичности человека. Ответ проверяется: ссылки существуют, числа соответствуют анализу, утверждения имеют основания, формат соблюдён. Содержимое источников передаётся как данные и не может менять инструкции генерации.
+LLM receives structured findings/allowed evidence and writes English text. It cannot invent edges or decide person identity. Validate references, numbers, evidence, and format. Source content is data, not generation instructions.
 
-Провайдер, модель, допустимый объём передаваемых сведений и месячный лимит расходов выбираются перед подключением. Результаты и ошибки генерации сохраняются. Анализ должен оставаться полезным при недоступности внешней модели.
+Choose provider/model/allowed disclosures/monthly budget before integration. Save results/errors; analysis remains useful without the model.
 
-## API и интерфейс
+## API and interface
 
-API `/api/v1/` предоставляет компании, договоры, людей, кластеры, snapshots, доказательства, объяснения и состояния фоновых работ. В ответах передаются данные без HTML-фрагментов. Нужны проверяемые фильтры, пагинация, права на изменение и OpenAPI.
+`/api/v1/` exposes companies/contracts/people/clusters/snapshots/evidence/explanations/job states without HTML fragments. Require validated filters/pagination/write permissions/OpenAPI.
 
-Для первого варианта предлагается единый origin для React и API, Django session authentication и CSRF для изменяющих запросов. Это решение требуется подтвердить при реализации сценариев доступа. При отдельном публичном API или мобильном клиенте способ аутентификации пересматривается. Запуск сбора и дорогостоящей генерации доступен только разрешённым ролям.
+Initially propose same-origin React/API with Django sessions and CSRF on writes. Confirm with access scenarios; revisit for separate public/mobile clients. Only permitted roles launch collection/costly generation.
 
-React предполагается реализовать на TypeScript. Конкретная библиотека визуализации графа выбирается по прототипу: качество раскладки, плотные графы, взаимодействие, сохранение координат и стоимость сопровождения. React не требует обязательного удаления Bootstrap; UI библиотека выбирается по будущим референсам.
+React uses TypeScript. Prototype graph libraries for layout quality, density, interaction, coordinates, maintenance. React does not force Bootstrap removal; choose UI components from future references.
 
-В фазе 4 улучшается сам граф: читаемость узлов и рёбер, выделение выбранных объектов и соседей, поиск, фильтрация, масштабирование, легенда, панель доказательств и восстановление раскладки. Окончательные цвета, типографика, компоненты и композиция страниц проектируются вместе с пользователем по референсам; обязательство переработать граф не откладывается до финальной полировки сайта.
+Phase 4 improves graph readability, highlighting, search, filters, zoom, legend, evidence, and layout restoration. Final colours/typography/components/page composition follow user references. Substantial graph improvement must not wait for final polishing. Russian website localisation follows the complete English interface.
 
-## Развёртывание
+## Deployment
 
-Compose должен запускать PostgreSQL, Redis, миграции, web, Celery worker и beat с проверенной последовательностью готовности. React включается в процесс сборки или добавляется отдельным сервисом, когда готов frontend. Схема публикации frontend определяется в соответствующей фазе.
+Compose runs PostgreSQL/Redis/migrate/web/worker/beat with verified ordering. Integrate React into builds or add a service when ready; decide publication in that phase.
 
-Зависимости устанавливаются из lockfile. Прикладные сервисы стартуют после успешных миграций; миграции не запускаются одновременно из каждого контейнера. Секреты не входят в образ и репозиторий. Долговременные данные находятся в persistent volumes; резервная копия проверяется восстановлением в отдельную БД. Пользователь выполняет Git операции самостоятельно.
+Install from lockfile; app services wait for successful migration, not independent concurrent migrations. Keep secrets outside images/repository. Persist data in volumes; verify backups separately. The user performs Git operations.
 
-## Ключевые архитектурные решения
+## Key decisions
 
-| Решение | Статус и основание |
+| Decision | Status/reason |
 | --- | --- |
-| PostgreSQL и модульный Django backend | Реализовано; исходная основа сохранена, ingestion выделен в фазе 2 |
-| DRF и React | Требование пользователя; детали внедрения предлагаются в плане фаз |
-| Не объединять людей только по ФИО | Реализовано в фазе 2: отдельные личности, кандидаты и доказательства ИИН; legacy роли изолированы |
-| Сохранять наблюдения и временные роли | Реализовано в фазе 2; неизвестные юридические границы сохраняются как неизвестные |
-| Налоговые сведения привязывать к проверенному субъекту | Предложено; предотвращает перенос долга компании на человека |
-| Один граф доказательств для анализа и интерфейса | Предложено; устраняет независимые расходящиеся вычисления |
-| Стабильные UUID, snapshots и история слияний | Требование сохранения состояния; детали наследования UUID уточняются в фазе 4 |
-| Отделить хеши анализа от состояния просмотра | Предложено; перемещение узла не должно запускать генерацию |
-| Версионировать фоновые результаты | Предложено; защищает актуальную версию от запоздалых задач |
-| Начать с правил и шаблонов, затем добавить LLM | Предложено; объяснения остаются проверяемыми и доступны без внешнего сервиса |
-| Единый origin и сессии для первой версии | Предложено; проверяется после определения ролей и схемы публикации |
+| Modular Django/PostgreSQL | Implemented; Phase 2 separated ingestion |
+| DRF/React | User requirement; roadmap proposes implementation |
+| No name-only person merge | Implemented: scoped identities/candidates/IIN evidence/legacy isolation |
+| Observations/temporal roles | Implemented; unknown legal boundaries remain unknown |
+| Tax data linked to verified subject | Proposed; prevents debt transfer to people |
+| Shared evidence graph | Proposed; prevents divergent computations |
+| Stable UUID/snapshots/lineage | Required; inheritance refined in Phase 4 |
+| Analysis hashes separate from views | Proposed; moving nodes must not regenerate text |
+| Versioned background results | Proposed; prevents late-result overwrites |
+| Rules/templates before LLM | Proposed; verifiable offline explanations |
+| Same-origin sessions initially | Proposed; confirm roles/publication model |
+| English first, Russian localisation later | User instruction; preserve original source data |
 
-## Дипломная версия и дальнейшее развитие
+## Thesis version and further development
 
-Предлагаемый минимальный объём диплома: воспроизводимый сбор ограниченной выборки, наблюдения источников, сведения доступного сервиса КГД, доказательства связей, версии графа и анализа, объяснения, DRF, React и запуск через Compose. Работа с КГД зависит от фактического доступа; демонстрация на fixtures явно отмечается как демонстрационная и не выдаётся за актуальную проверку.
+Proposed minimum: reproducible limited-sample collection, observations, available KGD service, evidence, graph/analysis versions, explanations, DRF/React/Compose. KGD depends on actual access; fixture demonstrations must not appear to be current checks.
 
-Практичные демонстрационные сценарии:
+1. Find a company by BIN and inspect sources/contracts.
+2. Inspect each selected cluster edge through observations.
+3. Repeat unchanged collection and show retained versions/no new LLM calls.
+4. Add a linked company; show new version, retained history/layout.
+5. Demonstrate namesakes/non-overlapping roles without false identity/simultaneity.
+6. Make a source unavailable; show correct check state, resume, preserved data.
 
-1. Найти компанию по БИН, открыть её источники и связанные договоры.
-2. Открыть кластер и объяснить каждое выбранное ребро по наблюдениям.
-3. Повторить сбор без изменений и показать сохранённые версии и отсутствие новой LLM генерации.
-4. Добавить связанную компанию и показать новую версию группы с прежней историей и сохранённой раскладкой.
-5. Проверить однофамильцев и непересекающиеся периоды руководства без ложного утверждения об одной личности или одновременной роли.
-6. Сделать источник недоступным и показать корректное состояние проверки, продолжение процесса и сохранность ранее полученных данных.
+Use permitted/anonymised examples with manual labels. Measure matching precision/recall, false links by type, temporal correctness, supported explanation claims, SQL/runtime on fixed inputs, repeat LLM counts/cost. Set targets after baseline; unknown values are not achieved results.
 
-Качество оценивается на обезличенном или разрешённом наборе примеров с ручной разметкой. Измеряются precision и recall сопоставления, доля ложных связей по типам, корректность временных утверждений, доля утверждений объяснения с доказательствами, SQL запросы и время расчёта на фиксированных объёмах, а также число и стоимость LLM вызовов при повторных открытиях. Целевые пороги утверждаются после получения baseline; неизвестные значения не представляются как достигнутые результаты.
-
-Для будущего пилота отдельно понадобятся роли и аудит действий, политика работы с персональными сведениями, мониторинг, восстановление, эксплуатационные лимиты и проверка условий использования источников. Публичный стартап, платёжная модель и конкретные клиентские сценарии пока не входят в согласованный объём.
+A pilot additionally needs roles/action audit, personal-data policy, monitoring/recovery/limits/source-use review. A public startup, pricing, and specific customer scenarios are not approved scope.

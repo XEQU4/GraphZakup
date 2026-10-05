@@ -1,466 +1,436 @@
-# Контекст проекта ГрафЗакуп для подготовки научной статьи
+# GrafZakup project context for a research article
 
-Дата анализа: **5 октября 2026 года**, часовой пояс Asia/Qyzylorda.
+Analysis date: **5 October 2026**, Asia/Qyzylorda.
 
-Документ предназначен для помощника, который будет работать над статьёй без доступа к репозиторию. Он описывает существующую реализацию и доступные данные, затем предлагает тему и протокол будущего исследования. **Эксперимент статьи ещё не проведён; его результаты ниже не заявляются.**
+This document is for an assistant preparing an article without repository access. It describes implementation/data at the analysis checkpoint, then proposes a research topic and protocol. **The article experiment has not been performed; no experimental results are claimed.**
 
-Основания: прочитанные исходники, конфигурация, документы фаз 0–1, локальные отчёты, повторный запуск офлайн-тестов и агрегирующие SELECT к исходной PostgreSQL в транзакциях REPEATABLE READ с `transaction_read_only=on`. В документ не включены строки компаний и людей, контакты, реквизиты подключения или секреты. Код и исходная БД в этой задаче не изменялись.
+**Historical scope:** this assessment was prepared after Phases 0-1, before Phase 2. Its paths, database state, test counts, and implementation claims describe that checkpoint. The English translation preserves this record rather than presenting it as a new audit. For subsequent implementation, see [docs/PHASE2.md](docs/PHASE2.md) and the current [roadmap](docs/ROADMAP.md).
 
-## 1. Описание проекта
+Basis: source/configuration reads, Phase 0-1 documents/local reports, repeated offline tests, and aggregate SELECT queries in source PostgreSQL REPEATABLE READ/read-only transactions. No company/person rows, contacts, credentials, or secrets are included. Preparing the original assessment changed neither application code nor source database.
 
-### Задача и назначение
+## 1. Project description
 
-Тема диплома пользователя: «Разработка интеллектуальной системы выявления потенциально скоординированного поведения участников государственных закупок на основе динамического графового анализа, OSINT и машинного обучения».
+### Problem and purpose
 
-ГрафЗакуп / GovernmentProcurementGraph — незавершённый дипломный прототип для анализа связей поставщиков государственных закупок Казахстана. Он объединяет сведения о договорах и компаниях и показывает, какие поставщики связаны совпадающими контактами или записью об общем руководителе. Практическая задача — помочь аналитику выбрать и проверить связанные компании, а затем исследовать, имеют ли наблюдаемые связи отношение к закупочному поведению.
+The user's thesis topic: "Development of an intelligent system for identifying potentially coordinated behaviour among public procurement participants using dynamic graph analysis, OSINT, and machine learning."
 
-Рабочая предполагаемая аудитория — аналитик закупок, аудитор или исследователь. В старом промпте LLM упоминается сотрудник финансовой разведки, но это не подтверждённое требование пользователя. Конкретная организация, роли пользователей и формат пилота пока не согласованы.
+GrafZakup / GovernmentProcurementGraph is an unfinished thesis prototype for analysing relationships between Kazakhstan public procurement suppliers. It combines contracts/company records and shows shared contacts or director records. It helps analysts select and verify linked companies, then investigate whether those links relate to procurement behaviour.
 
-Основной сценарий существующего прототипа:
+The assumed audience is an analyst, auditor, or researcher. The legacy LLM prompt mentions financial intelligence, but this is not a confirmed user requirement. Organisation, roles, and pilot format remain unapproved.
 
-1. Импортировать договоры из реестра госзакупок и создать поставщиков по 12-значному идентификатору.
-2. Дополнить карточки поставщиков сведениями из реестра поставщиков и Adata.
-3. Сравнить поставщиков по общему директору, адресу, телефону и email; сохранить группы и их эвристические баллы.
-4. Открыть список групп, карточку компании или руководителя; увидеть граф, договоры и ранее сохранённый текст объяснения.
-5. Проверить основания совпадений. Текущий прототип не устанавливает сговор, юридическую аффилированность, ущерб или вероятность правонарушения.
+The existing prototype workflow:
 
-Название диплома задаёт направление развития. Динамический анализ закупочного поведения и обученная модель пока не являются реализованными возможностями системы.
+1. Import registry contracts and create suppliers by 12-digit identifier.
+2. Enrich supplier cards from the supplier registry/Adata.
+3. Compare shared directors, addresses, phones, and email; save groups/heuristic scores.
+4. Open groups/company/director details; view graph/contracts/saved explanations.
+5. Inspect matching evidence. The prototype establishes neither collusion, legal affiliation, damage, nor wrongdoing probability.
 
-### Фактический стек и устройство
+The thesis title sets a development direction. Dynamic procurement behaviour analysis and a trained model are not implemented capabilities at this checkpoint.
 
-| Слой | Фактическая реализация |
+### Actual stack and structure
+
+| Layer | Implementation |
 | --- | --- |
-| Backend | Python; Django с ORM, class-based views, admin и management-командами |
-| Хранение | PostgreSQL; отдельной графовой БД нет |
-| Фоновые задачи | Celery, Redis, django-celery-beat; автоматический импорт выключен по умолчанию |
-| Получение данных | HTML-парсеры; BeautifulSoup, curl_cffi, requests; нормализация дат, контактов и сумм |
-| Интерфейс | Django templates, Bootstrap 5.3.7, собственные CSS/JavaScript; D3.js v7 |
-| Запуск | Docker Compose: PostgreSQL 17, Redis 7, отдельный migrate, Gunicorn web, worker, beat; frozen `uv.lock`, WhiteNoise |
-| Проверки | Django/unittest; SQLite в памяти для офлайн-набора; Node.js для регрессий JavaScript; ранее проверена отдельная PostgreSQL БД Docker |
+| Backend | Python/Django ORM, class-based views, admin, commands |
+| Storage | PostgreSQL; no separate graph database |
+| Background jobs | Celery/Redis/django-celery-beat; automatic import off by default |
+| Acquisition | HTML parsers, BeautifulSoup/curl_cffi/requests, date/contact/money normalisation |
+| UI | Django templates/Bootstrap 5.3.7/custom CSS-JS/D3 v7 |
+| Startup | Compose PostgreSQL 17/Redis 7/migrate/Gunicorn/worker/beat, frozen uv.lock, WhiteNoise |
+| Checks | Django/unittest, in-memory SQLite, Node JS regressions; prior separate Docker PostgreSQL |
 
-При текущем чтении установленных пакетов подтверждены Python **3.13.5**, Django **6.0.6**, Celery **5.6.3**, django-celery-beat **2.9.0**, WhiteNoise **6.12.0**, psycopg2-binary **2.9.12**, BeautifulSoup **4.15.0**, curl_cffi **0.15.0**, requests **2.34.2**, Pydantic **2.13.4**. Node.js — **24.21.0**. Наличие Pydantic не означает наличие модели машинного обучения. Протокол прежнего Docker-запуска отдельно фиксирует Python 3.13.16 и PostgreSQL 17.11; эти версии не подменяют версии локального окружения.
+Installed versions at analysis: Python **3.13.5**, Django **6.0.6**, Celery **5.6.3**, beat **2.9.0**, WhiteNoise **6.12.0**, psycopg2-binary **2.9.12**, BeautifulSoup **4.15.0**, curl_cffi **0.15.0**, requests **2.34.2**, Pydantic **2.13.4**, Node **24.21.0**. Pydantic does not imply ML. Earlier Docker records specify Python 3.13.16/PostgreSQL 17.11, separately from local versions.
 
-Фактический поток управления:
+Historical control flow:
 
 ```text
-Celery update_all_data, если импорт разрешён
-  → management-команда import_contracts
-    → ContractRegistryParser → транзакционный upsert Supplier/Contract
-    → management-команда enrich_suppliers → enrich_supplier → парсеры реестра/Adata
-    → management-команда build_clusters → сервис rebuild_clusters → RiskCluster
+Celery update_all_data, if enabled
+  -> import_contracts command
+    -> ContractRegistryParser -> transactional Supplier/Contract upserts
+    -> enrich_suppliers -> enrich_supplier -> registry/Adata parsers
+    -> build_clusters -> rebuild_clusters -> RiskCluster
 
-GET страниц → текущие данные PostgreSQL + сохранённые кластеры/тексты
-            → графовые JSON-данные из view → D3.js в браузере
+GET -> current PostgreSQL data + saved clusters/text
+    -> graph JSON from views -> browser D3
 ```
 
-Парсеры находятся в `services/`; управление импортом и enrichment ещё разнесено по командам. Единого ingestion-сервиса, журнала наблюдений и состояния стадий пока нет. Рёбра для страницы вычисляются при чтении, а не берутся из сохранённого снимка доказательств.
+At this checkpoint parsers were in `services/`, with commands orchestrating import/enrichment. No unified ingestion service, observation journal, or stage state existed. Page edges were calculated on read, not from persisted evidence snapshots.
 
-Целевая архитектура предусматривает модульный Django backend с DRF, React/TypeScript, наблюдения источников, доказательства связей, версии графа, анализа и объяснения. Это план фаз 2–7. DRF, React, `EvidenceEdge`, `ClusterSnapshot`, `AnalysisSnapshot` и `GraphViewState` в текущей реализации отсутствуют.
+The target architecture proposes modular Django/DRF, React/TypeScript, observations/evidence, and graph/analysis/explanation versions in Phases 2-7. DRF/React/EvidenceEdge/ClusterSnapshot/AnalysisSnapshot/GraphViewState were absent.
 
-### Версия и границы фиксации
+### Version and checkpoint limits
 
-HEAD репозитория: `fbe848903e27bb9de3f27ee5903aecfe30f76587`. Значение получено чтением `.git/HEAD` и соответствующего ref; Git-команды не выполнялись. HEAD не описывает все локальные изменения, поэтому для воспроизводимости будущего эксперимента нужен отдельный манифест фактически использованных исходников и параметров.
+Recorded HEAD: `fbe848903e27bb9de3f27ee5903aecfe30f76587`, obtained in the original assessment by reading `.git/HEAD`/ref without Git commands. HEAD excludes local changes; future reproducibility requires the actual source/parameter manifest.
 
-По `docs/ROADMAP.md` завершены фазы 0 и 1; фазы 2–8 запланированы. Статусы в данной задаче не менялись. В исходной локальной БД **не применена** миграция `graph.0003_cluster_analysis_state`: в `django_migrations` соответствующей записи нет. Эта миграция ранее проверена на отдельной восстановленной копии. Поэтому успешные офлайн-тесты обновлённого кода не подтверждают работу обновлённого интерфейса непосредственно с исходной БД без её обновления.
+The roadmap then marked Phases 0-1 complete and 2-8 planned. No statuses changed during that assessment. The source database lacked `graph.0003_cluster_analysis_state`; it had been tested on a restored copy only. Passing updated-code offline tests did not prove the updated UI could use the unmigrated source database.
 
-## 2. Текущее состояние реализации
+## 2. Implementation status at the analysis checkpoint
 
-Обозначения: **проверено офлайн** — поведение выполнено на изолированных тестовых данных; **реализовано, ограниченно проверено** — код есть, но проверка полного сценария или внешнего источника отсутствует; **частично** — реализована только часть заявленной функции; **запланировано** — работа указана в roadmap, но отсутствует в приложении. Проверки программного поведения не подтверждают научную эффективность метода.
+"Offline verified" means isolated test data executed. "Implemented, limited verification" means code exists without complete/live verification. "Partial" means a subset only; "planned" means roadmap work absent from the application. Behaviour tests do not establish scientific effectiveness.
 
-| Компонент или функция | Статус | Подтверждение в коде | Ограничения |
-| --- | --- | --- | --- |
-| Сбор договоров | Проверено офлайн; записи есть в рабочей БД | `services/contract_registry_parser.py`: `ContractRegistryParser`, `ContractPage`, `fetch_page`, `parse_bin_data`, `iter_pages` | Текущая разметка сайтов и полнота реестра не проверены live; собираются договоры, не все заявки |
-| Сохранение и продолжение импорта | Проверено офлайн | `apps/companies/management/commands/import_contracts.py`: `Command.handle`; `Contract.objects.update_or_create`; `SystemSetting` | Upsert и checkpoint страницы атомарны; номер страницы изменяемого реестра не гарантирует полноценный incremental sync; нет блокировки конкурирующих импортов |
-| Обогащение компаний | Проверено на fixtures и mock HTTP | `services/supplier_registry_parser.py`: `SupplierRegistryParser`; `services/adata_parser.py`: `parse_company_html`, `fetch_company_data`; `services/enricher.py`: `enrich_supplier` | Нет истории источников отдельных полей; неизвестна актуальность live HTML; обновление строковых полей не создаёт подтверждённую историю ролей |
-| OSINT | Частично | Получение открытых карточек из реестра и Adata | Нет универсального OSINT-поиска, проверки бенефициаров, новостей, судебных источников или полного контура доказательств |
-| Нормализация | Проверено офлайн | `services/normalizers.py`: `normalize_bin`, `normalize_date`, `normalize_amount`, `normalize_phone`, `normalize_email` | Проверка идентификатора — формат из 12 цифр, не полная проверка контрольного разряда/типа субъекта; адрес сравнивается без развитой нормализации |
-| Люди и роли | Частично; фильтрация дат проверена офлайн | `apps/owners/models.py`: `Owner`, `Director`, `Ownership`, `Directorship`; `apps/owners/querysets.py`: `current_role_filter`; `apps/graph/services.py`: `current_directorships` | В исходной БД нет ИИН директоров и дат ролей; автоматическое связывание по ФИО отключено, прежние записи требуют проверки |
-| Безопасная идентичность физлиц | Запланирована | Старый `apps/companies/management/commands/link_directors.py` использует `get_or_create(full_name=...)`; pipeline его больше не вызывает | Явная старая команда всё ещё может объединить однофамильцев; `IdentityCandidate` и проверяемое сопоставление отсутствуют |
-| Построение графа связей | Проверено офлайн | `apps/graph/services.py`: `build_director_map`, `get_connection_types`, `find_connected_groups`; `apps/graph/views.py`: `build_graph_data` | Попарный перебор, текущие поля, четыре реально используемых типа; отсутствие доказательства источника и отдельной уверенности |
-| Выделение групп | Проверено офлайн | `find_connected_groups`, `rebuild_clusters`; `apps/graph/models.py`: `RiskCluster` | Связная компонента из двух и более компаний; не алгоритм обнаружения сговора или обученная кластеризация |
-| Стабильность групп и актуальность текста | Проверено офлайн; PostgreSQL-конкуренция проверена ранее | `match_clusters`, `analysis_fingerprint`, `rebuild_clusters`; `graph.0003_cluster_analysis_state`; `apps/graph/tests.py` | UUID сохраняются, исчезнувшие группы архивируются; полной истории версий/merge/split нет; исходная БД пока без новой миграции |
-| Временной анализ | Частично | `build_clusters --as-of`; интервалы `Directorship.start_date/end_date`; фильтр текущих ролей | Выбор ролей на дату есть; эволюция графа, окна торгов и временные признаки поведения отсутствуют; контакты не имеют исторических интервалов |
-| «Подозрительные» группы | Частично: группы совпадений и их рейтинг | `RiskCluster`, `calculate_risk`, `ClusterListView` | Нет анализа совместного участия, ставок, ротации победителей или подтверждённой разметки нарушений |
-| Оценка риска | Проверено как эвристический расчёт; качество не оценено | `get_risk_weights`, `calculate_risk`; `apps/core/models.py`: `SystemSetting` | Ручные веса типов и размера группы; нет калибровки, вероятностной интерпретации или оценки ошибок на разметке |
-| Машинное обучение | Не реализовано | В приложении нет обучающего pipeline, `fit/predict`, обученного артефакта модели или ML-датасета | Нет модели, процедуры обучения, набора признаков для обучения и метрик ML |
-| Детерминированное объяснение | Функция есть; отдельные свойства проверены офлайн | `apps/ai/explainer.py`: `explain_cluster` | Описывает текущие совпадения, но нет версионируемой фоновой подготовки; общий язык об аффилированности сильнее доступных доказательств |
-| Показ объяснения | Проверено офлайн | `apps/graph/views.py`: `ClusterDetailView.get_context_data` | GET читает сохранённый `ai_explanation`, проверяет fingerprint, не генерирует и не сохраняет новый текст; пустой текст получает сообщение |
-| LLM | Отдельный неактивный клиент; не проверен live | `apps/ai/openrouter.py`: `explain_cluster`; параметры провайдера в `config/settings.py` | В основной путь не подключён; читает пустую `Connection`, содержит некорректное `raise` строки; нет контроля доказательств, версий, дедупликации |
-| Визуализация | Реализована; безопасность отдельных действий проверена офлайн | `static/js/cluster_graph.js`; `templates/clusters/detail.html`; D3 `forceSimulation` | Уже есть zoom/pan, drag, подписи, hover соседей, переход к компании; нет фильтров типов, панели доказательств и сохранения раскладки; удобство не измерено |
-| КГД, налоговые/судебные сведения | Модели есть, ingestion не реализован | `TaxDebt`, `Bankruptcy`, `CourtCase`, флаги `Owner` | Все эти таблицы пусты; `False`/отсутствие записи не означает отрицательный результат проверки |
-| Docker и фоновые задачи | Код есть; полный стек проверен в фазе 1 | `Dockerfile`, `docker-compose.yml`, `apps/core/tasks.py`: `update_all_data`; health views | В этой задаче стек не запускался; pipeline и live-сбор для проверки не выполнялись |
-
-### Что проверено при подготовке этого документа
-
-| Проверка | Фактический результат | Граница вывода |
+| Component | Status and code | Limits |
 | --- | --- | --- |
-| Статическое чтение исходников и документации | Сверены модели, парсеры, orchestration, формула, граф, объяснение, UI и план фаз | Не заменяет выполнение функций и проверку источников |
-| `.\.venv\Scripts\python.exe -B manage.py test --settings=config.test_settings --verbosity=1` | Обнаружено 83 теста; **82 прошли, 1 пропущен**; system checks без ошибок | SQLite в памяти; пропущена PostgreSQL-конкуренция; HTTP источников замещён fixtures/mocks |
-| `node tests/frontend_regressions.cjs` | PASS: три поиска экранируют текст и отбрасывают устаревшие ответы; tooltip использует текст | Нет визуального браузерного или пользовательского исследования |
-| Read-only PostgreSQL SELECT | Получены количества, даты договоров, заполненность выбранных полей, частоты контактов и веса | Не проверена правильность каждой записи по внешнему источнику; БД не изменялась |
-| Чтение локальных протоколов фазы 1 | Отчёт тестов: 83 PASS на PostgreSQL; отчёты миграции, сохранности БД и Compose: passed | Это ранее выполненные проверки, а не их повторный запуск в данной задаче |
+| Contract collection | Offline verified; source rows exist. `services/contract_registry_parser.py`: ContractRegistryParser/ContractPage/fetch_page/parse_bin_data/iter_pages | Live markup/completeness unverified; contracts rather than all bids |
+| Persistence/resume | Offline verified. import_contracts/Command.handle/update_or_create/SystemSetting | Atomic page/checkpoint; mutable pagination not full incremental sync; concurrent imports unlocked |
+| Enrichment | Fixtures/mock HTTP. SupplierRegistryParser/parse_company_html/fetch_company_data/enrich_supplier | No per-field provenance/history; live HTML unknown; string updates do not confirm role history |
+| OSINT | Partial registry/Adata public cards | No universal search/beneficiaries/news/courts/full evidence pipeline |
+| Normalisation | Offline normalize_bin/date/amount/phone/email | 12-digit format, not full checksum/subject-type validation; limited address normalisation |
+| People/roles | Partial; date filters verified. Owner/Director/Ownership/Directorship/current_role_filter/current_directorships | Source data has no IIN/role dates; automatic name linking off, old identities need review |
+| Safe person identity | Planned; legacy link_directors still get_or_create(full_name), no longer called by pipeline | Explicit old command can still merge namesakes; no IdentityCandidate/verified matching |
+| Link graph | Offline build_director_map/get_connection_types/find_connected_groups/build_graph_data | Pairwise current-field comparisons, four types, no source proof/separate confidence |
+| Grouping | Offline find_connected_groups/rebuild_clusters/RiskCluster | Connected components of size >1, not collusion detection/trained clustering |
+| Group stability/text freshness | Offline plus earlier PostgreSQL concurrency; match_clusters/analysis_fingerprint/graph.0003/tests | UUID/archive preserved; no full versions/lineage; source migration pending |
+| Temporal analysis | Partial build_clusters --as-of/role intervals | Date-filtered roles, no evolving graph/auction windows/behavioural temporal features; contacts lack history |
+| Suspicious groups | Partial matching groups/rating | No joint-bidding/price/winner-rotation analysis or verified violation labels |
+| Risk | Heuristic execution verified, quality unmeasured; weights/calculate_risk/SystemSetting | Manual type/size weights; no calibration/probability/error evaluation |
+| ML | Absent | No training pipeline/fit-predict/model artifact/features/dataset/metrics |
+| Deterministic explanations | Function exists; some properties verified, ai/explainer.py | Current matches; no versioned background preparation; affiliation language too strong |
+| Explanation display | Offline ClusterDetailView | GET reads/checks saved fingerprint without generation/writes; empty fallback |
+| LLM | Inactive OpenRouter client, not live-verified | Empty Connection, string raises, no evidence/version/dedup controls |
+| Visualisation | Implemented, selected safety checks | Zoom/pan/drag/labels/neighbour hover/company navigation exist; no type filters/evidence panel/saved layout/usability measurement |
+| KGD/tax/court | Models only | Empty debt/bankruptcy/court tables; false/missing rows are not negative checks |
+| Docker/background work | Full stack previously verified in Phase 1 | Not rerun here; no real collection/pipeline |
 
-Первый запуск локального Python внутри sandbox не получил доступ к установленному runtime вне каталога проекта. После разрешённого запуска вне этого ограничения тот же интерпретатор выполнил тесты. Этот сбой среды не признан неисправностью проекта.
+### Checks performed for the original assessment
 
-`docs/BASELINE.md` описывает состояние до исправлений, а `docs/AUDIT.md` содержит исторические дефекты. Для текущего поведения использованы код, раздел статусов аудита и `docs/PHASE1.md`. В частности, старое утверждение о генерации текста через GET больше не соответствует коду.
-
-## 3. Данные для исследования
-
-### Источники и поля
-
-| Источник/слой | Что извлекается или хранится | Важное ограничение |
+| Check | Result | Limit |
 | --- | --- | --- |
-| Реестр договоров goszakup.gov.kz: `/ru/registry/contract` | Номер договора, внешний ID, номер закупки, дата подписания, сумма, поставщик, заказчик, предмет | Договор не содержит полного списка претендентов и их ставок |
-| Карточка сторон договора: `/ru/egzcontract/cpublic/customer_n_supplier/<id>` | Идентификаторы поставщика и заказчика | Парсер допускает БИН/ИИН как 12 цифр; отдельного типа «компания/физлицо» в `Supplier` нет |
-| Реестр поставщиков: `/ru/registry/supplierreg`, `/ru/registry/show_supplier/<id>` | Наименование, идентификатор, ФИО руководителя, адрес, регион/город, КАТО, контакты, резидентство, дата свидетельства, размерность, КОПФ, сектор экономики, сайт | КАТО и ID карточки возвращаются парсером, но не сохраняются в `Supplier`; дата свидетельства записывается как `registration_date`, её семантика требует проверки |
-| Adata: `pk.adata.kz/counterparty/main/company/<bin>/basic-info` | Название и ФИО из title с проверкой БИН, подписанные поля адреса, телефона, email | Не получает подтверждённый ИИН руководителя, собственников или историю ролей |
-| `Supplier` | БИН, название, строка руководителя, контакты, адрес и дополнительные поля; даты создания/обновления и `adata_updated_at` | Одно текущее значение на поле; `adata_updated_at` отражает успешное enrichment, а не независимую историю Adata |
-| `Contract` | Поставщик, `contract_number`, `contract_gos_id`, `tender_id`, предмет, `amount`, `contract_date`, заказчик и его БИН, `winner`, `created_at` | Поле `winner` существует, но текущий импорт его не заполняет |
-| `Director` / `Directorship` | ФИО, необязательный ИИН, связь с компанией, необязательные начало/конец роли | Источник и уверенность идентичности не хранятся; даты в рабочем наборе отсутствуют |
-| `Owner` / `Ownership` и дополнительные модели | Схема для владельцев, долей, налоговых долгов, банкротств и дел | Схема не равна доступному набору наблюдений: эти таблицы пусты |
+| Source/document reads | Models/parsers/orchestration/formula/graph/text/UI/roadmap reviewed | Not function execution/source verification |
+| `.\.venv\Scripts\python.exe -B manage.py test --settings=config.test_settings --verbosity=1` | 83 discovered; **82 passed, 1 skipped**; system checks passed | SQLite, PostgreSQL concurrency skipped; HTTP mocked |
+| `node tests/frontend_regressions.cjs` | Three search escapers/late-response guards/literal tooltip passed | No browser visual/usability study |
+| Read-only PostgreSQL | Counts/dates/fill rates/contact frequencies/weights obtained | No per-row external verification; source unchanged |
+| Prior Phase 1 reports | 83 PostgreSQL passes; migration/source/Compose passed | Historical runs, not reruns here |
 
-`Supplier.oked` и `company_status` присутствуют в модели и списке полей команды enrichment, но `enrich_supplier` сейчас не возвращает их. Они не являются подтверждённо поступающими признаками текущего контура. В исходной БД оба поля пусты у всех компаний.
+Initial sandbox Python runtime access failed; approved runtime access let the same interpreter execute tests. This was an environment limitation, not a project defect. BASELINE/AUDIT contain historical states; current-at-analysis behaviour used code/status/PHASE1. The earlier GET-generation claim no longer matched code.
 
-### Проверенный объём и заполненность
+## 3. Research data
 
-Следующие значения получены непосредственно из локальной исходной БД при подготовке документа; основные количества совпадают с протоколом фазы 0.
+### Sources and fields
 
-| Показатель | Проверенное значение |
+| Source/layer | Data | Limitation |
+| --- | --- | --- |
+| goszakup `/ru/registry/contract` | Contract/external/tender numbers, signing date, amount, supplier/customer/subject | No complete bidder/bid list |
+| `/ru/egzcontract/cpublic/customer_n_supplier/<id>` | Party identifiers | 12-digit BIN/IIN accepted, no separate company/person type |
+| `/ru/registry/supplierreg`, `/ru/registry/show_supplier/<id>` | Name/ID/director/address/region-city/KATO/contacts/residency/certificate date/size/legal form/economic sector/website | KATO/card ID returned but not saved; certificate date stored as registration_date, semantics unverified |
+| Adata `/counterparty/main/company/<bin>/basic-info` | Name/director from BIN-checked title; labelled address/phone/email | No verified director IIN/owners/role history |
+| Supplier | Current fields/create-update/enrichment timestamps | One value per field; adata_updated_at is overall successful enrichment, not Adata-specific history |
+| Contract | Supplier/numbers/external ID/tender/subject/amount/date/customer BIN/winner/created_at | Import does not fill winner |
+| Director/Directorship | Name/optional IIN/company/optional interval | No identity source/confidence; source dates empty |
+| Owner/Ownership/debt/bankruptcy/court | Declared schema | Empty tables, not available observations |
+
+Supplier.oked/company_status existed in model/enrichment field lists but were not returned by enrich_supplier. Both were empty throughout the source set.
+
+### Verified size and fill rates
+
+Read directly from the source during the original assessment; main counts matched Phase 0.
+
+| Metric | Value |
 | --- | --- |
-| Поставщики / договоры | **384 / 500** |
-| Различные поставщики в договорах | **384** |
-| Минимальная / максимальная `contract_date` | **18 июня 2026 / 19 июня 2026** |
-| Договоры с непустым `tender_id` | **318 из 500** |
-| Договоры с непустым БИН заказчика | **500 из 500** |
-| Договоры с `winner=True` | **0 из 500**; это незаполненный флаг, не отсутствие победителей |
-| Поставщики с названием / строкой руководителя / адресом | **384 / 384 / 384** |
-| Поставщики с непустым телефоном / email | **328 / 361** |
-| Поставщики с `adata_updated_at` | **384**; наличие даты не доказывает внешнюю достоверность полей |
-| Поставщики с ОКЭД / статусом компании | **0 / 0** |
-| Директора / директорства | **384 / 384** |
-| Директора с непустым ИИН | **0** |
-| Директорства с известным началом / концом | **0 / 0** |
-| Сохранённые кластеры / записи членства | **4 / 11** |
-| Кластеры с непустым `ai_explanation` | **4**; происхождение текста по одному названию поля не устанавливается |
-| Сохранённые `Connection` | **0** |
-| Владельцы / владение / налоговые долги / банкротства / судебные дела | **0 / 0 / 0 / 0 / 0** |
+| Suppliers/contracts/distinct contract suppliers | **384/500/384** |
+| Contract date min/max | **18 June 2026 / 19 June 2026** |
+| Nonempty tender ID | **318/500** |
+| Nonempty customer BIN | **500/500** |
+| winner=True | **0/500**: unfilled flag, not absence of winners |
+| Supplier name/director string/address | **384/384/384** |
+| Phone/email | **328/361** |
+| adata_updated_at | **384**, not proof of field truth |
+| OKED/company status | **0/0** |
+| Directors/directorships | **384/384** |
+| Director IIN | **0** |
+| Known role start/end | **0/0** |
+| Clusters/memberships | **4/11** |
+| Nonempty saved explanations | **4**; field name does not establish text origin |
+| Connection | **0** |
+| Owners/ownership/debt/bankruptcy/court | **0/0/0/0/0** |
 
-Четыре кластера — сохранённое состояние прежней БД. Они не были пересобраны в этой задаче новым сервисом; им нельзя приписывать актуальность fingerprint, статус новой версии или подтверждённую подозрительность.
+Four clusters were old saved state, not rebuilt during assessment; no current fingerprint/version/suspicion status can be assumed.
 
-Для планирования исследования отдельно подсчитаны повторения полей по правилам текущего сравнения: точный адрес/телефон и email после trim/lower с исключением двух служебных адресов Adata.
+Repeated fields under existing exact address/phone and trimmed/lowercase email comparison, excluding two Adata service emails:
 
-| Признак | Повторяющихся значений | Компаний с такими значениями | Максимальная частота одного значения | Пар совпадающего типа |
+| Feature | Repeated values | Companies | Maximum frequency | Same-type pairs |
 | --- | --- | --- | --- | --- |
-| Адрес | 1 | 2 | 2 | 1 |
-| Телефон | 2 | 7 | 5 | 11 |
+| Address | 1 | 2 | 2 | 1 |
+| Phone | 2 | 7 | 5 | 11 |
 | Email | 1 | 2 | 2 | 1 |
-| Общая запись директора | 0 | 0 | — | 0 |
+| Shared director record | 0 | 0 | - | 0 |
 
-Количество пар по типам нельзя складывать как количество разных пар или групп: одна пара может иметь несколько совпадений. Это **наблюдения о полях**, а не подтверждения общей организации или координации. Непустые поля также не равны валидным/актуальным данным.
+Pair counts cannot be summed as distinct pairs/groups; one pair may match several types. These are field observations, not shared organisation/coordination proof. Nonempty fields are not necessarily valid/current.
 
-### Реальные, тестовые и недоступные данные
+### Real, synthetic, and unavailable data
 
-Рабочая PostgreSQL содержит набор, предназначенный для импортированных сведений реестров; наличие этих записей и их агрегаты проверены. Однако отдельные исходные ответы, происхождение каждого поля и протокол первоначального сбора не сохранены в моделях. Поэтому внешняя достоверность и отсутствие демонстрационных/ошибочных значений в каждой рабочей строке не установлены. До публикации набора нужно уточнить у автора, как он был получен, и проверить выборку по источникам. Его нельзя описывать как полностью верифицированный национальный датасет.
+Source PostgreSQL is intended to contain imported records; row presence/aggregates were verified, but original responses/per-field provenance/collection protocol were absent. Truth or freedom from demo/error values was not established for every row. Ask the author about acquisition and verify a sample before publication; never call it a fully verified national dataset.
 
-`tests/fixtures/*.html` и объекты, создаваемые Django-тестами, — явно демонстрационные/синтетические данные: условные компании, тестовые идентификаторы и суммы для проверки ошибок. Дата 24.01.2020 в fixtures не расширяет период рабочего набора. Они пригодны для регрессий, но не для оценки эффективности на реальных закупках. Отдельного готового научного датасета, экспертной разметки или корпуса подтверждённых нарушений не обнаружено.
+HTML fixtures/test objects are synthetic companies/IDs/amounts for regressions. Fixture date 24.01.2020 does not extend the source period. Fixtures do not evaluate real procurement effectiveness. No research dataset/expert labels/confirmed violation corpus was found.
 
-Покрытие закупочного процесса ограничено сторонами заключённых договоров. Полных списков участников/отклонённых заявок, дат подачи, ценовых предложений, лотов, протоколов допуска и результатов для всех претендентов нет. Наличие номера закупки не восстанавливает эти сведения. Сумма договора не является ценовой заявкой каждого участника. Даже статус поставщика по договору нельзя заменять текущим незаполненным `winner`.
+Coverage is contract parties, not all bidders/rejected bids/submission dates/prices/lots/admission/outcomes. Tender IDs cannot reconstruct missing information. Contract amount is not each bidder's offer; contract supplier does not justify the unfilled winner flag.
 
-Для динамики доступны даты договоров и технические даты обновления, а схема директорства допускает интервалы. Но рабочие договоры покрывают лишь две соседние даты; все даты директорства неизвестны; история контактов и версий рёбер отсутствует. `created_at`/`updated_at` показывают действия системы, а не период существования связи. Архивный кластер читает текущие поля компаний и не является историческим снимком.
+Contract dates/technical timestamps and optional role intervals offer limited temporal fields: two adjacent contract dates, unknown role dates, no contact/edge-version history. Creation/update times are system actions, not relationship periods. Archives read current company fields, not historical snapshots.
 
-Достоверной разметки координации нет. Совпадение контакта, общий директор, высокий скор и членство в группе не могут использоваться как положительная метка сговора; отсутствие этих признаков не создаёт отрицательную метку. Нулевые таблицы долгов и судебных дел означают отсутствие наблюдений.
+No reliable coordination labels exist. Contact/director matches, scores, and groups cannot be positive collusion labels; their absence cannot create negative labels. Empty debt/court tables mean missing observations.
 
-## 4. Методы, которые действительно используются
+## 4. Methods actually used
 
-### Вершины, связи и формирование групп
+### Nodes, edges, groups
 
-В отображаемом графе вершина — **поставщик `Supplier`**, идентифицируемый внутренним ID. БИН хранится как уникальная строка. Руководители, владельцы, заказчики и договоры не показаны как самостоятельные вершины текущего `build_graph_data`.
+Displayed nodes are Supplier records identified by internal ID, with unique BIN strings. Directors/owners/customers/contracts are not separate graph nodes.
 
-Между двумя поставщиками создаётся связь при одном или нескольких условиях:
+- **director:** intersect director-record IDs whose roles pass the date filter;
+- **address:** equal nonempty addresses;
+- **phone:** equal nonempty phones;
+- **email:** equal nonempty trimmed/lowercase emails, excluding Adata service values.
 
-- **director**: пересечение ID записей директоров, чьи роли проходят фильтр на дату;
-- **address**: непустые адреса точно равны;
-- **phone**: непустые телефоны точно равны;
-- **email**: непустые email после trim/lower равны и не относятся к исключённым служебным адресам Adata.
+Address/phone comparison adds no normalisation; ingestion normalises phones, legacy values may differ. Director IDs inherit earlier identity quality and do not eliminate name-merge risk.
 
-Сравнение адреса и телефона не выполняет дополнительной нормализации. В импортном контуре телефон нормализуется отдельно, но старые записи могут иметь иное представление. Отождествление директоров по ID наследует качество формирования самих записей: ID не устраняет риск прежнего объединения по ФИО.
+Connection declares owner/customer/weight/description/date but is not populated/used by grouping. Shared owner/customer does not create a working edge; default weight 1 is not displayed-edge weighting.
 
-Модель `Connection` объявляет также `owner` и `customer`, вес, описание и дату создания. Но текущий сервис её не заполняет и не использует для формирования групп. Общий собственник или заказчик не создаёт ребро в рабочем алгоритме. Поле `Connection.weight=1` не является фактическим весом ребра визуализируемого графа.
+find_connected_groups compares all pairs and uses union-find for components larger than one. A-B-C joins even without A-C. Membership neither implies every pair's evidence nor common behavioural risk.
 
-`find_connected_groups` перебирает все пары компаний и объединяет их через структуру непересекающихся множеств (union-find). Возвращаются связные компоненты размером более одного. Если A связана с B, а B с C, все три входят в группу даже без прямой связи A–C. Группы не означают, что все пары имеют общее основание или единый риск поведения.
+Pair complexity is O(n squared). Prefetch removes per-pair SQL, not comparisons. UI can show multiple typed edges per pair and one per shared director. Scientific runtime/scalability measurements are absent.
 
-На уровне попарных сравнений сложность составляет O(n²). Предварительная загрузка ролей устраняет SQL-запросы для каждой пары, но не сам попарный перебор. В UI между одной парой могут отображаться несколько типовых рёбер и отдельное ребро для каждого общего директора. Метрик времени и масштабируемости научного эксперимента пока нет.
+### Heuristic formula
 
-### Формула эвристического балла
-
-Пусть `T(C)` — множество типов совпадений, встречающихся хотя бы у одной пары внутри группы C, а `n` — количество компаний. Текущий расчёт:
+T(C) is the set of matching types found anywhere in group C, n its size:
 
 ```text
-R(C) = min(100, сумма w[t] по t ∈ T(C) + max(0, n − 2) × w[group_size])
+R(C) = min(100, sum(w[t] for t in T(C)) + max(0, n - 2) * w[group_size])
 ```
 
-Тип учитывается **один раз для всей группы**, независимо от количества таких пар. Нет отдельного вычисления достоверности каждого ребра, частоты массового контакта или закупочного поведения. Суммы договоров в формулу не входят.
+Each type contributes once per group regardless of pair count. No per-edge reliability/common-contact frequency/bidding behaviour; contract amounts do not enter.
 
-| Параметр | Default в `get_risk_weights` | Эффективное значение в прочитанной исходной БД |
+| Parameter | Default | Effective source value |
 | --- | --- | --- |
-| Общий директор | 35 | 20 |
-| Общий адрес | 25 | 15 |
-| Общий телефон | 20 | 10 |
-| Общий email | 15 | 10 |
-| Компания сверх двух | 5 | 5, поскольку override отсутствует |
+| Shared director | 35 | 20 |
+| Shared address | 25 | 15 |
+| Shared phone | 20 | 10 |
+| Shared email | 15 | 10 |
+| Company beyond two | 5 | 5 (no override) |
 
-Overrides читаются из `SystemSetting`, целые значения ограничиваются диапазоном 0–100. Поэтому опубликованная формула без конкретного набора весов невоспроизводима. Веса рабочей БД также не доказывают, что прежние сохранённые баллы были рассчитаны именно с ними.
+SystemSetting overrides are integers bounded 0-100. Reproducibility requires actual weights; current values do not prove how historical scores were calculated.
 
-Из формулы следует методологический риск: при defaults группа из 19 компаний с единственным общим email получает `15 + 17 × 5 = 100`; с прочитанными локальными весами 20 компаний дают `10 + 18 × 5 = 100`. Это **арифметические примеры**, а не обнаруженные реальные группы или результаты нового эксперимента. Они объясняют необходимость проверки массовых контактов.
+Arithmetic illustration: defaults give 19 shared-email companies 15 + 17 * 5 = 100; source weights give 20 companies 10 + 18 * 5 = 100. These are analytical examples, not discovered groups or new experimental results.
 
-Пороговые уровни текущего интерфейса: высокий от 80, средний от 50, ниже 50 — низкий. Эти границы не калиброваны на подтверждённых случаях. Узел в карточке группы получает балл всей группы; это не персональная оценка компании. `Supplier.risk_score` — отдельное сохранённое поле, которое `rebuild_clusters` не переобучает и не обновляет как индивидуальную модель.
+UI levels high >=80, medium >=50, otherwise low, without calibration. Nodes get group score, not personal company assessment. Supplier.risk_score is separate and is not retrained/updated by rebuild_clusters. Decimal contract totals are analysed volume, not damage, despite dashboard's money_at_risk name.
 
-`total_contract_amount` — сумма сохранённых договоров поставщиков группы, рассчитанная через Decimal. Это объём анализируемых договоров, не ущерб и не доказанные «деньги под риском», хотя внутреннее имя показателя dashboard — `money_at_risk`.
+### Updates, time, explanations
 
-### Обновления, время и объяснения
+Rebuild preserves exact membership UUIDs. match_clusters uses overlap, intersection/union ratio, deterministic ties; one old UUID continues once, vanished groups archive. This is identifier continuity, not organisational identity/full lineage.
 
-`rebuild_clusters` сохраняет UUID при точном совпадении состава. Для изменившихся групп `match_clusters` сопоставляет старую и новую группу по пересечению, затем доле пересечения в объединении и детерминированным критериям. Один старый UUID продолжается только в одной новой группе; исчезнувшая группа архивируется. Это механизм продолжения идентификатора, а не доказанная идентичность организации или полная история слияний/разделений.
+Fingerprint hashes canonical members/current contacts/selected roles/owners/contracts/weights/format version. Changed facts mark text stale, without preserving old graph or all neighbouring-company state. Outside-membership changes appear after rebuild.
 
-`analysis_fingerprint` — SHA-256 канонического представления участников, текущих контактных полей, учитываемых директоров, владельцев и договоров, весов и версии формата. Изменение используемых фактов помечает старый текст устаревшим. Он не сохраняет содержимое прежнего графа и не является fingerprint всего окружения соседних компаний. Изменения за пределами сохранённого состава учитываются после пересборки.
+--as-of includes starts <= date, ends > date: `[start_date, end_date)`. Unknown bounds permit comparisons without proving validity. Dates cannot reconstruct old contacts/contracts. Date itself is absent from fingerprint; selected roles change instead of storing a temporal snapshot.
 
-`--as-of` выбирает директорства на дату: известное начало должно быть не позднее даты, известный конец — позже даты; интервал трактуется как `[start_date, end_date)`. Неизвестная граница допускает роль к текущему сравнению, но не подтверждает её действительность в выбранный момент. Изменение выбранной даты не восстанавливает прежние контакты и договоры. В fingerprint дата сама по себе не включена: меняется набор выбранных ролей, а не сохраняется временной снимок.
+Regular updates/current graph recalculation/technical timestamps/period-filtered contracts are not relationship evolution analysis. No window comparisons/temporal edge appearance-disappearance/motifs/bidder rotation. Describe partial date filtering and plans, not a completed dynamic detector.
 
-Регулярный импорт, пересчёт текущего графа, технические timestamps и граф из договоров за период **не равны анализу эволюции связей**. Не реализованы сопоставление временных окон, появление/исчезновение доказанных рёбер во времени, временные мотивы или ротация участников закупок. В научном тексте допустимо описать частичный фильтр ролей на дату и план развития; утверждение о работающем динамическом анализе всего закупочного поведения не поддержано.
+Deterministic explainer groups exact matches and adds owner flags/heuristic level; affiliation language needs moderation. Rebuild/GET do not automatically call it; GET shows stored text/staleness. No ML features/training/splits/data-trained weights/inference. OpenRouter text generation is not training a coordination detector; configured qwen/qwen3-8b:free was not live-checked for availability/cost/quality.
 
-`apps/ai/explainer.py` формирует текст детерминированно: группирует компании по конкретным совпадающим значениям, добавляет сведения о флагах владельцев и уровень эвристики. Некоторые формулировки об аффилированности нуждаются в смягчении. Наличие функции не означает автоматическую подготовку нового объяснения: текущие rebuild и GET её не вызывают. GET показывает ранее сохранённый текст и признак устаревания.
+## 5. Article topic selection
 
-Машинного обучения нет: признаки для обученной модели, обучение, train/test-разделение, веса, полученные из данных, и inference отсутствуют. OpenRouter — потенциальная генерация текста внешней LLM, а не обучение детектора координации. В конфигурации задана модель по умолчанию `qwen/qwen3-8b:free`, но фактические вызовы, доступность, стоимость и качество в этой задаче не проверялись.
+All topics are narrower than the thesis. Extra-work estimates describe tasks, not unverified deadlines.
 
-## 5. Выбор темы статьи
+| Topic | Question | Inputs/methods | Additional work |
+| --- | --- | --- | --- |
+| **1. Impact of shared contacts on robust graph grouping of Kazakhstan suppliers** | How do single/common contacts alter groups, and what remains under stricter edges? | Frozen contacts, independently confirmed relations where available, synthetic known groups; components/ablation/multiple-evidence rules/errors | Offline runner/variants/data sheet/labels/scenarios/measurements; existing graph core, no new ML needed |
+| **2. Stable supplier-group identifiers during repeated graph updates** | Do UUID continuity/fingerprints retain unchanged results and detect changes? | Controlled repeat/add/remove/merge/split/contract changes; recreate-all baseline/invariants/writes/stale texts | Independent protocol/continuation criteria/benchmark; lineage absent |
+| **3. Temporal applicability of director links** | Does proven role overlap reduce false links versus aggregating all roles? | Confirmed identities/intervals/history, synthetic changes; all-role graph versus date/overlap slices | Historical data/identity repair/temporal prototype; actual intervals absent |
 
-Все три темы ниже уже темы диплома и рассматривают проверяемый отдельный аспект. Оценки дополнительной работы описывают состав работ, а не неподтверждённые сроки.
+**Topic 1 recommended:** it uses working components and a reproducible scoring weakness: common contacts merge companies and inflate size-based scores. It needs neither unavailable bids, trained ML, KGD, nor LLM. Contacts exist; controlled scenarios expose failures.
 
-| Тема | Исследовательский вопрос | Необходимые данные | Подходящие методы | Дополнительная работа |
-| --- | --- | --- | --- | --- |
-| **1. Влияние контактных совпадений на устойчивость графового группирования поставщиков государственных закупок Казахстана** | Как одиночные и массовые контактные совпадения меняют состав групп, и какую часть объединений можно сохранить при более строгом правиле связи? | Зафиксированный набор поставщиков/контактов; подтверждения отдельных отношений при наличии; синтетические сценарии с известными группами | Текущие связные компоненты; исключение типов по одному; сравнение с правилом нескольких оснований; оценка ложных объединений и потерь связей | Отдельный офлайн-runner, варианты правил, паспорт данных, разметка/сценарии, измерения; ядро графа уже есть, новой ML-модели не требуется |
-| **2. Стабильная идентификация групп поставщиков при повторном обновлении графа связей** | Сохраняют ли продолжение UUID и fingerprint неизменные результаты и корректно ли отмечают значимые изменения? | Последовательности контролируемых изменений: повтор, добавление, удаление ребра, merge/split, изменение договора | Сравнение текущего `match_clusters` с пересозданием групп; инварианты, повторяемость, число записей и устаревших текстов | Расширить инженерные регрессии до независимого экспериментального протокола; определить критерии продолжения группы и benchmark; полная lineage пока отсутствует |
-| **3. Учёт временной применимости директорских связей при группировании поставщиков госзакупок** | Насколько подтверждённое пересечение периодов руководства уменьшает ложные связи по сравнению с агрегированием всех ролей? | Подтверждённые идентичности директоров и интервалы ролей; несколько дат или исторические наблюдения; синтетические смены руководителя | Статический граф всех ролей против срезов на дату/пересечений интервалов; ошибки одновременности и группирования | Получить исторические сведения и исправить идентичность; офлайн-прототип временного сравнения; текущий реальный набор не содержит нужных интервалов |
+Topic 2 is technically prepared but closer to software reliability. Topic 3 fits dynamics but needs stronger identity/time data. Topic 1 still lacks independent relation labels, provenance, and a separate experiment pipeline. The small 384-company set/few matches supports preliminary sensitivity, not national coordination-detection effectiveness. Predominantly synthetic evaluation must be explicit and approved by the supervisor.
 
-**Рекомендована тема 1.** Она непосредственно опирается на работающий механизм выделения связных компонент и проверяемую слабость формулы: один массовый контакт способен объединить много компаний и поднять балл из-за размера. Для исследования не нужны недоступные заявки, обученная модель, доступ КГД или вызовы LLM. Контактные поля уже имеются, а контролируемые сценарии позволяют воспроизвести механизм ошибок.
+## 6. Recommended article foundation
 
-Тема 2 технически хорошо подготовлена, но ближе к статье о надёжности программной системы. Тема 3 соответствует динамической части диплома, однако требует существенно более сильных данных об идентичности и времени, чем имеются сейчас.
+**Title:** "The Impact of Shared Contact Information on the Robustness of Graph-Based Grouping of Public Procurement Suppliers in Kazakhstan".
 
-Для полноценной эмпирической проверки темы 1 всё ещё **не хватает разметки отношений, подтверждённого происхождения полей и отдельного экспериментального контура**. Существующие 384 поставщика и немного совпадений годятся для предварительного разбора и демонстрации чувствительности; они не дают оснований оценить выявление координации в Казахстане в целом. Если статья допускает преимущественно синтетическую оценку, это должно быть явно указано в названии/аннотации и согласовано с преподавателем.
+**Question:** how do single/common contact matches change grouping, and can stricter rules reduce false mergers with acceptable loss of confirmed relations?
 
-## 6. Основа рекомендуемой статьи
+**Goal:** reproducibly evaluate grouping sensitivity and limits relevant to analysts.
 
-**Название на русском:** «Влияние контактных совпадений на устойчивость графового группирования поставщиков государственных закупок Казахстана».
+1. Formalise existing edges/components/score and record parameters/data limits.
+2. Prepare the working-data sheet and independent synthetic scenarios, separating matches from relations.
+3. Compare baseline, contact-type ablations, and a conservative multiple-evidence rule.
+4. Measure false merges/missed true relations on labels and structural changes on source data.
+5. Recommend weak-link display and non-accusatory interpretation.
 
-**Название на английском:** “The Impact of Shared Contact Information on the Robustness of Graph-Based Grouping of Public Procurement Suppliers in Kazakhstan”.
+**Object:** supplier/concluded-contract information in an analytical system. **Subject:** effects of contact rules on group structure/interpretation reliability.
 
-**Исследовательский вопрос:** как включение отдельных и массовых контактных совпадений влияет на объединение поставщиков в графовые группы и позволяет ли более строгое правило связи уменьшить ошибочные объединения при приемлемой потере подтверждённых связей?
+**Expected contribution:** reproducible rule comparisons, common-contact/transitive scenarios, merger-versus-loss trade-offs, uncertainty-display requirements. Novelty/superiority are unproven until full literature review/experiment.
 
-**Цель:** разработать и выполнить воспроизводимую оценку чувствительности графового группирования к контактным совпадениям и определить ограничения текущих правил при использовании результата аналитиком.
+**Keywords:** public procurement; graph analysis; supplier relationships; OSINT; shared contacts; grouping robustness; explainability.
 
-**Задачи:**
+An abstract must ultimately state actual inputs/rules/results. Until then use a proposal abstract without numerical results or trained-model claims.
 
-1. Формализовать существующие типы связей, правило компоненты и эвристический балл; зафиксировать фактические параметры и ограничения данных.
-2. Подготовить паспорт рабочей выборки и независимые синтетические сценарии, отделив контактное совпадение от подтверждённого отношения.
-3. Сравнить базовое группирование, исключение отдельных типов контактов и консервативное правило нескольких оснований.
-4. Оценить ошибочные объединения, потери истинных связей в размеченных сценариях и изменения состава групп на рабочем наборе.
-5. Сформулировать рекомендации по представлению слабых связей и интерпретации балла без обвинительных выводов.
+## 7. Article outline
 
-**Объект:** сведения о поставщиках и заключённых договорах государственных закупок Казахстана, представленные в аналитической информационной системе.
-
-**Предмет:** влияние правил использования контактных совпадений на структуру графовых групп поставщиков и достоверность интерпретации этих групп.
-
-**Предполагаемый вклад:** воспроизводимый протокол сравнения правил, набор контролируемых сценариев массовых контактов и транзитивных объединений, количественное описание компромисса между объединением и пропуском связей, требования к показу неопределённости. Это ожидаемый результат будущей работы. Научная новизна и преимущество предлагаемого правила не доказаны; необходимы полноценный обзор литературы и эксперимент.
-
-**Ключевые слова:** государственные закупки; графовый анализ; связи поставщиков; OSINT; контактные совпадения; устойчивость группирования; объяснимость.
-
-В аннотации после эксперимента нужно честно указать состав данных, сравниваемые правила и фактически полученные результаты. Сейчас допустима аннотация-план без численных результатов и без утверждений об обучении модели.
-
-## 7. План статьи
-
-| Раздел | Что написать | Материалы и ожидаемая форма |
-| --- | --- | --- |
-| Введение | Задача предварительного анализа связей; отличие контакта от поведения в торгах; исследовательский вопрос и граница работы | Сценарий проекта и ограничения из разделов 1–3; без неподтверждённых национальных статистик |
-| Связанные исследования | Графы закупочных отношений, косвенные индикаторы, методы screening; отдельно качество идентичности и массовых контактов | Проверенные начальные источники ниже; затем полноценный поиск и сравнительная таблица; не заявлять пробел литературы до обзора |
-| Данные | Источники, период, поля, пропуски, происхождение, разграничение рабочего и синтетического набора; смысл разметки | Паспорт данных, агрегаты read-only проверки, спецификация будущих сценариев |
-| Метод | Вершины/типы рёбер, точное совпадение, связная компонента, формула; экспериментальные альтернативы и неизвестные отношения | `get_connection_types`, `find_connected_groups`, `calculate_risk`; псевдокод всех сравниваемых правил |
-| Эксперимент | Фиксация набора и весов, одинаковые входы, ablation, ручной разбор, сценарии, метрики и воспроизводимость | Протокол раздела 8 и будущий отдельный runner; тесты приложения использовать как проверку исполнения, не как оценку качества |
-| Результаты | Сначала покрытие данных, затем структура групп по вариантам, ошибки по сценариям, ручной разбор и чувствительность балла | Таблицы с фактическими числами, знаменателями и unknown; до запуска оставить пометку «не измерено»; никаких предполагаемых процентов |
-| Обсуждение и ограничения | Какие контакты создают мосты; цена строгого правила; малый набор и неизвестная идентичность; независимость доказательств; переносимость | Ошибки и пограничные случаи; отличие структурной устойчивости от истинности отношений и от выявления сговора |
-| Заключение | Ответить на вопрос ровно в пределах измерений; дать требования к дальнейшим данным и развитию диплома | Только подтверждённые экспериментом выводы; динамика, ML и КГД как дальнейшая работа |
-
-### Начальные проверенные внешние источники
-
-Ссылки проверены при подготовке документа. Это начальный список, а не завершённый систематический обзор. Для исследовательских работ ниже прочитаны метаданные и аннотации; перед изложением подробных методов нужно изучить полные тексты.
-
-1. Johannes Wachs, Mihály Fazekas, János Kertész. **Corruption Risk in Contracting Markets: A Network Science Perspective**. Препринт 2019 года, [arXiv:1909.08664](https://arxiv.org/abs/1909.08664). Рассматривает двудольные сети заказчиков и получателей договоров. Полезен для сопоставления типов графа: в ГрафЗакуп пока используется сеть контактных совпадений поставщиков, поэтому методы и выводы этой работы не являются результатами текущего проекта.
-2. David Imhof, Hannes Wallimann. **Detecting bid-rigging coalitions in different countries and auction formats**. Препринт 2021 года, [arXiv:2105.00337](https://arxiv.org/abs/2105.00337). Рассматривает coalition-based screening и ML с признаками ценовых предложений. Полезен для объяснения, почему без заявок и цен нельзя переносить такой подход на текущие договоры и контакты. Его метрики не являются метриками ГрафЗакуп.
-3. OECD. **OECD Guidelines for Fighting Bid Rigging in Public Procurement (2025 Update)**. [Официальный документ](https://www.oecd.org/content/dam/oecd/en/publications/reports/2025/09/oecd-guidelines-for-fighting-bid-rigging-in-public-procurement-2025-update_127880ea/cbe05a56-en.pdf), DOI `10.1787/cbe05a56-en`, раздел 3.6. Разграничивает подозрительные индикаторы и доказательство сговора. Это методический контекст, а не разметка для обучения и не юридическое заключение по компаниям рабочего набора.
-
-Дополнительно нужен направленный поиск первичных работ об entity resolution, ложных связях из массовых контактов и оценке чувствительности графовых групп. Пока не установлено, является ли выбранное сочетание правил новым относительно литературы.
-
-### Необходимые таблицы и рисунки
-
-Таблицы:
-
-1. Источники, поля, период, пропуски и доступность разметки; реальные и синтетические данные отдельно.
-2. Типы связи, нормализация, критерий включения, веса и ограничения интерпретации.
-3. Сравниваемые правила и их заранее зафиксированные параметры.
-4. Число типовых/различных рёбер, групп, распределение размеров и доля сгруппированных компаний по вариантам.
-5. Ошибочные объединения и разделения, precision/recall только для разрешённых размеченных целей; отдельно количество unknown и покрытие.
-6. Ручной разбор обезличенных кейсов: наблюдение, независимое подтверждение, альтернативное объяснение, решение и неопределённость.
-
-Рисунки:
-
-1. Фактическая схема «источник → нормализация → совпадения → компоненты → представление аналитиком».
-2. Контролируемый пример: независимые компании с общим обслуживающим контактом и группа с несколькими основаниями; схемы при разных правилах.
-3. Пример транзитивного объединения A–B–C с явно отсутствующим прямым ребром A–C.
-4. График зависимости балла от размера группы при одном типе контакта для двух наборов весов; аналитическая зависимость отдельно от экспериментальных измерений.
-5. При наличии полезного материала — обезличенный граф одной разобранной группы, с легендой типов и отметкой неизвестности отношений.
-
-Скриншот D3 может иллюстрировать интерфейс, но не доказывает качество детекции. Публикуемые изображения не должны раскрывать контакты/ФИО исходного набора без отдельного решения автора о допустимом составе публикации.
-
-## 8. План эксперимента
-
-**Статус:** протокол предложен; runner, альтернативные правила, исследовательская разметка и измерения ещё не созданы. Эта задача не запускает новую фазу разработки.
-
-### Проверяемая цель и данные
-
-Минимальная цель — измерить чувствительность группирования и показать механизм ошибочного объединения на контролируемых примерах. Эффективность выявления сговора не является оцениваемой величиной.
-
-Использовать два блока, результаты которых не смешиваются:
-
-- **Блок A — синтетические сценарии с известной структурой отношений.** Известная «истинная группа» задаётся автором сценария как общий контроль/руководство либо независимость компаний; это условная структура, не метка правонарушения. Контакт может принадлежать обслуживающей организации и не совпадать с этой структурой.
-- **Блок B — замороженная рабочая выборка 384 поставщиков и 500 договоров.** Контакты используются для описания графа и ручного разбора; истинная координация неизвестна. Для контактов есть до 13 разных пар-кандидатов по прочитанным частотам, с возможным пересечением типов. Полнота и происхождение набора требуют отдельного паспорта.
-
-Разметка блока A должна отдельно задавать прямые отношения и эталонное разбиение на группы. Прямые отношения нельзя автоматически получать из принадлежности одной группе. Если размечено только разбиение, оценивать только соответствующие ему метрики, без precision/recall прямых отношений.
-
-Для блока A минимально подготовить следующие восемь сценариев; это будущие данные, а не имеющиеся результаты:
-
-| Сценарий | Что задано независимо от алгоритма | Что проверять |
-| --- | --- | --- |
-| Подтверждённый общий руководитель | Один синтетический человек с устойчивым ID и пересекающимися известными ролями | Сохранение связи без обязательного контактного совпадения |
-| Два контактных основания | Связанная пара с общими телефоном и email | Поведение при нескольких наблюдениях; общность источника не считать автоматически независимым доказательством |
-| Единственное основание у связанной пары | Связанная пара с одним общим контактом | Потерю истинной связи при строгом правиле |
-| Массовый обслуживающий телефон | Независимые компании; один телефон посредника | Ложную большую компоненту и рост балла |
-| Общий адрес бизнес-центра | Независимые компании; совпадающий адрес | Ложные связи от адреса |
-| Контактный мост | Две истинные группы; слабое совпадение соединяет одну пару между ними | Ошибочное слияние целых групп через одно ребро |
-| Шум и неполные контакты | Заранее известная группа; пропуски, разные представления телефона, регистр email | Разделение потерь при извлечении/нормализации и ошибок группирования |
-| Однофамильцы | Разные синтетические люди с одинаковым ФИО и разными ID | Не объединять личности только по имени; показать эффект старой небезопасной склейки отдельным вариантом |
-
-Размер массовых контактов варьировать по заранее заданному списку, например 2, 5, 10, 19 и 20 компаний. Эти числа — параметры будущего сценария. Для минимального детерминированного прогона случайность не обязательна; при генерации вариантов фиксировать seed и полную конфигурацию. Сценарии для отладки и итоговой оценки должны различаться значениями/составом, чтобы результат не сводился к повторению регрессионных тестов.
-
-### Сравниваемые подходы
-
-| Вариант | Правило | Статус |
-| --- | --- | --- |
-| M0 — текущий алгоритм | Любой из четырёх типов соединяет пару; далее связные компоненты | Реализован в `get_connection_types` / `find_connected_groups` |
-| M1 — исключение типов | Тот же алгоритм, но по одному исключаются address, phone, email | Предлагаемый экспериментальный вариант; покажет вклад каждого типа |
-| M2 — консервативное правило | Подтверждённый общий директор либо не менее двух разных контактных типов; остальные совпадения сохраняются как слабые кандидаты и не объединяют компоненту | Предлагаемый baseline для сравнения; не реализован и не доказан как лучший |
-
-Для M2 один ID директора в рабочей БД без подтверждённой идентичности не считать автоматически подтверждённым основанием. В блоке A статус задаётся независимо; в блоке B непроверенные отношения остаются unknown. Два контактных типа могут происходить от одного посредника, поэтому M2 тоже способен создавать ошибочные объединения.
-
-Основной объект сравнения — структура групп. Балл анализировать отдельно, чтобы снижение числа групп не подменяло качество связи. Для M0/M1 зафиксировать как defaults, так и прочитанные рабочие веса; не выбирать веса по лучшему результату на итоговых сценариях. Для M2 без калибровки не объявлять новый балл «вероятностью». Сравнение статического и динамического графа не требуется для этой темы: необходимой истории нет.
-
-### Порядок выполнения
-
-1. Зафиксировать разрешённый исследовательский снимок и паспорт: источник, дата получения, поля, период, пропуски, нормализатор, ограничения, хеши данных/кода, версия Python и зависимости, веса. Контакты при обезличивании заменять согласованными значениями, сохраняя равенства и частоты; проверить, что это не изменило граф.
-2. Выполнить расчёт на отдельных входах/SQLite или отдельной PostgreSQL БД. Исходную БД не мигрировать и не пересобирать ради эксперимента. Извлечение для исследования ограничить SELECT; не вызывать `import_contracts`, live enrichment, Celery pipeline или LLM.
-3. Создать офлайн-runner, который обращается к чистым функциям сравнения и группирования, а варианты M1/M2 реализует отдельно. Добавить проверки инвариантов: порядок строк не меняет состав; пустые контакты не создают связь; повтор даёт одинаковый результат; транзитивная принадлежность не выдаётся за прямое ребро.
-4. До итогового запуска зафиксировать критерии разметки, варианты правил, параметры сценариев и метрики. Отладить на отдельном наборе; затем заморозить правила.
-5. Прогнать каждый вариант на одинаковых входах. Сохранить состав компонент, типовые и уникальные пары, используемые основания, размер и балл; одиночные компании учитывать как отдельные блоки при метриках разбиения, даже если UI их не показывает.
-6. На рабочем наборе разобрать все пары с контактными совпадениями и связующие мосты. При необходимости добавить заранее выбранные случайные пары без совпадения для проверки пропусков; такой небольшой разбор не даёт общей оценки recall. Разбор выполнять по документам, а не по баллу алгоритма.
-7. Составить отчёт отдельно по блокам A/B и каждому сценарию/типу. Unknown не превращать в отрицательную метку. Зафиксировать и полезные, и ошибочные случаи строгого правила.
-
-Для ручного разбора нужны разные уровни ответа: «контактное поле действительно совпадает», «документально подтверждено отношение компаний», «общее обслуживание без установленного отношения» и «сведений недостаточно». Первое не подменяет второе; отсутствие найденного подтверждения не доказывает независимость. Желательно два рецензента, не видящих рейтинг варианта, с фиксацией разногласий. Если доступен только автор, это прямо указать.
-
-### Метрики и смысл выводов
-
-| Метрика | Где применима | Как интерпретировать |
-| --- | --- | --- |
-| Число типовых рёбер, различных пар, компонент, размер крупнейшей, доля компаний в группах | A и B | Структура результата; изменение не является само по себе улучшением |
-| Доля сохранённых пар совместного членства после исключения типа; Jaccard множеств таких пар | A и B | Чувствительность разбиения к признаку, а не истинность связей; пустые множества обрабатывать явно |
-| Доля ложных объединений: независимые пары, оказавшиеся в одной компоненте / все независимые пары | A; B только при подтверждённой отрицательной разметке | Оценка ошибки транзитивного группирования относительно заданной цели |
-| Доля ошибочных разделений: пары одной истинной группы в разных компонентах / все пары одной истинной группы | A; B только при достаточной разметке | Цена более строгого правила |
-| Precision, recall, F1 прямых отношений | A или действительно размеченные отношения B | TP/FP/FN определять по независимой разметке прямой связи; не смешивать с членством в компоненте |
-| Доля подтверждённых/ошибочных/неразрешённых кандидатов и покрытие ручной проверки | B | Показывать знаменатели и число unknown; не заявлять общую точность при неполной разметке |
-| Балл и уровень при одном типе связи и разном размере; доля пересечений порогов | A; описательно B | Поведение эвристики и чувствительность к весам; не вероятность сговора |
-| Время и число SQL-запросов, если включены в исследование | Одинаковая среда, отдельная нагрузочная серия | Вторичная инженерная оценка; не доказывает научную эффективность |
-
-Для precision/recall использовать стандартные определения `TP/(TP+FP)` и `TP/(TP+FN)`; при нулевом знаменателе писать «не определено» и приводить счётчики. Для принадлежности к компоненте и прямого ребра нужны отдельные матрицы ошибок. Не считать множество зависимых пар внутри одной группы независимыми наблюдениями для доверительных интервалов; на маленьком рабочем наборе прежде всего сообщать абсолютные числа и разбор случаев.
-
-На синтетике можно проверить механизм ложных объединений, пропусков и роста балла в заданных условиях. На рабочем наборе без разметки можно измерить структуру, чувствительность и проверяемость совпадений. **Нельзя** оценить долю реальных картелей, вероятность нарушения, ущерб, полноту выявления координации или качество ML, которого нет. Устойчивая компонента тоже может состоять из компаний с общим посредником.
-
-Обучение модели в минимальный эксперимент не входит. Если позднее появятся заявки и независимая разметка, потребуется новый протокол: временное train/validation/test-разделение, признаки только из доступных на момент решения фактов, учёт повторяющихся компаний/групп между частями и отдельная оценка на новых компаниях. Случайное разбиение строк договоров позволит одним и тем же компаниям и связанным фактам попасть в обучение и тест; это риск утечки. Подбор правил/весов также следует выполнять до финальной оценки, а не по её результатам.
-
-## 9. Что нужно доделать
-
-Ниже — список работ для будущей задачи. В ходе подготовки документа они не выполнялись и не меняют статус фаз.
-
-### Обязательно для проведения исследования
-
-1. **Согласовать научную цель и допустимый формат данных.** Преподаватель должен подтвердить, что статья об устойчивости группирования и синтетических сценариях соответствует заданию; уточнить требования к реальной выборке, объёму статьи и площадке.
-2. **Подготовить паспорт и зафиксированный вход.** Связать 384 поставщика/500 договоров с описанием первоначального сбора и проверить происхождение контактов. Опора: `Supplier`, `Contract`, парсеры `services/`, `docs/BASELINE.md`. Исследовательские файлы с исходными данными хранить локально в игнорируемом `artifacts/`, не вставлять их в публичные fixtures.
-3. **Определить целевую разметку и unknown.** Развести прямое совпадение поля, организационное отношение, принадлежность к группе и координацию. Старую команду `link_directors` не использовать для создания истины по ФИО. Для минимальной оценки обеспечить независимую синтетическую структуру; для выводов о реальных отношениях нужны документальные подтверждения.
-4. **Создать отдельный офлайн-экспериментальный контур.** Переиспользовать `get_connection_types`, `find_connected_groups`, `calculate_risk` без вызова изменяющего БД `rebuild_clusters`; реализовать M1/M2, сценарии и отчёт. Опора для регрессий: `apps/graph/tests.py`, `apps/companies/tests.py`, `config/test_settings.py`; исследовательские сценарии должны проверять более широкую цель, чем существующие тесты.
-5. **Зафиксировать параметры и выполнить измерения.** Сохранять обе конфигурации весов, хеши входа и кода, составы компонент и счётчики ошибок. Не заменять результат эксперимента числом прошедших тестов.
-6. **Завершить обзор литературы и написать результаты после запуска.** Проверить полные тексты начальных источников, найти работы именно о качестве графовых связей и определить, какой вклад уже известен. До этого не использовать утверждения «впервые» или «доказано превосходство».
-
-Применение `graph.0003` к исходной БД не требуется для read-only анализа и не входит в этот документ. Если будущий эксперимент будет использовать обновлённые модели/интерфейс, сначала нужна отдельная тестовая БД с миграциями. Обновление рабочей БД — отдельная задача после актуальной проверки резервной копии по `docs/RECOVERY.md`.
-
-### Желательно для усиления статьи
-
-1. Расширить реальную выборку на более длительный период и разные категории закупок; заранее определить рамку выборки. Новый live-сбор требует отдельного поручения, текущие 500 договоров не репрезентируют весь рынок.
-2. Получить дополнительные подтверждения источников и независимую ручную оценку кандидатов; проверить все массовые контакты и возможные ошибки старого извлечения.
-3. Добавить вариант, учитывающий частоту контакта, и отдельно оценить его относительно M2. Это дополнительная гипотеза, а не уже работающий алгоритм; связать с будущими `EvidenceEdge` и правилами фаз 4–5.
-4. Сравнить попарное построение с индексом значений на наборах нескольких размеров; привязка к `find_connected_groups` и оптимизации фазы 4. Производительность измерять отдельно от качества отношений.
-5. Подготовить обезличенные иллюстрации и удобный разбор конкретного ребра с основанием; привязка к `build_graph_data` и будущей панели доказательств. Общий визуальный стиль не утверждать до референсов пользователя.
-
-### Можно оставить для дальнейшего развития диплома
-
-- Единый ingestion, `IngestionRun`, наблюдения источников, безопасное сопоставление людей и история ролей — фаза 2.
-- Подтверждённая интеграция КГД и корректное различение «не проверено/ошибка/не найдено/результат» — фаза 3.
-- Неизменяемые snapshots, lineage, полный граф доказательств, сохранение раскладки и существенное улучшение взаимодействия — фаза 4.
-- Калиброванный анализ поведения в торгах, версионируемые findings/объяснения и при необходимости контролируемая LLM — фаза 5; зависят от данных.
-- DRF API, React, TypeScript и дизайн по пользовательским референсам — фазы 6–7.
-- ML, динамические признаки торгов и полноценная проверка выявления координации — после получения заявок, истории и независимой разметки; их нельзя автоматически объявить реализованными после архитектурного рефакторинга.
-- Полная демонстрация, нагрузочные измерения, эксплуатационные роли и пилот — фаза 8 и последующие согласованные задачи.
-
-## 10. Краткий контекст для другого помощника
-
-**Проект:** незавершённый дипломный ГрафЗакуп для анализа связей поставщиков госзакупок Казахстана. Сейчас это Django/PostgreSQL, Celery/Redis, templates/Bootstrap и D3. Реализованы HTML-сбор договоров/карточек, контактные совпадения, связные компоненты, ручной балл и сохранённые тексты. Фазы 0–1 завершены; следующие фазы пока планы. Обученного ML и полноценной динамики нет.
-
-**Рекомендуемая тема:** «Влияние контактных совпадений на устойчивость графового группирования поставщиков государственных закупок Казахстана». Исследовать структуру групп и ложные объединения от массовых/слабых контактов; сравнить текущий алгоритм, исключение типов и предложенное строгое правило. Это план исследования, не готовая статья с результатами.
-
-**Данные:** read-only проверка 5 октября 2026 года подтвердила 384 поставщика, 500 договоров за 18–19 июня 2026 года, 384 директора/роли без ИИН и дат, 4 прежних кластера с 11 записями членства. Телефон заполнен у 328 поставщиков, email у 361, адрес у 384. Повторяются 1 адрес, 2 телефона и 1 email; общих записей директора нет. Владельцы, долги, банкротства, дела и сохранённые `Connection` отсутствуют. Происхождение каждой рабочей строки ещё не верифицировано; тестовые fixtures явно синтетические. Заявок и цен всех участников, исторических контактов и разметки координации нет.
-
-**Проверки:** в этой задаче 82/83 Django-теста PASS, один PostgreSQL-only пропущен на SQLite; JavaScript-регрессии PASS. Ранее фаза 1 зафиксировала 83/83 PASS на отдельной PostgreSQL БД и успешный Compose/restore. Исходная локальная БД пока без `graph.0003`; её не меняли. Пройденные регрессии не являются результатами научного эксперимента.
-
-**Ограничения:** контакт не доказывает общий контроль, группа не доказывает сговор, балл не вероятность, сумма договоров не ущерб. Нельзя обучать на кластерах как на истинной разметке. Нельзя выдавать фильтр ролей на дату и обновление текущей БД за динамический анализ поведения. Локальные веса 20/15/10/10/5 отличаются от defaults 35/25/20/15/5; параметры нужно зафиксировать.
-
-**Ближайшие действия:** согласовать тему и допустимость синтетической оценки, завершить обзор литературы, подготовить паспорт/снимок и целевую разметку, создать офлайн-runner с альтернативами, провести эксперимент, затем написать результаты с абсолютными числами, unknown и ограничениями. Для статьи не требуется автоматически завершать весь roadmap.
-
-### Вопросы автору или преподавателю
-
-1. Какая площадка, язык, объём, шаблон, срок и требуемый тип статьи? Нужен сейчас только план или уже законченный экспериментальный материал?
-2. Принимается ли тема о качестве графового группирования без реализованного ML и полной динамики? Допустима ли преимущественно синтетическая оценка с небольшим реальным разбором?
-3. Как получены рабочие 500 договоров и карточки: когда, каким запуском, с какими фильтрами? Есть ли среди них ручные/демонстрационные записи и разрешённые исходные подтверждения?
-4. Можно ли использовать рабочие сведения в статье и приложении к ней, в каком обезличенном виде? Какие данные автор вправе передать другому помощнику?
-5. Есть ли доступ к независимому эксперту, подтверждённым корпоративным отношениям, истории руководителей или официально разобранным случаям координации?
-6. Доступны ли списки всех участников, заявки и цены, история лотов/торгов и более длительная выборка? Получение этих данных из существующего репозитория не подтверждено.
-7. Обязательны ли ML и динамическая часть именно в статье или они могут оставаться дальнейшими задачами диплома? Требуется ли сравнение с конкретным методом из литературы?
-
-### Навигация по основаниям, если репозиторий позднее станет доступен
-
-| Материал | Назначение |
+| Section | Content/material |
 | --- | --- |
-| `docs/ROADMAP.md`, `docs/ARCHITECTURE.md` | Статусы фаз и целевое устройство; будущие сущности не путать с реализованными |
-| `docs/BASELINE.md`, `docs/RECOVERY.md` | Исходные количества, резервная копия и границы проверки восстановления |
-| `docs/PHASE1.md`, `docs/AUDIT.md` | Проверенные исправления и оставшиеся методологические ограничения; аудит содержит исторические формулировки |
-| `apps/companies/models.py`, `apps/contracts/models.py`, `apps/owners/models.py` | Фактическая схема данных |
-| `services/`, `apps/companies/management/commands/` | Извлечение, нормализация и управление сбором |
-| `apps/graph/services.py`, `apps/graph/models.py`, `apps/graph/views.py` | Связи, группы, балл, UUID/fingerprint и данные графа |
-| `apps/ai/explainer.py`, `apps/ai/openrouter.py` | Отдельные детерминированный и неактивный LLM-модули |
-| `apps/graph/tests.py`, `apps/companies/tests.py`, `tests/` | Офлайн-регрессии и синтетические fixtures; не научный benchmark |
-| `static/js/cluster_graph.js`, `templates/clusters/detail.html` | Текущее отображение графа |
+| Introduction | Preliminary relation analysis versus bidding behaviour; question/scope; no unsupported national statistics |
+| Related work | Procurement graphs/screening/identity/common contacts; verified starting sources then full comparative review; no premature literature-gap claims |
+| Data | Sources/period/fields/missingness/provenance/working-synthetic distinction/label meanings; read-only aggregates/data sheet |
+| Method | Nodes/typed exact matches/components/formula/alternatives/unknown relations; code-linked pseudocode |
+| Experiment | Frozen inputs/weights/ablations/manual review/scenarios/metrics/reproducibility; tests verify execution, not effectiveness |
+| Results | Coverage then groups/errors/cases/score sensitivity; actual denominators/unknown, "not measured" until run |
+| Discussion | Bridges/strict-rule cost/small set/identity/evidence dependence/transferability; robustness differs from truth/collusion |
+| Conclusion | Answer within measured scope; required future data; dynamics/ML/KGD as future work |
 
-Все сведения о текущей реализации в этом документе относятся к дате анализа. Последующая разработка диплома потребует обновить контекст перед использованием новых функций или данных в статье.
+### Initial verified references
+
+These links were checked during the original assessment. This is a starting list, not a systematic review. Research metadata/abstracts were read; study full texts before detailed method descriptions.
+
+1. Johannes Wachs, Mihály Fazekas, János Kertész. **Corruption Risk in Contracting Markets: A Network Science Perspective**. 2019 preprint, [arXiv:1909.08664](https://arxiv.org/abs/1909.08664). Bipartite customer/recipient networks differ from this supplier-contact graph; their findings are not GrafZakup results.
+2. David Imhof, Hannes Wallimann. **Detecting bid-rigging coalitions in different countries and auction formats**. 2021 preprint, [arXiv:2105.00337](https://arxiv.org/abs/2105.00337). Coalition screening/ML uses bid prices; without bids, methods/metrics cannot be transferred to current contacts/contracts.
+3. OECD. **OECD Guidelines for Fighting Bid Rigging in Public Procurement (2025 Update)**. [Official document](https://www.oecd.org/content/dam/oecd/en/publications/reports/2025/09/oecd-guidelines-for-fighting-bid-rigging-in-public-procurement-2025-update_127880ea/cbe05a56-en.pdf), DOI `10.1787/cbe05a56-en`, section 3.6. Distinguishes indicators from collusion proof; methodological context, not labels/legal conclusions for this sample.
+
+Search primary literature on entity resolution/common-contact false links/group sensitivity. Novelty of this rule combination is not established.
+
+### Tables and figures needed
+
+Tables: sources/fields/period/missingness/labels with real/synthetic separation; edge normalisation/criteria/weights/limits; frozen comparison rules; typed/distinct edges/groups/size/grouped share; false merges/splits and eligible precision-recall with unknown/coverage; anonymised cases/evidence/alternatives/decisions.
+
+Figures: actual source-normalisation-matches-components-analyst flow; controlled service-contact versus multi-evidence cases under different rules; A-B-C without direct A-C; analytical single-contact score-versus-size curves for both weights, separately from measurements; useful anonymised reviewed graph with legend/unknowns.
+
+D3 screenshots illustrate UI, not detection quality. Do not publish source names/contacts without an explicit permitted-data decision.
+
+## 8. Experiment plan
+
+**Status:** proposed protocol; runner/alternative rules/research labels/measurements absent. This document does not start a development phase.
+
+### Target and data
+
+Measure grouping sensitivity and controlled false-merger mechanisms, not collusion detection.
+
+- **A: synthetic known relationship structure.** Author-defined shared control/leadership or independence, not violation labels. Service contacts may differ from this structure.
+- **B: frozen 384 suppliers/500 contracts.** Describe graph/review candidates; true coordination unknown. At most 13 contact candidate pairs from frequencies, possibly overlapping types. A data sheet must establish provenance/completeness.
+
+Label direct relations and true partitions separately. Membership cannot automatically supply direct-edge truth. If only partitions are labelled, use partition metrics, not direct-relation precision/recall.
+
+Prepare these eight future scenarios:
+
+| Scenario | Independent truth | Check |
+| --- | --- | --- |
+| Verified shared director | Stable synthetic person/known overlapping roles | Preserve link without contacts |
+| Two contact types | Related pair sharing phone/email | Multiple observations do not guarantee independent evidence |
+| Single true-contact basis | Related pair, one shared contact | Strict-rule false negative |
+| Mass service phone | Independent companies/intermediary phone | Large false component/score inflation |
+| Business-centre address | Independent companies/common address | Address false links |
+| Contact bridge | Two true groups, one weak cross-link | Whole-group false merger |
+| Noise/incomplete contacts | Known group/missing phones/formats/email case | Separate extraction/normalisation losses from grouping errors |
+| Namesakes | Different people, same names/different IDs | No name-only identity; unsafe legacy variant separately |
+
+Vary common-contact size with predefined values such as 2/5/10/19/20. These are future parameters. Deterministic runs need no randomness; generated variants require seed/full configuration. Separate debugging/final scenarios so evaluation does not merely repeat regressions.
+
+### Compared methods
+
+| Variant | Rule | Status |
+| --- | --- | --- |
+| M0 current | Any of four features connects a pair; components | Implemented |
+| M1 ablations | Same method excluding address/phone/email individually | Proposed, shows feature contributions |
+| M2 conservative | Verified shared director or >=2 contact types; other matches remain weak candidates outside grouping | Proposed comparator, not implemented/proven superior |
+
+An unverified source director ID is not confirmed evidence for M2. A labels status independently; B keeps unknowns. Two contact types can share one intermediary, so M2 can still fail.
+
+Compare structure first and score separately. Freeze default/source weights for M0/M1; never choose weights by final-test success. M2 scores are not probabilities without calibration. Static/dynamic comparison is unnecessary here because history is missing.
+
+### Execution protocol
+
+1. Freeze permitted inputs/data sheet: sources/retrieval/fields/period/missingness/normaliser/limits/data-code hashes/Python/dependencies/weights. Anonymisation must preserve equalities/frequencies and graph output.
+2. Use separate inputs/SQLite or isolated PostgreSQL. Do not migrate/rebuild source for research. Extract by SELECT only; no import/live enrichment/Celery/LLM.
+3. Build an offline runner using pure comparison/group functions, implementing M1/M2 separately. Check row-order invariance, no empty-contact edges, repeatability, no implied direct links from transitivity.
+4. Freeze labels/rules/parameters/metrics before final evaluation; debug separately.
+5. Run variants on identical inputs; save memberships/typed-distinct pairs/evidence/sizes/scores. Include singleton blocks in partition metrics even when omitted by UI.
+6. Review all source contact matches/bridges; optionally predefined random unmatched pairs for missing links, without claiming population recall. Use documents, not scores.
+7. Report A/B/scenarios/types separately, retaining unknowns and both benefits/failures of strict rules.
+
+Review answers should separate actual contact equality, documented relationship, common servicing without established relationship, and insufficient evidence. Equality is not relation proof; missing confirmation is not independence. Prefer two reviewers blinded to rankings, recording disagreements; disclose single-author review.
+
+### Metrics and interpretation
+
+| Metric | Applicability | Meaning |
+| --- | --- | --- |
+| Typed/distinct edges/components/largest/grouped share | A/B | Structure, not improvement by itself |
+| Retained co-membership pairs/Jaccard after ablation | A/B | Sensitivity, not truth; handle empty sets explicitly |
+| Independent pairs grouped / all independent pairs | A; B only with confirmed negatives | False transitive mergers |
+| True-group pairs separated / all true-group pairs | A; B with sufficient labels | Strict-rule cost |
+| Direct relation precision/recall/F1 | Independently labelled A/B relations | TP/FP/FN distinct from component membership |
+| Confirmed/false/unresolved candidates/review coverage | B | Denominators/unknown required; no overall accuracy with incomplete labels |
+| Single-feature size/score/threshold crossings | A; B descriptively | Heuristic/weight sensitivity, not collusion probability |
+| Runtime/SQL if included | Same environment/separate load series | Secondary engineering measure, not effectiveness |
+
+Precision TP/(TP+FP), recall TP/(TP+FN); zero denominator: "undefined" plus counts. Direct edges and co-membership need separate confusion matrices. Dependent within-group pairs are not independent confidence-interval samples. Emphasise absolute counts/cases on small data.
+
+Synthetic scenarios test mechanisms under their assumptions; unlabelled source data supports structure/sensitivity/verifiability only. Neither establishes cartel prevalence/wrongdoing probability/damage/complete detection/nonexistent ML quality. Stable groups can still share a service intermediary.
+
+No training in the minimum experiment. Future bids/independent labels require a new time-based train-validation-test protocol with only then-available facts and separation of recurring companies/groups, plus unseen-company evaluation. Random contract-row splits leak company/fact information. Freeze rules/weights before final evaluation.
+
+## 9. Work still needed
+
+These are future tasks, not completed work or phase-status changes.
+
+### Required
+
+1. Agree on research goal/data format with supervisor: robustness/synthetic acceptability, actual-sample requirements, length/venue.
+2. Prepare frozen inputs/data sheet; relate 384/500 to acquisition and contact provenance. Use models/historical services/BASELINE. Sensitive research data stays in ignored artifacts, not public fixtures.
+3. Define labels/unknown; separate matches, relations, membership, coordination. Do not generate truth using name-only link_directors. Independent synthetic structure minimum; real conclusions need documents.
+4. Build offline experiments around get_connection_types/find_connected_groups/calculate_risk, without mutating rebuild_clusters. Implement alternatives/scenarios/reports; app tests/test settings aid execution but research targets must be broader.
+5. Freeze both weight sets/input-code hashes/memberships/errors; passing tests are not experimental results.
+6. Complete full-text review/targeted literature search; write results after running. No "first"/"proven superiority" claims yet.
+
+Source graph.0003 migration was unnecessary for read-only assessment. Future updated-model/UI experiments need an isolated migrated DB; source upgrade is separate after a current verified backup.
+
+### Recommended improvements
+
+1. Broader periods/categories with predefined sampling; live collection requires separate instruction, 500 contracts do not represent the market.
+2. Independent source confirmations/review of common contacts/legacy extraction errors.
+3. Proposed contact-frequency variant, separately evaluated against M2 and future Phase 4-5 evidence/rules.
+4. Pairwise versus indexed building across sizes, separately from relation quality.
+5. Anonymised illustrations/edge evidence inspection; final style awaits references.
+
+### Further thesis development
+
+- Phase 2 ingestion/runs/observations/safe identity/role history (future at this checkpoint).
+- Phase 3 verified KGD/distinct check states.
+- Phase 4 immutable snapshots/lineage/evidence/layout/graph improvement.
+- Phase 5 calibrated bidding analysis/versioned findings/explanations/controlled LLM if useful, data-dependent.
+- Phases 6-7 DRF/React/TypeScript/reference-based UI.
+- ML/dynamic bidding features/effectiveness only after bids/history/labels, not automatically after refactoring.
+- Phase 8 demonstrations/load/roles/pilot, then approved follow-up work.
+
+## 10. Brief handoff
+
+**Historical project:** unfinished Kazakhstan supplier-link thesis prototype, Django/PostgreSQL/Celery/Redis/templates/Bootstrap/D3. HTML collection/contact matches/components/manual scoring/saved text; Phases 0-1 complete at assessment, no trained ML/full dynamics. Later Phase 2 changes are separately documented.
+
+**Recommended topic:** shared-contact impact on grouping robustness, comparing current components/type ablations/proposed strict edges. A research plan, not completed results.
+
+**Data:** read-only 5 October 2026: 384 suppliers, 500 contracts dated 18-19 June 2026, 384 directors/roles without IIN/dates, four old clusters/11 memberships. Phones 328/emails 361/addresses 384; repeated address 1/phones 2/email 1; no shared director records. No owner/debt/bankruptcy/court/Connection records. Provenance unverified per row; fixtures synthetic. No complete bids/history/coordination labels.
+
+**Checks:** original assessment 82/83 passed on SQLite with PostgreSQL skip, JS passed; earlier Phase 1 83/83 PostgreSQL and Compose/restore passed. Source graph.0003 was pending and source unchanged. Regressions are not research results.
+
+**Limits:** contacts do not prove control, groups do not prove collusion, scores are not probabilities, totals not damage. Never train on cluster membership as truth. Date-role filters/database updates are not dynamic behaviour analysis. Source weights 20/15/10/10/5 versus defaults 35/25/20/15/5 must be recorded.
+
+**Next research steps:** approve topic/synthetic scope; review literature; prepare data sheet/frozen inputs/labels; build offline runner; run; report absolute counts/unknown/limits. The entire roadmap need not be completed for an article.
+
+### Questions for author/supervisor
+
+1. Venue/language/length/template/deadline/article type: proposal now or finished experiment?
+2. Is grouping quality without ML/full dynamics acceptable, including mostly synthetic evaluation?
+3. How/when/with which filters were 500 contracts/cards acquired? Manual/demo records/confirming responses?
+4. What source data may be published/shared, and how anonymised?
+5. Independent expert/confirmed relations/director history/official coordination cases available?
+6. Complete bidder/bid/price/lot-history/longer-period sources available? Not established by repository.
+7. Are ML/dynamics mandatory in the article or future thesis work? Required literature comparator?
+
+### Repository navigation for the historical checkpoint
+
+| Material | Purpose |
+| --- | --- |
+| ROADMAP/ARCHITECTURE | Status/target, not proof of future implementation |
+| BASELINE/RECOVERY | Initial counts/backups/verification boundaries |
+| PHASE1/AUDIT | Verified fixes/remaining methodology; historical wording |
+| Company/contract/owner models | Actual schema |
+| Historical services/company commands | Acquisition/normalisation/orchestration; moved in Phase 2 |
+| Graph services/models/views | Links/groups/score/UUID/fingerprint/data |
+| ai/explainer and openrouter | Separate deterministic/inactive LLM paths |
+| App/tests/fixtures | Synthetic regressions, not scientific benchmark |
+| Graph JS/cluster detail | UI |
+
+Implementation statements refer to the original analysis checkpoint. Update context before using later functions/data in an article.

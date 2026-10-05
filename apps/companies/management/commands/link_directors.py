@@ -2,8 +2,8 @@ from django.core.management.base import BaseCommand, CommandError
 
 
 class Command(BaseCommand):
-    help = 'Объединение по ФИО отключено; роли формирует ingestion из наблюдений'
+    help = 'Name-only merging is disabled; ingestion creates roles from observations'
 
     def handle(self, *args, **options):
-        raise CommandError('Объединение по ФИО отключено. Используйте ingest_data --mode=enrich; '
-                           'старые роли изолируются миграцией, исходные записи сохраняются в истории.')
+        raise CommandError('Name-only merging is disabled. Use ingest_data --mode=enrich; '
+                           'migrations isolate legacy roles and preserve original records in history.')

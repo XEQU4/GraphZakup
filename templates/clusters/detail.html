@@ -10,14 +10,14 @@
 </h2>
 
 {% if not object.is_active %}
-    <div class="alert alert-secondary">Этот кластер архивирован. Его состав и объяснение сохранены для просмотра по прежней ссылке.</div>
+    <div class="alert alert-secondary">This cluster is archived. Its membership and explanation are preserved at the original link.</div>
 {% endif %}
 
 <div class="row">
     <div class="col-lg-8">
         <div class="card mb-4">
             <div class="card-header">
-                Граф связей
+                Connection graph
             </div>
 
             <div class="card-body">
@@ -31,33 +31,33 @@
         <div class="card mb-4">
             <div class="card-body">
                 <h6 class="mb-3">
-                    Легенда связей
+                    Link legend
                 </h6>
 
                 <div class="d-flex flex-wrap gap-4">
                     <span>
                         <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#f1556c;"></span>
-                        Общий владелец
+                        Shared owner
                     </span>
 
                     <span>
                         <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#4aa3ff;"></span>
-                        Общий директор
+                        Shared director
                     </span>
 
                     <span>
                         <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#ffd065;"></span>
-                        Общий адрес
+                        Shared address
                     </span>
 
                     <span>
                         <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#fd7e14;"></span>
-                        Общий телефон
+                        Shared phone
                     </span>
 
                     <span>
                         <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#9b6bff;"></span>
-                        Общий email
+                        Shared email
                     </span>
                 </div>
             </div>
@@ -68,7 +68,7 @@
         <div class="card mb-4">
             <div class="card-body">
                 <h5>
-                    Риск
+                    Risk
                 </h5>
 
                 {% if object.risk_score >= 80 %}
@@ -88,7 +88,7 @@
                 <hr>
 
                 <h6>
-                    Компании ({{ object.suppliers.count }})
+                    Companies ({{ object.suppliers.count }})
                 </h6>
 
                 <ul class="mb-0">
@@ -105,13 +105,13 @@
 
         <div class="card">
             <div class="card-header">
-                Объяснение
+                Explanation
             </div>
 
             <div class="card-body">
                 <p class="mb-0">
                     {% if explanation_stale and object.ai_explanation %}
-                        <span class="d-block text-warning small mb-2">Данные изменились или версия объяснения не подтверждена. Сохранённое объяснение требует обновления.</span>
+                        <span class="d-block text-warning small mb-2">Data has changed or the explanation version is unconfirmed. The saved explanation needs updating.</span>
                     {% endif %}
                     {{ ai_explanation_html }}
                 </p>

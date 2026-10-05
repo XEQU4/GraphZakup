@@ -29,24 +29,24 @@ def explain_cluster(cluster):
     )
 
     prompt = f"""
-Объясни простым языком, почему данная группа компаний
-может быть подозрительной для сотрудника финансовой
-разведки Республики Казахстан.
+Explain in plain English why this group of companies
+may require review by a financial intelligence analyst
+in the Republic of Kazakhstan.
 
-Компании:
+Companies:
 {", ".join(company_names)}
 
-Типы связей:
+Link types:
 {", ".join(connection_types)}
 
-Риск-скор:
+Risk score:
 {cluster.risk_score}
 
-Ответ:
-- только на русском языке
-- не более 150 слов
-- без списков
-- одним связным абзацем
+Response:
+- English only
+- no more than 150 words
+- no lists
+- one coherent paragraph
 """
 
     try:

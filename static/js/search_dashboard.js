@@ -6,7 +6,7 @@
         const spinner = document.getElementById('contract-search-spinner');
         const pagination = document.getElementById('contracts-pagination');
 
-        // Сохраняем исходное состояние при загрузке
+        // Preserve the initial state on page load
         const originalTbody = tbody.innerHTML;
         const originalPagination = pagination.innerHTML;
 
@@ -29,7 +29,7 @@
 
         function renderRows(rows) {
             if (!rows.length) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted p-4">Ничего не найдено</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted p-4">Nothing found</td></tr>';
                 return;
             }
             tbody.innerHTML = rows.map(r => `

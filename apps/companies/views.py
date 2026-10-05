@@ -75,7 +75,7 @@ class SupplierListView(ClampedPaginationMixin, ListView):
                         first_dir.director.full_name,
                     )
                 else:
-                    director_html = '<span class="text-muted small">Не указан</span>'
+                    director_html = '<span class="text-muted small">Not specified</span>'
 
                 risk = c.computed_risk or 0
 

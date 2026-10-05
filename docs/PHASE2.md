@@ -1,109 +1,107 @@
-# Фаза 2: единый сбор данных и происхождение фактов
+# Phase 2: unified ingestion and fact provenance
 
-Дата: 5 октября 2026 года. Фаза выполнена. Проверки проведены офлайн на SQLite и PostgreSQL 17.6; рабочая БД не изменялась. Следующая фаза автоматически не запускается.
+Date: 5 October 2026. Complete. Offline SQLite/PostgreSQL 17.6 checks; working database unchanged. Next phase does not start automatically.
 
-## Реализованное поведение
+## Implemented behaviour
 
-Три адаптера находятся в [apps/ingestion/parsers](../apps/ingestion/parsers): договоры реестра, карточки участников и Adata. Старые модули `services/*_parser.py` и `services/enricher.py` удалены. Парсеры получают и нормализуют данные без ORM. [SourceProviders](../apps/ingestion/providers.py) переводит ответы компаний в `SourceResult`; договоры приходят целыми `ContractPage`, затем сохраняются как наблюдения с версией парсера.
+Three adapters in [apps/ingestion/parsers](../apps/ingestion/parsers) handle registry contracts, participant cards, Adata. Old `services/*_parser.py`/`services/enricher.py` removed. Parsers obtain/normalise data without ORM. [SourceProviders](../apps/ingestion/providers.py) returns `SourceResult`; complete `ContractPage` results become versioned observations.
 
-[HttpTransport](../apps/ingestion/transport.py) переиспользует одну сессию для всех адаптеров запуска, ограничивает частоту по host, использует timeout и до двух повторов временной ошибки с ограниченным Retry-After. Поддерживаются только HTTPS и два текущих host; переходы на другие адреса через redirect отключены. HTTP-кэш успешных ответов ограничен 32 элементами и 60 секундами, размер ответа проверяется после получения и ограничен 4 MiB. Это ограничение не является потоковым контролем выделения памяти. Challenge, повреждённый HTML и HTTP-ошибка не считаются пустой страницей.
+[HttpTransport](../apps/ingestion/transport.py) shares one session across run adapters; per-host pacing/timeouts/up to two temporary retries/bounded Retry-After. HTTPS/two current hosts only; redirects disabled. Successful-response cache: 32 entries/60 seconds. Post-receipt response limit: 4 MiB, not streaming memory protection. Challenges/malformed HTML/HTTP failures are not empty pages.
 
-[run_pipeline](../apps/ingestion/services.py) управляет сохранением, enrichment и пересборкой текущих кластеров. CLI и [Celery](../apps/core/tasks.py) используют этот сервис. Команды не вызывают друг друга. Платная генерация или LLM в процесс не добавлены; старые объяснения сохраняются.
+[run_pipeline](../apps/ingestion/services.py) manages persistence/enrichment/current-cluster rebuild. CLI/[Celery](../apps/core/tasks.py) call it; commands do not call each other. No LLM/paid generation; existing explanations retained.
 
-| Механизм | Поведение |
+| Mechanism | Behaviour |
 | --- | --- |
-| `IngestionRun` | UUID, режим, стадия, параметры, счётчики, курсор страницы/компаний, попытки, статус и безопасный код ошибки |
-| `SourceCheckpoint` | Отдельный прогресс потока; номер, смещение внутри страницы и хеш её содержимого |
-| `IngestionIssue` | Ошибка страницы или конкретного источника компании; счётчик попыток и признак разрешения |
-| `IngestionLease` | Одна аренда для pipeline в БД, heartbeat и проверка token перед каждой публикацией |
-| `SourceObservation` | Исходные структурированные поля, нормализованные значения, результат проверки, дата получения, URL и версия парсера |
-| `SelectedFact` | Наблюдение, из которого взято итоговое поле компании |
-| `PersonIdentity`, `PersonSourceIdentity` | Подтверждённый идентификатор либо отдельная личность в пределах компании/источника и наблюдавшиеся варианты имени |
-| `IdentityCandidate` | Совпадение ФИО, основания правила, эвристическая уверенность и состояние проверки |
+| `IngestionRun` | UUID/mode/stage/parameters/counters/page-company cursors/attempts/status/safe error |
+| `SourceCheckpoint` | Stream progress/page/offset/content hash |
+| `IngestionIssue` | Page/company-source failure/attempts/resolution |
+| `IngestionLease` | Database pipeline lease/heartbeat/token check before publishing |
+| `SourceObservation` | Allowed raw fields/normalised values/result/time/URL/parser version |
+| `SelectedFact` | Observation supplying the final company field |
+| Person/source identity | Confirmed identifier or company/source-scoped person/name variants |
+| `IdentityCandidate` | Name match/rule evidence/heuristic confidence/review status |
 
-На страницу договоров действует одна транзакция: договоры, новые участники, наблюдения и checkpoint фиксируются вместе. Ошибка не оставляет половину страницы. Повторный импорт обновляет договор по существующему ключу; смена поставщика или внешнего ID для этого ключа отклоняется. Полный обход ничего не очищает.
+Each page transaction covers contracts/new participants/observations/checkpoint. Failure cannot leave a half-page. Reimports update existing keys; supplier/external-ID reassignment rejected. Full import clears nothing.
 
-Частичная страница продолжается со смещения только при прежнем хеше. Если страница изменилась, она перечитывается с начала через upsert. При сбое enrichment сохраняется стадия и ошибки конкретных компаний; `--resume` не импортирует договоры заново. После сбоя пересборки повторяется только стадия кластеров. Завершённый UUID возвращает сохранённый результат без повторных запросов.
+Partial-page offsets apply only with unchanged hash; changed pages replay from the start through upsert. Enrichment preserves stage/company failures; resume does not reimport. Rebuild failure retries only clustering. Completed UUID returns saved results without requests.
 
-Аренда исключает параллельные CLI/Celery процессы, работающие через сервис. После истечения аренды старый worker не может сохранить страницу, а его `release` не снимает новую аренду. Отдельные экземпляры парсеров, запущенные вне сервиса, не участвуют в этой блокировке. Успешные наблюдения компаний можно повторно использовать в течение настраиваемого TTL; более новая ошибка и другая версия парсера запрещают использование такого кэша.
+Lease excludes simultaneous service CLI/Celery runs. Expired workers cannot publish, and old release cannot remove replacement lease. Direct parser calls outside the service are unprotected. Successful company observations are reusable within TTL; newer failure/parser-version change invalidates cache.
 
-## Политика фактов и идентичности
+## Fact and identity policy
 
-Результаты `success`, `not_found`, `unavailable`, `invalid`, `not_checked` сохраняются отдельно. Ошибка не удаляет последнее валидное значение. Отсутствующее поле означает неизвестность. Приоритет для телефона/email — валидное значение Adata, затем реестр; для остальных полей — реестр, Adata и сведения участников договора. Выбирается последнее непустое успешное значение каждого источника. Более старое валидное значение приоритетного источника может сохраняться после новой ошибки; дату и результат нового запроса нужно проверять в наблюдениях, а не считать такое значение свежим.
+`success`, `not_found`, `unavailable`, `invalid`, `not_checked` stay distinct. Errors retain last valid fields; missing means unknown. Phone/email prefer valid Adata then registry; other fields prefer registry/Adata/contract participants. Select each source's latest nonempty successful value. Older valid priority-source facts may survive a newer error; inspect dates/results rather than call them fresh.
 
-Исключение для директора — явное `director_absent=true`, которое завершает наблюдаемую роль и очищает отображаемое имя. Пустое имя без этого признака ничего не завершает. Действующие адаптеры не угадывают подтверждённое отсутствие директора из пустой карточки.
+Explicit `director_absent=true` closes observed role/clears display. Empty name alone closes nothing; adapters never infer absence from empty cards.
 
-Одинаковое ФИО в разных компаниях создаёт разные личности и кандидата `same_name_v1` с уверенностью 0.250. Это эвристика правила, а не измеренная вероятность. Два разных подтверждённых ИИН дают отвергнутого кандидата. Общий человек объединяется автоматически только при точном ИИН с явным подтверждением источника. Текущие HTML-адаптеры такого подтверждения не получают; положительный сценарий проверен fixtures и предназначен для источника с подтверждающими данными.
+Same names across companies create separate people plus `same_name_v1` confidence 0.250: a heuristic, not measured probability. Different verified IINs reject candidates. Automatic sharing requires exact source-confirmed IIN. HTML adapters cannot provide this; positive scenarios are fixtures for a future confirming source.
 
-Ребро директора требует текущей роли, проверенного человека и успешного наблюдения именно этой компании с тем же ИИН и признаком подтверждения. Одного `identity_status=verified` или произвольного FK на наблюдение недостаточно. Страница компании использует такой же фильтр. Неподтверждённое руководство видно в карточке с соответствующей подписью; оно не создаёт подтверждённой связи компаний. Старая команда `link_directors` больше не объединяет людей по ФИО.
+Director edges require current role, verified person, and successful company-specific observation with matching confirmed IIN. Status or arbitrary observation FK alone is insufficient. Company detail uses the same filter; unverified leadership is labelled but cannot verify cross-company links. `link_directors` never merges by name.
 
-Смена директора закрывает прежнюю наблюдаемую роль через `is_current=false` и `observed_until`, оставляя её в истории. Дата наблюдаемой смены не становится выдуманной юридической `end_date`. Юридические интервалы сохраняются при наличии данных источника и используются как `[start_date, end_date)`. Повторное назначение создаёт новую роль; более старое наблюдение не может перезаписать новую роль. Исторические snapshots графа относятся к фазе 4: текущий граф не предназначен для восстановления состояния на произвольную прошлую дату.
+Changes close old observed roles with `is_current=false`/`observed_until`, retaining history without inventing legal end dates. Source legal intervals use `[start_date, end_date)`. Reappointments create new roles; older observations cannot override newer roles. Historical graph snapshots belong to Phase 4, not arbitrary date reconstruction by the current graph.
 
-Владение создаётся только из явно переданного полного списка владельцев. Неполный или отсутствующий список не закрывает роли; полный список завершает только прежние роли того же источника. Неизвестная доля — `NULL`, директорство не означает владение. Долг компании владельцу не переносится. Источника бенефициаров текущие адаптеры не добавляют.
+Ownership requires an explicitly complete list. Missing/incomplete lists close nothing; complete lists close only previous same-source roles. Unknown shares are NULL; directors are not inferred owners; company debt does not transfer to them. No beneficial-owner source added.
 
-`Supplier` сохранён как совместимое имя существующей таблицы компаний. `is_supplier` и `is_customer` позволяют одной компании иметь обе роли; `Contract.customer` ссылается на заказчика по точному БИН. Старые поля заказчика остаются в договоре. Компания только в роли заказчика не попадает в список поставщиков и их общий счётчик.
+`Supplier` remains the compatible company table; supplier/customer flags support both roles. `Contract.customer` uses exact BIN; legacy customer fields retained. Customer-only companies excluded from supplier lists/counts.
 
-Наблюдения не содержат HTML, exception messages, паролей и неизвестных полей ответа. Сохраняются только разрешённые структурированные поля, включая ограниченные поля списка владельцев. URL с реквизитами или неизвестными query parameters отклоняется. Наблюдения, запуски, ошибки, кандидаты и история ролей доступны администратору для чтения; подтверждение личности через произвольное редактирование этих объектов не предусмотрено.
+Observations exclude HTML/exception messages/passwords/unknown fields. Only allowlisted structured fields, including bounded owners, persist. Credential/unknown-query URLs rejected. Admin observations/runs/issues/candidates/role history are read-only; arbitrary edits cannot verify identity.
 
-## Миграция старых данных
+## Legacy migration
 
-Добавлены миграции `companies.0006`, `contracts.0006`, `owners.0003` и `ingestion.0001–0004`. Цикл зависимостей между доказательствами и ролями разделён на два initial migration.
+Added `companies.0006`, `contracts.0006`, `owners.0003`, `ingestion.0001-0004`; two initial migrations break role/evidence dependency cycles.
 
-Существующие поля компаний, договоры и роли получают наблюдения `legacy / not_checked`. Старый ИИН не признаётся проверенным только из-за наличия значения. Исходные роли архивируются; новые роли получают отдельного человека в пределах компании. Исходные director/owner, ссылки прежних ролей, даты и доли не удаляются. Доля 100%, которая раньше была default, не переносится в новую неподтверждённую роль как доказанный факт. Прежние флаги риска не копируются на неподтверждённые личности новых ролей. Совпадающие legacy ФИО становятся кандидатами.
+Existing fields/contracts/roles receive `legacy/not_checked` observations. Old IIN is not automatically verified. Original roles archived; new roles have company-scoped people. Original people/role references/dates/shares preserved. Previous default 100% share is not copied as proven; old risk flags are not copied onto new unverified identities. Legacy name matches create candidates.
 
-Миграции данных не восстанавливают ложные объединения при обратном применении: обратная функция намеренно не сливает изолированные личности. Возврат прежнего приложения с прежней схемой выполняется через проверенную отдельную копию БД; новую историю нельзя откатывать как обычное изменение кода.
+Reverse data migration intentionally does not remerge identities. Recover old application/schema from a verified separate backup, not a routine code rollback.
 
-Связи legacy по ФИО больше не используются для текущего графа. UUID, состав и сохранённые тексты старых кластеров не переписываются миграцией. GET отмечает устаревание по fingerprint; при следующем разрешённом pipeline безопасная пересборка пересчитывает группы и архивирует исчезнувшие компоненты с сохранением UUID и текста.
+Legacy name-only edges excluded. Migrations preserve cluster UUID/membership/text. GET marks fingerprint staleness; next authorised pipeline safely rebuilds/archives vanished groups retaining IDs/texts.
 
-Перед изменением схемы создан и успешно проверен новый дамп PostgreSQL 17.6. Локальные файлы:
+Verified new PostgreSQL 17.6 backup before schema work:
 
-- `artifacts/phase2/database_20261005T155408Z_21f9e0e2.dump` и одноимённый JSON;
-- `artifacts/phase2/postgresql-verification.json` — результат восстановления, миграции, тестов и проверки исходной БД;
-- `artifacts/phase2/verify_phase2.py` — локальная проверочная утилита с ограничением точного имени создаваемой БД.
+- `artifacts/phase2/database_20261005T155408Z_21f9e0e2.dump` and JSON;
+- `artifacts/phase2/postgresql-verification.json`;
+- local `artifacts/phase2/verify_phase2.py`, enforcing exact temporary DB names.
 
-Дамп и восстановленная БД до миграций совпали по содержимому и столбцам всех 29 таблиц. После миграций совпали все прежние значения строк 28 таблиц вне журнала миграций; сравнение использовало исходные PK и столбцы, позволяя добавление новых записей и полей. Созданы 1661 legacy наблюдение, 384 текущие неподтверждённые роли, заказчик заполнен у 500 договоров. Предыдущие UUID, членство и объяснения кластеров сохранены. Временные БД удалены; исходная БД до и после совпала с резервной копией.
+All 29 tables matched before migration. Existing values in 28 tables outside migration history matched afterwards by original PK/columns, allowing additions. Created 1,661 legacy observations, 384 current unverified roles; 500 customer FKs populated. Cluster UUIDs/membership/explanations preserved. Temporary DBs dropped; source matched backup before/after.
 
-## Проверки
+## Executed checks
 
-| Проверка | Выполненный результат |
+| Check | Result |
 | --- | --- |
-| Django тесты на PostgreSQL 17.6 | 128 прошли, включая две проверки конкурентности |
-| Django тесты на SQLite | 126 прошли, 2 PostgreSQL проверки конкурентности пропущены |
-| Состояние моделей/миграций | `makemigrations --check --dry-run`: изменений нет; Django system checks без ошибок |
-| Миграция восстановленных реальных данных | Прежние значения 28 таблиц сохранены; исходная БД не изменена |
-| Миграционный fixture однофамильцев | Исходные ссылки сохранены, новые личности изолированы, ложного общего директора в графе нет |
-| JavaScript регрессии | Поиск и tooltips сохраняют экранирование и защиту от устаревших ответов |
-| Compose config | Конфигурация шести сервисов валидна; новые ingestion settings передаются backend |
+| PostgreSQL 17.6 | All 128 passed, including two concurrency tests |
+| SQLite | 126 passed, two PostgreSQL-only skips |
+| Models/migrations | No drift; system checks passed |
+| Restored real-data migration | Existing values in 28 tables retained; source unchanged |
+| Namesake migration fixture | Original references retained/new identities isolated/no false shared-director edge |
+| JavaScript | Escaping/late-response/tooltips passed |
+| Compose config | Six services valid; ingestion settings passed through |
 
-Сценарии охватывают идемпотентность, полную/частичную страницу, смену её содержимого, ошибку БД, продолжение каждой стадии, независимые checkpoints, source priority, fallback, raw/normalized значения, TTL и версию кэша, однофамильцев, подтверждённый ИИН, чужое доказательство, смену и повторное назначение директора, неизвестную/явно отсутствующую роль, список владельцев, служебные контакты, гонку запуска и fencing после истечения аренды. Повторное enrichment без изменения фактов сохраняет UUID, fingerprint, время анализа и объяснение кластера.
+Coverage: idempotence/full-partial-changed pages/DB failure/stage resume/independent checkpoints/priority/fallback/raw-normalised values/cache TTL-version/namesakes/verified IIN/foreign evidence/director change-reappointment/unknown-explicit absence/owners/service contacts/start race/expired-lease fencing. Unchanged enrichment preserves UUID/fingerprint/analysis time/text.
 
-## Использование и ограничения
+## Usage and limitations
 
-Примени миграции в нужном локальном окружении после проверки актуальной копии: `uv run python manage.py migrate`. В Docker это делает сервис `migrate`. Рабочую БД в ходе фазы не мигрировали.
+Apply prepared migrations after checking a current backup: `uv run python manage.py migrate`. Docker migrate service does this. The source was not migrated during Phase 2.
 
-Состояние читается без внешних запросов:
+Read status without external requests:
 
 ```powershell
 uv run python manage.py ingestion_status
 ```
 
-Команды ниже запускают реальные источники; это примеры для намеренного сбора, они не выполнялись при проверке фазы:
+Live collection examples, not executed for phase verification:
 
 ```powershell
 uv run python manage.py ingest_data --mode=initial --total=500
 uv run python manage.py ingest_data --mode=update --total=500
 uv run python manage.py ingest_data --mode=enrich --days=7
-uv run python manage.py ingest_data --resume=<UUID-запуска>
+uv run python manage.py ingest_data --resume=<RUN-UUID>
 ```
 
-`initial` продолжает поток первоначального обхода; `update` каждый новый запуск читает ограниченное окно с начала реестра; `full` начинает безопасный обход с первой страницы без очистки. Для продолжения именно прерванного запуска любого режима используй его UUID. `--force` обновляет компании без свежести/кэша наблюдений. `--start-page` явно выбирает страницу нового запуска; `--resume` использует сохранённые параметры.
+`initial` continues traversal; each new update reads a bounded head window; full starts safely at page 1 without clearing. Resume by UUID. `--force` bypasses freshness/cache; start-page affects new runs; resume retains saved parameters.
 
-Совместимые `import_contracts` и `enrich_suppliers` вызывают тот же сервис; `new` является alias `initial`. Enrichment после импорта проверяет компании, нуждающиеся в обновлении, включая заказчиков; `adata_updated_at` пока сохраняет прежнее имя общего маркера успешной проверки, а состояние каждого источника находится в наблюдениях. Счётчики показывают обработанные записи/попытки, не количество уникальных новых компаний или договоров.
+Compatibility commands call the same service; new aliases initial. Enrichment checks stale companies including customers. `adata_updated_at` retains its legacy overall-success name; observations hold source states. Counters count processed records/attempts, not unique new entities.
 
-Регулярная задача Celery использует `update`, а повтор после ошибки — UUID сохранённого запуска. Флаг `ENABLE_SCHEDULED_IMPORT` остаётся выключенным по умолчанию. Одновременный запуск возвращает `busy`; отдельный повтор не запускает второй pipeline.
+Celery uses update and retries by UUID. Scheduled imports default off; concurrent starts return busy. Defaults: interval 1.5 seconds, source cache 900, lease 900 (minimum 60). HTTP/observation caches differ; UUID exposes progress/errors via CLI/admin.
 
-Лимиты: `INGESTION_REQUEST_INTERVAL=1.5`, `INGESTION_SOURCE_CACHE_SECONDS=900`, `INGESTION_LEASE_SECONDS=900` (аренда не короче 60 секунд). HTTP-кэш и кэш наблюдений выполняют разные задачи. UUID запуска позволяет увидеть checkpoint и источник ошибки через CLI или admin.
+No live markup/completeness verification. Bounded updates cannot find every old-contract change. Legal periods/verified IINs require actual sources. Legacy tax/court booleans are not fresh verified checks; tax observation/analysis belong to Phases 3/5.
 
-Live-сайты, полнота реестра и доступность актуальной разметки не проверялись. Окно регулярного обновления не гарантирует обнаружение изменений всех старых договоров. Законные периоды и подтверждённые ИИН не возникают из HTML fixtures. Старые bool-признаки налогов/судов не являются новыми подтверждёнными проверками: модель налоговых сведений относится к фазе 3, использование доказательств в findings — к фазе 5.
-
-Compose проверен статически; Docker daemon в этой фазе не был запущен. Проверка полного стека фазы 1 остаётся отдельным протоколом. КГД, immutable snapshots, новый UI графа, DRF и React в фазе 2 не реализовывались.
+Compose checked statically; daemon not running. Phase 1 stack check remains separate. KGD/snapshots/redesigned graph/DRF/React were not implemented in Phase 2.

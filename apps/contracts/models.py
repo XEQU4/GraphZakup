@@ -6,17 +6,17 @@ from apps.companies.models import Supplier
 class Contract(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name="contracts")
     customer = models.ForeignKey(Supplier, null=True, blank=True, on_delete=models.PROTECT, related_name='purchases')
-    # Номер закупки — НЕ уникален: один тендер может иметь несколько
-    # договоров/допсоглашений, и часто бывает пустым в реестре.
+    # Tender numbers are not unique: a tender may have several
+    # contracts/amendments, and the registry often leaves this field empty.
     tender_id = models.CharField(
         max_length=100,
         blank=True,
         db_index=True
     )
-    # Числовой ID из goszakup для ссылки на /egzcontract/cpublic/show/<id>
+    # Numeric goszakup ID for /egzcontract/cpublic/show/<id> links
     contract_gos_id = models.BigIntegerField(null=True, blank=True, db_index=True)
 
-    # Реальный уникальный идентификатор договора (используется как ключ при импорте)
+    # Unique contract identifier used as the import key
     contract_number = models.CharField(
         max_length=255,
         unique=True,

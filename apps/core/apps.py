@@ -7,9 +7,9 @@ class CoreConfig(AppConfig):
 
     def ready(self):
         """
-        Вызывается один раз при старте Django (runserver, gunicorn, celery).
-        Инициализируем логирование здесь — до того как любой другой модуль
-        попытается получить логгер.
+        Called once at Django startup (runserver, gunicorn, celery).
+        Initialise logging here before any other module
+        requests a logger.
         """
         from django.conf import settings
         if settings.GPG_DISABLE_LOGGING_INIT:

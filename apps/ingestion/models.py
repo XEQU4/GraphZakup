@@ -6,10 +6,10 @@ from django.utils import timezone
 
 class IngestionRun(models.Model):
     class Status(models.TextChoices):
-        RUNNING = 'running', 'Выполняется'
-        SUCCEEDED = 'succeeded', 'Завершён'
-        FAILED = 'failed', 'Ошибка'
-        PARTIAL = 'partial', 'Частично завершён'
+        RUNNING = 'running', 'Running'
+        SUCCEEDED = 'succeeded', 'Completed'
+        FAILED = 'failed', 'Failed'
+        PARTIAL = 'partial', 'Partially completed'
 
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     mode = models.CharField(max_length=20)
@@ -124,7 +124,7 @@ class IdentityCandidate(models.Model):
     reason = models.CharField(max_length=40, default='same_name')
     confidence = models.DecimalField(max_digits=4, decimal_places=3, default='0.250')
     status = models.CharField(max_length=20, default='pending', choices=[
-        ('pending', 'Требует проверки'), ('rejected', 'Разные люди'), ('confirmed', 'Подтверждено'),
+        ('pending', 'Needs review'), ('rejected', 'Different people'), ('confirmed', 'Confirmed'),
     ])
     evidence = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)

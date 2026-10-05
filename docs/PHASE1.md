@@ -1,71 +1,57 @@
-# Фаза 1 Исправления и проверка запуска
+# Phase 1: defect fixes and startup verification
 
-Дата: 5 октября 2026 года. Основа — [аудит](AUDIT.md) и критерии [фазы 1](ROADMAP.md#фаза-1-исправление-дефектов-и-запуск). Исходная БД используется только для чтения; изменения схемы проверены на восстановленной копии. Git команды выполняет пользователь.
+Date: 5 October 2026. Complete against the [audit](AUDIT.md) and [roadmap](ROADMAP.md#phase-1-defect-fixes-and-startup). This historical record preserves Phase 1 results; later changes have separate records.
 
-## Что изменилось
+## Changed behaviour
 
-### Импорт и сведения компаний
+### Imports and company data
 
-Полный импорт начинает новый обход с первой страницы и делает upsert. Он не удаляет компании, договоры, роли и кластеры и не сбрасывает checkpoint обычного обновления. `--start-page` позволяет явно выбрать страницу. Отдельный `full_import_page` фиксирует продвижение полного обхода; новый полный запуск всё равно начинает новый обход.
+- Full import starts from page 1 and upserts without deleting companies/contracts/roles/clusters or resetting the normal checkpoint. `--start-page` overrides the start; `full_import_page` tracks scans, but each new full run starts fresh.
+- Page/checkpoint commit together. Failure rolls back that page, retaining earlier commits. At the Phase 1 partial limit, retain the page for remainder upserts. Confirmed empty tables indicate end-of-data without advancement; HTTP/challenge/malformed responses fail. Empty imports do not enrich/rebuild.
+- Decimal comes directly from strings; invalid amounts never become zero. Explicit date formats produce `date`. BIN/card checks prevent silent external-ID/company reassignment.
+- Enrichment normalises before fallback, continues after individual failures, and never marks absence/error fresh. Adata verifies BIN and uses labelled company contacts, excluding support/navigation/footer. Automatic name-only director merging is disabled; legacy repair remained Phase 2 work.
 
-Страница и checkpoint сохраняются одной транзакцией. Ошибка записи откатывает всю текущую страницу; ранее подтверждённые страницы остаются. Если лимит обрывает страницу, cursor остаётся на этой странице: повторные upsert сохраняют оставшиеся строки. Подтверждённая пустая таблица завершает обход без продвижения cursor; HTTP/CAPTCHA/повреждённая разметка приводят к контролируемой ошибке. Пустой импорт не запускает enrichment и пересборку.
+### Clusters and explanations
 
-Суммы разбираются через Decimal из строки; неверная сумма не становится нулём. Даты допускают явно перечисленные форматы и становятся `date` до записи. Проверяются BIN и идентичность найденной карточки; изменение компании или внешнего ID существующего договора не перезаписывает его молча.
+- Atomic rebuilds preserve exact-membership UUIDs; deterministic overlap continues each old ID in only one new component. Disappeared groups are archived with URLs/texts. PostgreSQL transaction advisory locks serialise rebuilds.
+- `graph.0003` adds active state/fingerprint/staleness. Old texts are unconfirmed. After the first rebuild, unchanged facts produce no writes/generation; changed facts retain text as stale.
+- GET reads without generation/writes. Detail checks member facts against saved fingerprint to avoid false freshness after partial ingestion. Empty fallback: "Explanation has not been prepared yet." Versioned explanations remain Phase 5.
+- A prefetched director map removes per-pair SQL. Ended/future roles excluded, intervals `[start, end)`; unknown bounds do not prove simultaneous leadership.
 
-Enrichment нормализует кандидатов до выбора источника и продолжает обработку следующих компаний после ошибки одной записи. Отсутствующий или ошибочный ответ не помечается свежим. Adata использует подтверждённый BIN и подписанные контактные поля; контакты из навигации/подвала не присваиваются компании. Автоматическое объединение директоров по одному ФИО отключено в pipeline. Существующие такие объединения ещё требуют исправления модели в фазе 2.
+### Interface and logs
 
-### Кластеры и объяснения
+- Search escapes names/contract numbers; tooltips use DOM text. Websites permit validated HTTP/HTTPS, including legacy values. Cancellation/response checks reject late search results.
+- Consistent thresholds 80/50 and floored average risk. Archived groups excluded from current stats; related-company counts deduplicate signals; director search joins do not multiply counts.
+- Rotation uses `app.log.YYYY-MM-DD`; UTC cleanup supports old/new names without removing active files/symlinks. Docker logs stdout without shared rotating files. Celery records safe error types rather than private exception values/chains.
 
-Пересборка выполняется атомарно. Точное совпадение состава сохраняет UUID; при изменении группы используется детерминированное продолжение по пересечению состава. Один старый UUID продолжается только в одной новой группе; исчезнувшие группы архивируются, старые ссылки и тексты сохраняются. Для PostgreSQL параллельные пересборки сериализуются advisory transaction lock.
+### Startup
 
-Миграция `graph.0003_cluster_analysis_state` добавляет `is_active`, `analysis_fingerprint` и `explanation_stale`. Для прежних кластеров версия текста считается неподтверждённой. Неизменные факты после первой пересборки не вызывают повторную запись или генерацию. При изменении используемых фактов старое объяснение сохраняется с признаком устаревания.
+- Python 3.13/frozen lock/shared image for migrate/web/worker/beat. PostgreSQL 17 has a new volume; Redis AOF. Migrations precede application services; beat waits for healthy worker. Liveness/readiness checks are read-only.
+- Required SECRET_KEY, DEBUG false, explicit hosts, configurable HTTPS. `.env`/archives/logs/credential directories excluded from images. Automatic import off, guarded even for old beat schedules. README/DEPLOY/`.env.example` updated.
 
-GET не генерирует объяснения и не пишет предметные данные. Карточка дополнительно сравнивает fingerprint текущих фактов участников с сохранённым: частично завершившийся импорт не выдаёт старый текст как актуальный. Пустой текст получает сообщение «Объяснение пока не подготовлено». Новая система подготовки объяснений относится к фазе 5.
+## Executed verification
 
-SQL запросы внутри сравнения каждой пары устранены: используется prefetched карта директоров. Завершённые и будущие роли исключаются из текущих связей и списков; интервалы считаются как `[start_date, end_date)`, неизвестные границы сохраняются неизвестными. Текст больше не утверждает одновременное руководство при неизвестных датах.
-
-### Интерфейс и логи
-
-Имена/ФИО/номера договоров экранируются в серверных HTML фрагментах поиска. Tooltip графа использует текстовый DOM sink. Для сайта компании разрешены только проверенные HTTP/HTTPS URL, включая старые записи. Поиск отменяет запросы и игнорирует запоздалые ответы после очистки или нового ввода.
-
-Текущие цвета графа и карточек используют пороги 80 и 50, средний риск отображается с единым округлением вниз. Архивные кластеры не влияют на текущие списки/показатели; связанные компании учитываются один раз даже при нескольких совпадениях, поиск руководителей не умножает число компаний при joins.
-
-Ротация использует штатное имя `app.log.YYYY-MM-DD`; backupCount работает в директориях с точками. Очистка поддерживает новый и старый формат, сравнивает UTC даты и не удаляет активные файлы/символические ссылки. Docker пишет в stdout/stderr, поэтому процессы Gunicorn не соревнуются за один rotating file. Celery логирует безопасный тип ошибки и не переносит исходные значения/цепочку исключений в retry.
-
-### Запуск
-
-Docker использует Python 3.13 и frozen uv.lock. Общий образ собирается только сервисом migrate; web/worker/beat используют его. PostgreSQL 17 получает новый volume, Redis сохраняет AOF. Миграции завершаются до web/worker; beat ждёт готовый worker. `/health/live/` проверяет процесс, `/health/ready/` проверяет PostgreSQL и Redis без записи.
-
-Runtime требует SECRET_KEY, DEBUG выключен по умолчанию, hosts задаются явно, HTTPS настройки конфигурируются. Реальные `.env`, архивы, логи и локальные credential directories исключены из image. Автосбор выключен по умолчанию и защищён флагом внутри задачи, включая старые расписания beat. Инструкции и пример переменных находятся в [README](../README.md), [DEPLOY](../DEPLOY.md) и [.env.example](../.env.example).
-
-## Протокол проверки
-
-Фаза 1 завершена после следующих проверок:
-
-| Проверка | Результат |
+| Check | Result |
 | --- | --- |
-| Полный Django набор на SQLite в памяти | 83 теста: 82 PASS, 1 PostgreSQL-only тест ожидаемо пропущен |
-| Тот же набор в отдельной PostgreSQL тестовой БД Docker | 83 PASS, включая параллельные пересборки на двух соединениях |
-| JavaScript регрессии через Node.js | PASS: экранирование трёх поисков, запоздалые ответы, текстовые tooltip |
-| Django system checks и migration drift | Ошибок нет; No changes detected |
-| Финальный Compose up с build и wait | PASS: migrate exit 0 до web/worker; db, Redis, web, worker healthy; beat running |
-| HTTP главной, компаний, руководителей, кластеров и health | 200; некорректный risk даёт 400; readiness подтвердил реальные DB/Redis |
-| Статика | Manifest URL с хешами, HTTP 200, gzip и immutable cache |
+| SQLite | 83 discovered, 82 passed, 1 PostgreSQL-only skip |
+| Docker PostgreSQL | All 83 passed, including two-connection rebuild concurrency |
+| JavaScript | Three search escapers, stale-response handling, literal tooltip text passed |
+| Django/migrations | Checks passed; no drift |
+| Compose build/wait | Migrate exited 0 before apps; db/redis/web/worker healthy, beat running |
+| HTTP | Five pages/health 200; malformed risk 400; real PostgreSQL/Redis readiness |
+| Static assets | Manifest-hashed URLs 200, gzip, immutable cache |
 | Runtime | UID 10001; Python 3.13.16, PostgreSQL 17.11, Django 6.0.6, Celery 5.6.3 |
-| Изоляция | Автосбор/API ключи выключены; файловые логи и секретные файлы отсутствуют в image/runtime; временные БД удалены |
-| Файлы пользователя | SHA256 test.py, pyproject.toml и uv.lock совпали с фазой 0 |
+| Isolation | Auto-import/API key off; no image secrets/file logs; temporary DB removed |
+| User files | Three hashes matched Phase 0 |
 
-- Восстановление проверенного dump фазы 0 в новую временную БД изолированного Docker PostgreSQL 17. До миграции совпали структура/количество/хеш строк 29 таблиц.
-- Применение `graph.0003` к копии: значения всех прежних столбцов 28 таблиц вне журнала миграций совпали по хешам. Сохранились все 4 прежних кластера, UUID, состав и тексты; новые поля имеют ожидаемые значения. Временная БД удалена.
-- Исходная PostgreSQL БД прочитана в repeatable-read read-only: данные/столбцы всех 29 таблиц совпадают с фазой 0.
-- Сборка и запуск всего отдельного Compose стека прошли, включая migrations gate и healthchecks. Финальный образ включает дополнительные исправления ревью.
+Phase 0 dump restored into separate Docker PostgreSQL 17: all 29 tables matched before migration. After `graph.0003`, original values in 28 tables outside migration history matched; four cluster UUIDs/memberships/texts preserved with expected defaults. Temporary DB dropped. Read-only REPEATABLE READ comparison confirmed source unchanged across 29 tables. Final reviewed image/stack were built/started with migrations/health checks.
 
-Локальные отчёты находятся в игнорируемом `artifacts/phase1/`: `migration-verification.json`, `source-database-unchanged.json`, `compose-verification.json`, `http-smoke.json`, `postgresql-tests.txt`, `user-files-preserved.json`. Проверка хешей не заменяет отдельное сравнение ролей/ACL, последовательностей, индексов или каждой default/constraint; восстановление и применение миграции проверены выполнением PostgreSQL. Приложение не запускало live-парсинг, pipeline или платную генерацию. Проверочный Compose проект остановлен после проверки без удаления volumes.
+Local records in `artifacts/phase1/`: `migration-verification.json`, `source-database-unchanged.json`, `compose-verification.json`, `http-smoke.json`, `postgresql-tests.txt`, `user-files-preserved.json`. Hash comparison is not individual ACL/sequence/index/default checking; actual PostgreSQL restore/migration ran. No live parsing, real ingestion pipeline, or paid generation. Test stack stopped without deleting volumes.
 
-## Что остаётся следующим фазам
+## Remaining work
 
-- Единая директория парсеров, IngestionRun, история исходных наблюдений, карантин и блокировка конкурирующих импортов — фаза 2. Номер страницы изменяемого реестра пока не гарантирует полный incremental sync. Структура актуальных сайтов не проверялась live.
-- КГД и подтверждённые статусы проверки — фаза 3. Проверка задолженности не становится подтверждённо отрицательной из-за отсутствия записи.
-- Полные immutable snapshots рёбер/состава, lineage merge/split, сохранение layout и существенное улучшение вида графа — фаза 4. Пока архив сохраняет UUID/состав/текст, но поля компаний и рёбра карточки читаются из текущих фактов. Это не исторический snapshot. GET freshness проверяет участников; новые соседи вне сохранённого состава учитываются после пересборки. Lock пересборки не изолирует её от конкурентной записи новых фактов.
-- Калибровка риска, доказательства, шаблоны и версионируемые LLM объяснения — фаза 5. Формула балла остаётся эвристикой; большое число слабых совпадений всё ещё может завысить балл. Неактивный OpenRouter клиент не подключён и требует переделки перед использованием.
-- DRF и React — фазы 6–7. Серверные HTML фрагменты текущего поиска безопасно экранируются, но ещё не являются контрактом API. Общий UI/UX будет создан по референсам пользователя; визуальный стиль в фазе 1 не утверждался.
+- Phase 2: consolidated parsers, runs/observations/history, retryable issues, leases. Mutable page numbers cannot guarantee full incremental sync; live markup unverified.
+- Phase 3: KGD subject/result verification; missing observations are not negative debt checks.
+- Phase 4: snapshots/shared evidence/lineage/layout/substantial graph improvement. Archives still read current fields/edges; GET freshness covers existing members, not new neighbours before rebuild. Rebuild locking does not isolate concurrent fact writers.
+- Phase 5: calibrated scoring, evidence/rule/template versions, controlled LLM. Weak-contact group size can still inflate risk; inactive OpenRouter needs redesign.
+- Phases 6-7: DRF/React. Safe HTML fragments are not API contracts; user references determine later design, not Phase 1.

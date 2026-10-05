@@ -93,7 +93,7 @@ def generate_cluster_name(group, index=None):
     anchor = min(group, key=lambda supplier: (-supplier.risk_score, supplier.name, supplier.pk))
     name = anchor.name if len(anchor.name) <= 40 else anchor.name[:37] + "..."
     others = len(group) - 1
-    return f"Группа: {name} и ещё {others}" if others else f"Группа: {name}"
+    return f"Group: {name} and {others} more" if others else f"Group: {name}"
 
 
 def analysis_fingerprint(group, weights, as_of):

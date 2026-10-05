@@ -24,6 +24,8 @@ from apps.owners.models import Director, Directorship, Owner, Ownership
 from apps.ingestion.tests.helpers import verified_role
 
 
+# Russian sample values exercise Unicode source data and legacy-text preservation.
+# Application-generated messages and new explanation templates use English.
 class ClusterIntegrityTests(TestCase):
     def supplier(self, number, address="А"):
         return Supplier.objects.create(bin=f"{number:012}", name=f"Компания {number}", address=address)
@@ -197,7 +199,7 @@ class ClusterIntegrityTests(TestCase):
             with CaptureQueriesContext(connection) as queries:
                 response = self.client.get(reverse("graph:cluster_detail", args=[cluster.uuid]))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Объяснение пока не подготовлено.")
+        self.assertContains(response, "Explanation has not been prepared yet.")
         self.assertFalse(any(q["sql"].lstrip().upper().startswith(("UPDATE ", "INSERT ", "DELETE ")) for q in queries))
         cluster.refresh_from_db()
         self.assertEqual(cluster.ai_explanation, "")
@@ -295,8 +297,8 @@ class ClusterIntegrityTests(TestCase):
             verified_role(supplier, director)
         rebuild_clusters()
         text = explain_cluster(RiskCluster.objects.get(is_active=True))
-        self.assertNotIn("одновременно", text)
-        self.assertIn("периоды руководства требуют подтверждения", text)
+        self.assertNotIn("simultaneously", text)
+        self.assertIn("leadership periods require confirmation", text)
 
     def test_linkified_text_escapes_source_html_and_does_not_rewrite_inserted_urls(self):
         supplier = self.supplier(1)

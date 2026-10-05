@@ -16,26 +16,26 @@ logger = logging.getLogger(__name__)
 )
 def update_all_data(self, resume=None):
     """
-    Проверяет 500 договоров с начала реестра, обновляет компании и граф.
-    При повторе продолжает сохранённый запуск с его текущей стадии.
+    Check 500 contracts from the registry head and update companies and graph.
+    Retries resume the saved run at its current stage.
 
-    Ручной запуск:
+    Manual invocation:
         uv run celery -A config call apps.core.tasks.update_all_data
     """
     if not settings.ENABLE_SCHEDULED_IMPORT:
-        logger.warning("Импорт Celery отключён: ENABLE_SCHEDULED_IMPORT=false")
+        logger.warning("Celery import disabled: ENABLE_SCHEDULED_IMPORT=false")
         return {"status": "disabled"}
-    logger.info("=== Старт обновления данных (500 новых контрактов) ===")
+    logger.info("=== Starting data update (up to 500 contracts) ===")
     try:
         run = run_pipeline(mode='update', total=500, resume=resume)
-        logger.info("=== Пайплайн завершён успешно ===")
+        logger.info("=== Pipeline completed successfully ===")
     except IngestionBusy:
         return {'status': 'busy'}
     except Exception as exc:
         if isinstance(exc, IngestionFailure):
             resume = exc.run_id
         failure_type = type(exc).__name__
-        logger.error("Пайплайн завершился ошибкой (%s)", failure_type)
+        logger.error("Pipeline failed (%s)", failure_type)
     else:
         return {'status': run.status, 'run': str(run.uuid)}
 
@@ -52,8 +52,8 @@ def update_all_data(self, resume=None):
 
 @shared_task(name="apps.core.tasks.cleanup_logs")
 def cleanup_logs():
-    """Ежедневная очистка логов старше 30 дней."""
-    logger.info("Запуск очистки старых логов...")
+    """Daily cleanup of logs older than 30 days."""
+    logger.info("Starting old log cleanup...")
     from logging_setup import schedule_log_cleanup
     schedule_log_cleanup()
-    logger.info("Очистка логов завершена.")
+    logger.info("Log cleanup completed.")

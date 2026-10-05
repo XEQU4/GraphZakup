@@ -1,28 +1,29 @@
-# Запуск ГрафЗакуп через Docker Compose
+# Run GrafZakup with Docker Compose
 
-Стек объединяет PostgreSQL 17, Redis, однократные миграции, Django/Gunicorn, Celery worker и один beat. Автоматический сбор данных выключен по умолчанию. Реальные токены не нужны для запуска пустой базы и проверки интерфейса.
+The stack combines PostgreSQL 17, Redis, one-time migrations, Django/Gunicorn, a Celery worker and one beat scheduler. Automatic data collection is disabled by default. Real API tokens are not required to start an empty database and check the interface.
 
-## Подготовка
+## Preparation
 
-Нужны Docker с Linux containers и Docker Compose v2. Для существующих данных сначала проверь резервную копию и восстановление по [docs/RECOVERY.md](docs/RECOVERY.md).
+Docker with Linux containers and Docker Compose v2 is required. For existing data, first verify backup and recovery as described in [docs/RECOVERY.md](docs/RECOVERY.md).
 
-Из корня проекта в PowerShell:
+From the repository root in PowerShell:
 
 ```powershell
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 python -c "import secrets; print(secrets.token_urlsafe(50))"
 ```
 
-Скопируй сгенерированное значение в SECRET_KEY, задай собственный DB_PASSWORD. Если `.env` уже существует, сохрани его и обнови необходимые ключи вручную. Не заменяй имеющиеся реквизиты примером.
-Сайт по умолчанию слушает `127.0.0.1:8000`, DEBUG выключен. Compose передаёт только перечисленные переменные; внутренний маршрут PostgreSQL всегда `db:5432`, PGHOST локального `.env` его не переопределяет.
+Copy the generated value into SECRET_KEY and set your own DB_PASSWORD. If `.env` already exists, preserve it and update the necessary keys manually. Do not replace existing credentials with the example file.
 
-## Один запуск для всего стека
+The website listens on `127.0.0.1:8000` by default; DEBUG is disabled. Compose passes only the listed variables. PostgreSQL always uses the internal route `db:5432`; PGHOST from the local `.env` does not override it.
+
+## One command for the stack
 
 ```powershell
 docker compose up --build -d
 ```
 
-PostgreSQL и Redis проходят healthchecks. Сервис migrate применяет миграции и завершается; web и worker ждут успешное завершение migrate. Beat также ждёт готовый worker. Не масштабируй beat: для одного окружения нужен один планировщик.
+PostgreSQL and Redis pass health checks. The migrate service applies migrations and exits; web and worker wait for it to succeed. Beat also waits for a healthy worker. Do not scale beat: each environment needs one scheduler.
 
 ```powershell
 docker compose ps -a
@@ -31,64 +32,71 @@ Invoke-RestMethod http://127.0.0.1:8000/health/live/
 Invoke-RestMethod http://127.0.0.1:8000/health/ready/
 ```
 
-`/health/live/` проверяет HTTP процесс без обращений к зависимостям. `/health/ready/` выполняет SELECT 1 и Redis PING; недоступная зависимость даёт HTTP 503 без реквизитов и traceback в ответе. Эти маршруты только читают состояние. Healthcheck worker использует адресованный Celery inspect ping.
-Сайт: http://127.0.0.1:8000/ . Администратор создаётся отдельной ручной командой:
+`/health/live/` checks the HTTP process without accessing dependencies. `/health/ready/` performs SELECT 1 and Redis PING; an unavailable dependency returns HTTP 503 without credentials or a traceback in the response. These endpoints only read state. The worker health check uses a targeted Celery inspect ping.
+
+Website: http://127.0.0.1:8000/ . Create an administrator separately:
 
 ```powershell
 docker compose exec web python manage.py createsuperuser
 ```
 
-Пустая база не содержит компаний и графов. Compose не заполняет её live-парсингом.
+An empty database contains no companies or graphs. Compose does not fill it through live parsing.
 
-## Настройки и состояние
+## Configuration and persistence
 
-| Переменная | Назначение |
-|---|---|
-| SECRET_KEY | Обязательный runtime секрет; placeholder запрещён |
-| DB_NAME, DB_USER, DB_PASSWORD | БД контейнера и согласованные реквизиты Django |
-| WEB_PORT, WEB_BIND_ADDRESS | Порт и адрес компьютера; внутри Gunicorn использует 8000 |
-| ALLOWED_HOSTS | Явные hosts без протокола; wildcard при DEBUG=false запрещён |
-| CSRF_TRUSTED_ORIGINS | Дополнительные origins с протоколом |
-| ENABLE_SCHEDULED_IMPORT | false: задача update_all_data выключена; true: явное разрешение live pipeline |
-| INGESTION_REQUEST_INTERVAL | Минимальная пауза между запросами к одному host; по умолчанию 1.5 секунды |
-| INGESTION_SOURCE_CACHE_SECONDS | TTL успешного наблюдения компании; по умолчанию 900 секунд, 0 отключает |
-| INGESTION_LEASE_SECONDS | Аренда pipeline с heartbeat и fencing; по умолчанию 900 секунд, минимум 60 |
-| GPG_LOG_TO_FILES | true для локального Python; Compose принудительно false, пишет stdout/stderr |
-| OPENROUTER_API_KEY, OPENROUTER_MODEL, GOSZAKUP_TOKEN | Внешние интеграции; ключи могут быть пустыми при проверке инфраструктуры |
+| Variable | Purpose |
+| --- | --- |
+| SECRET_KEY | Required runtime secret; the example placeholder is rejected |
+| DB_NAME, DB_USER, DB_PASSWORD | Container database and matching Django credentials |
+| WEB_PORT, WEB_BIND_ADDRESS | Host port and address; Gunicorn uses port 8000 inside the container |
+| ALLOWED_HOSTS | Explicit hostnames without a protocol; wildcard is rejected when DEBUG=false |
+| CSRF_TRUSTED_ORIGINS | Additional origins, including their protocol |
+| ENABLE_SCHEDULED_IMPORT | false disables update_all_data; true explicitly enables the live pipeline |
+| INGESTION_REQUEST_INTERVAL | Minimum interval between requests to one host; default 1.5 seconds |
+| INGESTION_SOURCE_CACHE_SECONDS | Successful company-observation TTL; default 900 seconds, 0 disables it |
+| INGESTION_LEASE_SECONDS | Pipeline lease with heartbeat and fencing; default 900 seconds, minimum 60 |
+| GPG_LOG_TO_FILES | true for local Python; Compose forces false and writes stdout/stderr |
+| OPENROUTER_API_KEY, OPENROUTER_MODEL, GOSZAKUP_TOKEN | External integrations; keys may be empty for infrastructure checks |
 
-БД сохраняется в новом volume postgres17_data, Redis использует redis_data и AOF. Старый postgres_data от PostgreSQL 16 не подключается к 17: перенос выполняется через проверенный dump/restore в отдельную БД. Конфигурация не меняет и не удаляет прежний volume.
-Остановка сохраняет volumes:
+The database uses the new postgres17_data volume; Redis uses redis_data and AOF. The old PostgreSQL 16 postgres_data volume is not attached to 17. Transfer data through a verified dump/restore into a separate database. This configuration does not change or delete the old volume.
+
+Shutdown preserves volumes:
 
 ```powershell
 docker compose down
 ```
 
-Повторный `docker compose up -d` использует сохранённую БД. Не добавляй `--volumes` к остановке окружения с нужными данными.
-Docker устанавливает зависимости через `uv sync --frozen --no-dev` из uv.lock, сохраняя пользовательские pyproject/lock. Статика собирается с build-only фиктивным ключом; runtime SECRET_KEY он не заменяет. Образ запускается от непривилегированного пользователя. Только migrate собирает общий backend image; web/worker/beat используют тот же локальный образ с pull_policy=never. Для первого запуска используется команда с `--build` выше.
-Контейнеры пишут логи только в stdout/stderr, доступные через `docker compose logs`. Общая файловая ротация между Gunicorn workers не используется. Для локального запуска Python файловые логи включены по умолчанию через GPG_LOG_TO_FILES=true.
+A later `docker compose up -d` reuses the saved database. Do not add `--volumes` when stopping an environment whose data you need.
 
-## Проверка в отдельном окружении
+Docker installs dependencies from uv.lock with `uv sync --frozen --no-dev`, preserving the user's pyproject/lock. Static assets are built with a dummy build-only key; it does not replace runtime SECRET_KEY. The image runs as a non-root user. Only migrate builds the shared backend image; web/worker/beat reuse the same local image with pull_policy=never. Use the command with `--build` above for the first start.
 
-Создай smoke.env в игнорируемом artifacts/ с временными реквизитами, свободным WEB_PORT и уникальным project name. Не копируй рабочие пароли/API ключи. Compose не импортирует локальный `.env` как env_file контейнера. Переменные процесса имеют приоритет над `--env-file`: при изолированной проверке они также должны содержать временные значения.
+Containers log only to stdout/stderr, available through `docker compose logs`. Gunicorn workers do not share file rotation. Local Python enables file logging by default through GPG_LOG_TO_FILES=true.
+
+## Check a separate environment
+
+Create smoke.env in the ignored artifacts/ directory with temporary credentials, an available WEB_PORT and a unique project name. Do not copy working passwords or API keys. Compose does not load the local `.env` as a container env_file. Process environment variables take precedence over `--env-file`; isolated checks must also use temporary values there.
 
 ```powershell
 docker compose --env-file artifacts/phase1/smoke.env -p gpg_phase1_smoke up --build -d
 docker compose --env-file artifacts/phase1/smoke.env -p gpg_phase1_smoke ps -a
 ```
 
-В smoke.env задай собственные SECRET_KEY/DB_PASSWORD, ENABLE_SCHEDULED_IMPORT=false, пустые API ключи и отдельный WEB_PORT. Проектный префикс отделяет контейнеры и volumes от обычного запуска.
-Офлайн тесты приложения используют SQLite в памяти, не читают `.env`, не подключаются к рабочим PostgreSQL/Redis и не открывают log файлы:
+Set your own SECRET_KEY/DB_PASSWORD, ENABLE_SCHEDULED_IMPORT=false, empty API keys and a separate WEB_PORT in smoke.env. The project prefix separates containers and volumes from the normal deployment.
+
+Offline application tests use in-memory SQLite, do not load `.env`, connect to working PostgreSQL/Redis, or open log files:
 
 ```powershell
 .\.venv\Scripts\python.exe -B manage.py test --settings=config.test_settings
 ```
 
-## Публичное HTTPS окружение
+## Public HTTPS deployment
 
-Поставь reverse proxy с TLS и задай домен в ALLOWED_HOSTS. Включи SECURE_SSL_REDIRECT, SESSION_COOKIE_SECURE и CSRF_COOKIE_SECURE. TRUST_PROXY_SSL_HEADER=true разрешается только когда proxy заменяет входящий X-Forwarded-Proto. HSTS включается через SECURE_HSTS_SECONDS после проверки HTTPS; subdomains/preload требуют готовности соответствующих доменов.
-Health маршруты исключены из SSL redirect для внутреннего HTTP healthcheck; Compose добавляет localhost/127.0.0.1 в hosts. При необходимости отдельный origin frontend добавляется в CSRF_TRUSTED_ORIGINS.
-Автосбор включается намеренно после проверки источников, данных и токенов: ENABLE_SCHEDULED_IMPORT=true. Task guard также блокирует ранее сохранённые расписания beat, пока флаг false; сами записи расписания не удаляются. Расписания доступны в Django admin.
+Use a TLS reverse proxy and put the domain in ALLOWED_HOSTS. Enable SECURE_SSL_REDIRECT, SESSION_COOKIE_SECURE and CSRF_COOKIE_SECURE. TRUST_PROXY_SSL_HEADER=true is allowed only when the proxy replaces incoming X-Forwarded-Proto. Enable HSTS through SECURE_HSTS_SECONDS after checking HTTPS; subdomains/preload require those domains to be ready.
 
-После фазы 2 задача проверяет окно 500 договоров с начала реестра в режиме `update`, затем обновляет нуждающиеся в проверке компании и кластеры. Повтор задачи продолжает тот же `IngestionRun`, параллельный pipeline блокируется арендой в БД. Статус без запросов к источникам: `docker compose exec web python manage.py ingestion_status`. Подробности и локальные команды — в [docs/PHASE2.md](docs/PHASE2.md). Обновлённый образ нужно пересобрать; migrate создаёт наблюдения и изолирует старые роли по ФИО, сохраняя исходные записи.
+Health endpoints are exempt from SSL redirect for internal HTTP health checks; Compose adds localhost/127.0.0.1 to allowed hosts. Add a separate frontend origin to CSRF_TRUSTED_ORIGINS when necessary.
 
-Официальные справочники: [uv в Docker](https://docs.astral.sh/uv/guides/integration/docker/), [порядок запуска Compose](https://docs.docker.com/compose/how-tos/startup-order/), [Django deployment checklist](https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/).
+Enable automatic collection deliberately after checking sources, data and tokens: ENABLE_SCHEDULED_IMPORT=true. The task guard also blocks previously saved beat schedules while the flag is false; schedule records are not deleted. Schedules are available in Django admin.
+
+After Phase 2, the task reads a window of 500 contracts from the beginning of the registry in `update` mode, then refreshes eligible companies and clusters. A retry continues the same `IngestionRun`; a database lease blocks concurrent pipelines. Read status without source requests using `docker compose exec web python manage.py ingestion_status`. Details and local commands are in [docs/PHASE2.md](docs/PHASE2.md). Rebuild the updated image; migrate creates observations and isolates old name-only roles while preserving original records.
+
+Official references: [uv in Docker](https://docs.astral.sh/uv/guides/integration/docker/), [Compose startup order](https://docs.docker.com/compose/how-tos/startup-order/), [Django deployment checklist](https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/).

@@ -2,4 +2,4 @@ from apps.ingestion.management.commands.ingest_data import Command as IngestionC
 
 
 class Command(IngestionCommand):
-    help = 'Совместимый вход в ingestion (new = initial; full ничего не удаляет)'
+    help = 'Compatible ingestion entry point (new = initial; full deletes nothing)'
