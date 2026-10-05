@@ -9,6 +9,10 @@
     {{ object.name }}
 </h2>
 
+{% if not object.is_active %}
+    <div class="alert alert-secondary">Этот кластер архивирован. Его состав и объяснение сохранены для просмотра по прежней ссылке.</div>
+{% endif %}
+
 <div class="row">
     <div class="col-lg-8">
         <div class="card mb-4">
@@ -106,6 +110,9 @@
 
             <div class="card-body">
                 <p class="mb-0">
+                    {% if explanation_stale and object.ai_explanation %}
+                        <span class="d-block text-warning small mb-2">Данные изменились или версия объяснения не подтверждена. Сохранённое объяснение требует обновления.</span>
+                    {% endif %}
                     {{ ai_explanation_html }}
                 </p>
             </div>

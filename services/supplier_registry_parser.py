@@ -1,9 +1,25 @@
+import re
+
 from bs4 import BeautifulSoup
 from curl_cffi import requests
+
+from services.normalizers import normalize_bin, normalize_date, normalize_email, normalize_phone
+from services.parser_errors import SourceError, require_html_response
 
 
 class SupplierRegistryParser:
     BASE_URL = "https://goszakup.gov.kz"
+
+    def __init__(self):
+        self.session = requests.Session()
+
+    def _get(self, url):
+        try:
+            response = self.session.get(url, impersonate="chrome120", timeout=30)
+        except requests.RequestsError as error:
+            raise SourceError("supplier_request_failed") from error
+        require_html_response(response)
+        return response
 
     def parse_region_city(self, address):
         if not address:
@@ -65,35 +81,38 @@ class SupplierRegistryParser:
         return region, city
 
     def get_supplier_id(self, bin_number: str):
+        bin_number = normalize_bin(bin_number)
         url = (
             f"{self.BASE_URL}/ru/registry/supplierreg"
             f"?filter[name]={bin_number}&search=&filter[attribute]="
         )
 
-        response = requests.get(
-            url,
-            impersonate="chrome120",
-            timeout=30,
-        )
-
-        if response.status_code != 200:
-            return None
+        response = self._get(url)
 
         soup = BeautifulSoup(
             response.text,
             "html.parser"
         )
 
-        link = soup.select_one(
-            'a[href*="/ru/registry/show_supplier/"]'
-        )
-
-        if not link:
+        links = soup.select('a[href*="/ru/registry/show_supplier/"]')
+        for link in links:
+            row = link.find_parent("tr")
+            text = row.get_text(" ", strip=True) if row else link.get_text(" ", strip=True)
+            if re.search(r"(?<![0-9])" + re.escape(bin_number) + r"(?![0-9])", text):
+                match = re.search(r"/ru/registry/show_supplier/([0-9]+)(?:/|$|\?)", link["href"])
+                if not match:
+                    raise SourceError("supplier_link_invalid")
+                return int(match.group(1))
+        if links:
+            raise SourceError("supplier_search_identity_mismatch")
+        text = soup.get_text(" ", strip=True).lower()
+        if any(marker in text for marker in ("нет данных", "ничего не найдено", "записи не найдены")):
             return None
-
-        return int(
-            link["href"].split("/")[-1]
-        )
+        empty_table = any(table.find("tbody") is not None and not table.find("tbody").find("td")
+                          for table in soup.find_all("table"))
+        if empty_table:
+            return None
+        raise SourceError("supplier_search_structure_invalid")
 
     def get_supplier_html(
             self,
@@ -104,15 +123,7 @@ class SupplierRegistryParser:
             f"/ru/registry/show_supplier/{supplier_id}"
         )
 
-        response = requests.get(
-            url,
-            impersonate="chrome120",
-            timeout=30,
-        )
-
-        response.raise_for_status()
-
-        return response.text
+        return self._get(url).text
 
     def parse_supplier_page(
             self,
@@ -164,7 +175,7 @@ class SupplierRegistryParser:
                     strip=True
                 )
 
-                if "БИН участника" in key:
+                if "БИН участника" in key or "ИИН участника" in key:
                     result["bin"] = value
 
                 elif key == "КАТО":
@@ -245,12 +256,20 @@ class SupplierRegistryParser:
 
                     break
 
+        try:
+            result["bin"] = normalize_bin(result["bin"])
+            result["registration_date"] = normalize_date(result["registration_date"])
+        except ValueError as error:
+            raise SourceError("supplier_fields_invalid") from error
+        result["email"] = normalize_email(result["email"])
+        result["phone"] = normalize_phone(result["phone"])
         return result
 
     def get_supplier_data(
             self,
             bin_number: str
     ):
+        bin_number = normalize_bin(bin_number)
         supplier_id = self.get_supplier_id(
             bin_number
         )
@@ -265,6 +284,9 @@ class SupplierRegistryParser:
         data = self.parse_supplier_page(
             html
         )
+
+        if data["bin"] != bin_number:
+            raise SourceError("supplier_card_identity_mismatch")
 
         data["supplier_id"] = supplier_id
 

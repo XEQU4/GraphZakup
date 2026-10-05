@@ -1,11 +1,14 @@
-from django.db.models import Sum, Q, Avg, Count, FloatField
-from django.db.models.functions import Coalesce
+from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
+from django.db.models import Sum, Q, Avg, Count, FloatField, IntegerField, Prefetch
+from django.db.models.functions import Coalesce, Floor
 from django.http import JsonResponse
 from django.urls import reverse
+from django.utils.html import format_html
 from django.views.generic import DetailView, ListView
 
 from apps.core.mixins import ClampedPaginationMixin
-from apps.owners.models import Directorship
+from apps.owners.querysets import current_role_filter, current_roles
 from .models import Supplier
 
 EXCLUDED_EMAILS = {"info@adata.kz", "support@adata.kz"}
@@ -21,12 +24,12 @@ class SupplierListView(ClampedPaginationMixin, ListView):
     def _base_queryset():
         return Supplier.objects.annotate(
             contracts_count=Count('contracts', distinct=True),
-            computed_risk=Coalesce(
-                Avg('risk_clusters__risk_score'),
+            computed_risk=Floor(Coalesce(
+                Avg('risk_clusters__risk_score', filter=Q(risk_clusters__is_active=True)),
                 'risk_score',
                 output_field=FloatField()
-            )
-        ).prefetch_related('directorships__director')
+            ), output_field=IntegerField())
+        ).prefetch_related(Prefetch('directorships', queryset=current_roles()))
 
     def get_queryset(self):
         qs = self._base_queryset()
@@ -63,13 +66,13 @@ class SupplierListView(ClampedPaginationMixin, ListView):
             rows = []
 
             for c in qs:
-                first_dir = c.directorships.all().first()
+                first_dir = next(iter(c.directorships.all()), None)
 
                 if first_dir:
-                    director_html = (
-                        f'<a href="{reverse("owners:detail", args=[first_dir.director.pk])}" '
-                        f'class="text-white text-decoration-none border-bottom border-secondary">'
-                        f'{first_dir.director.full_name}</a>'
+                    director_html = format_html(
+                        '<a href="{}" class="text-white text-decoration-none border-bottom border-secondary">{}</a>',
+                        reverse('owners:detail', args=[first_dir.director.pk]),
+                        first_dir.director.full_name,
                     )
                 else:
                     director_html = '<span class="text-muted small">Не указан</span>'
@@ -112,7 +115,7 @@ class SupplierDetailView(DetailView):
         total_amount = contracts.aggregate(total=Sum("amount"))["total"] or 0
 
         directorships = (
-            Directorship.objects
+            current_roles()
             .filter(supplier=company)
             .select_related("director")
         )
@@ -125,7 +128,10 @@ class SupplierDetailView(DetailView):
         if director_ids:
             related_by_director = (
                 Supplier.objects
-                .filter(directorships__director_id__in=director_ids)
+                .filter(
+                    current_role_filter('directorships__'),
+                    directorships__director_id__in=director_ids,
+                )
                 .exclude(pk=company.pk)
                 .distinct()
             )
@@ -150,15 +156,15 @@ class SupplierDetailView(DetailView):
         if company.email and company.email.lower() not in EXCLUDED_EMAILS:
             related_by_email = (
                 Supplier.objects
-                .filter(email=company.email)
+                .filter(email__iexact=company.email)
                 .exclude(pk=company.pk)
             )
 
-        clusters = company.risk_clusters.all().order_by("-risk_score")
+        clusters = list(company.risk_clusters.filter(is_active=True).order_by("-risk_score"))
 
-        if clusters.exists():
+        if clusters:
             total_risk = sum(cluster.risk_score for cluster in clusters)
-            avg_risk_score = int(total_risk / clusters.count())
+            avg_risk_score = int(total_risk / len(clusters))
         else:
             avg_risk_score = company.risk_score or 0
 
@@ -172,11 +178,15 @@ class SupplierDetailView(DetailView):
             risk_color = "secondary"
 
         total_related = (
-                related_by_director.count()
-                + related_by_address.count()
-                + related_by_phone.count()
-                + related_by_email.count()
-        )
+            related_by_director.distinct() | related_by_address.distinct()
+            | related_by_phone.distinct() | related_by_email.distinct()
+        ).distinct().count()
+
+        website_url = company.website
+        try:
+            URLValidator(schemes=['http', 'https'])(website_url)
+        except ValidationError:
+            website_url = ''
 
         context.update({
             "contracts": contracts,
@@ -190,6 +200,7 @@ class SupplierDetailView(DetailView):
             "avg_risk_score": avg_risk_score,
             "risk_color": risk_color,
             "total_related": total_related,
+            "website_url": website_url,
         })
 
         return context

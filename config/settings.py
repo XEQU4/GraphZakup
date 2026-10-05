@@ -1,24 +1,47 @@
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
-
-load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv("SECRET_KEY")
-DEBUG = os.getenv("DJANGO_DEBUG", "true").lower() == "true"
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 
-CSRF_TRUSTED_ORIGINS = [
-    "https://*.up.railway.app",
-]
+def env_bool(name, default=False):
+    value = os.getenv(name, str(default)).strip().lower()
+    if value not in {"true", "false", "1", "0", "yes", "no"}:
+        raise ImproperlyConfigured(f"{name} must be true or false.")
+    return value in {"true", "1", "yes"}
 
-SECURE_PROXY_SSL_HEADER = (
-    "HTTP_X_FORWARDED_PROTO",
-    "https",
-)
+
+def env_list(name, default=""):
+    return [item.strip() for item in os.getenv(name, default).split(",") if item.strip()]
+
+
+if env_bool("DJANGO_LOAD_DOTENV", True):
+    load_dotenv(BASE_DIR / ".env", override=False)
+
+SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
+if not SECRET_KEY or SECRET_KEY == "replace-with-a-generated-secret":
+    raise ImproperlyConfigured("Set a nonempty SECRET_KEY before starting Django.")
+DEBUG = env_bool("DJANGO_DEBUG")
+ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
+if not ALLOWED_HOSTS or (not DEBUG and "*" in ALLOWED_HOSTS):
+    raise ImproperlyConfigured("ALLOWED_HOSTS must contain explicit hosts in production.")
+CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
+
+# Enable this only behind a proxy that replaces the incoming forwarded header.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https") if env_bool("TRUST_PROXY_SSL_HEADER") else None
+SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT")
+SECURE_REDIRECT_EXEMPT = [r"^health/(live|ready)/$"]
+SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", SECURE_SSL_REDIRECT)
+CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", SECURE_SSL_REDIRECT)
+SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "0"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS")
+SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD")
+GPG_DISABLE_LOGGING_INIT = env_bool("GPG_DISABLE_LOGGING_INIT")
+GPG_LOG_TO_FILES = env_bool("GPG_LOG_TO_FILES", True)
+
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -79,13 +102,17 @@ DATABASES = {
         "HOST": os.getenv("PGHOST", os.getenv("DB_HOST")),
         "PORT": os.getenv("PGPORT", os.getenv("DB_PORT", "5432")),
         "CONN_MAX_AGE": 60,
+        "OPTIONS": {"connect_timeout": 3},
     }
 }
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -99,22 +126,25 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TIMEZONE = "Asia/Almaty"
 CELERY_ENABLE_UTC = True
 
+ENABLE_SCHEDULED_IMPORT = env_bool("ENABLE_SCHEDULED_IMPORT")
 CELERY_BEAT_SCHEDULE = {
-    # Каждые 12 часов — парсинг 500 новых контрактов
-    "update-procurement-data": {
-        "task": "apps.core.tasks.update_all_data",
-        "schedule": 60 * 60 * 12,
-    },
     # Раз в сутки — очистка логов старше 30 дней
     "cleanup-logs-daily": {
         "task": "apps.core.tasks.cleanup_logs",
         "schedule": 60 * 60 * 24,
     },
 }
+if ENABLE_SCHEDULED_IMPORT:
+    CELERY_BEAT_SCHEDULE["update-procurement-data"] = {
+        "task": "apps.core.tasks.update_all_data",
+        "schedule": 60 * 60 * 12,
+    }
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_RESULT_EXPIRES = 60 * 60 * 24
 
 # ─── ВНЕШНИЕ API ───────────────────────────────────────────────────────────────
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-OPENROUTER_MODEL = "qwen/qwen3-8b:free"
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "qwen/qwen3-8b:free")
 GOSZAKUP_TOKEN = os.getenv("GOSZAKUP_TOKEN", "")
 
 # ─── ЛОГИРОВАНИЕ ───────────────────────────────────────────────────────────────

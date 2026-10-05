@@ -172,17 +172,18 @@
                             </tr>
                         {% endif %}
 
-                        {% if company.website %}
+                        {% if website_url %}
                             <tr>
                                 <td class="ps-3 py-2 label-col">
                                     Сайт
                                 </td>
 
                                 <td class="py-2 pe-3">
-                                    <a href="{{ company.website }}"
+                                    <a href="{{ website_url }}"
                                        target="_blank"
+                                       rel="noopener noreferrer"
                                        class="text-info">
-                                        {{ company.website|truncatechars:28 }}
+                                        {{ website_url|truncatechars:28 }}
                                     </a>
                                 </td>
                             </tr>
@@ -273,7 +274,7 @@
                     </div>
                 </div>
 
-                {% if company.risk_score > 0 %}
+                {% if avg_risk_score > 0 %}
                     <div class="w-100 mt-2">
                         <div class="d-flex justify-content-between mb-1">
                             <small style="color:#8b9ab0;">
@@ -281,13 +282,13 @@
                             </small>
 
                             <span class="badge bg-{{ risk_color }}">
-                                {{ company.risk_score }}/100
+                                {{ avg_risk_score }}/100
                             </span>
                         </div>
 
                         <div class="progress" style="height:6px;background:#1a1f27;">
                             <div class="progress-bar bg-{{ risk_color }}"
-                                 style="width:{% widthratio company.risk_score 100 100 %}%">
+                                 style="width:{% widthratio avg_risk_score 100 100 %}%">
                             </div>
                         </div>
                     </div>

@@ -9,7 +9,7 @@ from logging_setup.formats import ColorFormatter, file_fmt, date_fmt, DatedTimed
 from logging_setup.filters import filter_maker, max_level_filter, handle_exception
 
 
-def init_logging(log_dir: str = "logs"):
+def init_logging(log_dir: str = "logs", to_files: bool = True):
     """
     Инициализация логирования для ГрафЗакуп.
 
@@ -24,7 +24,8 @@ def init_logging(log_dir: str = "logs"):
       - В файл logs/error.log (ERROR+,         ротация ежедневно, 14 дней)
     """
     init(autoreset=True)
-    os.makedirs(log_dir, exist_ok=True)
+    if to_files:
+        os.makedirs(log_dir, exist_ok=True)
 
     color_formatter = ColorFormatter(fmt=file_fmt, datefmt=date_fmt)
     file_formatter  = logging.Formatter(fmt=file_fmt, datefmt=date_fmt)
@@ -40,34 +41,22 @@ def init_logging(log_dir: str = "logs"):
     stderr_handler.setLevel(logging.ERROR)
     stderr_handler.setFormatter(color_formatter)
 
-    # --- File: app.log (все кроме ERROR) ---
-    app_file = DatedTimedRotatingFileHandler(
-        filename=os.path.join(log_dir, "app.log"),
-        when="midnight",
-        interval=1,
-        backupCount=7,
-        encoding="utf-8",
-        utc=True,
-    )
-    app_file.setLevel(logging.DEBUG)
-    app_file.setFormatter(file_formatter)
-    app_file.addFilter(max_level_filter("WARNING"))
-
-    # --- File: error.log (ERROR+) ---
-    error_file = DatedTimedRotatingFileHandler(
-        filename=os.path.join(log_dir, "error.log"),
-        when="midnight",
-        interval=1,
-        backupCount=14,
-        encoding="utf-8",
-        utc=True,
-    )
-    error_file.setLevel(logging.ERROR)
-    error_file.setFormatter(file_formatter)
+    handlers = [stdout_handler, stderr_handler]
+    if to_files:
+        for name, level, backups in (('app', logging.DEBUG, 7), ('error', logging.ERROR, 14)):
+            handler = DatedTimedRotatingFileHandler(
+                filename=os.path.join(log_dir, name + '.log'), when='midnight',
+                interval=1, backupCount=backups, encoding='utf-8', utc=True,
+            )
+            handler.setLevel(level)
+            handler.setFormatter(file_formatter)
+            if name == 'app':
+                handler.addFilter(max_level_filter('WARNING'))
+            handlers.append(handler)
 
     logging.basicConfig(
         level=logging.DEBUG,
-        handlers=[stdout_handler, stderr_handler, app_file, error_file],
+        handlers=handlers,
     )
 
     # Перехват необработанных исключений → error.log

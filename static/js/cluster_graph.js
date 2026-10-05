@@ -112,10 +112,10 @@ if (graphElement && graphDataElement) {
     };
     const ls = t => LINK_STYLES[t] || LINK_STYLES.customer;
 
-    const getNodeColor = r => r >= 70 ? "#dc3545" : r >= 40 ? "#ffc107" : "#198754";
-    const getNodeGrad = r => r >= 70 ? "ng-high" : r >= 40 ? "ng-mid" : "ng-low";
-    const getGlowFilter = r => r >= 70 ? "url(#glow-red)" : r >= 40 ? "url(#glow-yellow)" : null;
-    const getNodeR = r => r >= 70 ? 26 : r >= 40 ? 23 : 20;
+    const getNodeColor = r => r >= 80 ? "#dc3545" : r >= 50 ? "#ffc107" : "#198754";
+    const getNodeGrad = r => r >= 80 ? "ng-high" : r >= 50 ? "ng-mid" : "ng-low";
+    const getGlowFilter = r => r >= 80 ? "url(#glow-red)" : r >= 50 ? "url(#glow-yellow)" : null;
+    const getNodeR = r => r >= 80 ? 26 : r >= 50 ? 23 : 20;
 
     // СВЯЗИ (фон + основная линия) — рисуются ПЕРВЫМИ (под узлами)
     const linkBg = container.append("g").selectAll("path")
@@ -150,7 +150,7 @@ if (graphElement && graphDataElement) {
         .attr("stroke", d => getNodeColor(d.risk))
         .attr("stroke-width", 1)
         .attr("opacity", 0.4)
-        .attr("class", d => d.risk >= 70 ? "node-pulse-high glitch-node" : d.risk >= 40 ? "node-pulse-mid" : "");
+        .attr("class", d => d.risk >= 80 ? "node-pulse-high glitch-node" : d.risk >= 50 ? "node-pulse-mid" : "");
 
     // Основной круг
     nodeGroups.append("circle")
@@ -159,13 +159,13 @@ if (graphElement && graphDataElement) {
         .attr("stroke", d => getNodeColor(d.risk))
         .attr("stroke-width", 2)
         .attr("filter", "url(#node-shadow)")
-        .attr("class", d => d.risk >= 70 ? "node-pulse-high" : "");
+        .attr("class", d => d.risk >= 80 ? "node-pulse-high" : "");
 
     // Иконка внутри
     nodeGroups.append("text")
-        .text(d => d.risk >= 70 ? "!" : d.risk >= 40 ? "~" : "✓")
+        .text(d => d.risk >= 80 ? "!" : d.risk >= 50 ? "~" : "✓")
         .attr("text-anchor", "middle").attr("dominant-baseline", "central")
-        .attr("fill", "#fff").attr("font-size", d => d.risk >= 70 ? "14px" : "12px")
+        .attr("fill", "#fff").attr("font-size", d => d.risk >= 80 ? "14px" : "12px")
         .attr("font-weight", "bold")
         .style("pointer-events", "none");
 
@@ -190,7 +190,7 @@ if (graphElement && graphDataElement) {
         .style("border", "1px solid rgba(255,255,255,0.15)")
         .style("border-radius", "6px").style("padding", "8px 12px")
         .style("font-size", "12px").style("color", "#e9ecef")
-        .style("pointer-events", "none").style("z-index", "9999")
+        .style("pointer-events", "none").style("z-index", "9999").style("white-space", "pre-line")
         .style("box-shadow", "0 4px 24px rgba(0,0,0,0.7)");
 
     // ПУТЬ СВЯЗИ (дуга при параллельных рёбрах)
@@ -245,8 +245,7 @@ if (graphElement && graphDataElement) {
             tooltip.style("display", "block")
                 .style("left", (event.pageX + 14) + "px")
                 .style("top", (event.pageY - 36) + "px")
-                .html(`<strong>${d.name}</strong><br>
-                    <span style="color:${getNodeColor(d.risk)}">Риск: ${d.risk}/100</span>`);
+                .text(`${d.name}\nРиск: ${d.risk}/100`);
         })
         .on("mousemove", function (event) {
             tooltip.style("left", (event.pageX + 14) + "px").style("top", (event.pageY - 36) + "px");
@@ -273,7 +272,7 @@ if (graphElement && graphDataElement) {
             tooltip.style("display", "block")
                 .style("left", (event.pageX + 12) + "px")
                 .style("top", (event.pageY - 30) + "px")
-                .html(`<strong>${LINK_LABELS[d.type] || d.type}</strong>`);
+                .text(LINK_LABELS[d.type] || d.type);
         })
         .on("mousemove", function (event) {
             tooltip.style("left", (event.pageX + 12) + "px").style("top", (event.pageY - 30) + "px");

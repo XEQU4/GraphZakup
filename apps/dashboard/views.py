@@ -1,13 +1,15 @@
 from django.contrib.humanize.templatetags.humanize import intcomma
 from django.core.paginator import Paginator
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, Prefetch
 from django.http import JsonResponse
 from django.urls import reverse
+from django.utils.html import format_html
 from django.views.generic import TemplateView
 
 from apps.companies.models import Supplier
 from apps.contracts.models import Contract
 from apps.graph.models import RiskCluster
+from apps.owners.querysets import current_roles
 
 
 class DashboardView(TemplateView):
@@ -30,14 +32,14 @@ class DashboardView(TemplateView):
 
             for c in contracts_list[:50]:
                 if c.contract_gos_id:
-                    number_html = (
-                        f'<a href="{c.goszakup_url}" target="_blank" '
-                        f'class="text-info text-decoration-none fw-bold">'
-                        f'{c.contract_number} '
-                        f'<i class="bi bi-box-arrow-up-right" style="font-size:0.75em;"></i></a>'
+                    number_html = format_html(
+                        '<a href="{}" target="_blank" rel="noopener noreferrer" '
+                        'class="text-info text-decoration-none fw-bold">{} '
+                        '<i class="bi bi-box-arrow-up-right" style="font-size:0.75em;"></i></a>',
+                        c.goszakup_url, c.contract_number,
                     )
                 else:
-                    number_html = f'<span class="text-muted">{c.contract_number}</span>'
+                    number_html = format_html('<span class="text-muted">{}</span>', c.contract_number)
 
                 rows.append({
                     'number_html': number_html,
@@ -58,30 +60,33 @@ class DashboardView(TemplateView):
 
         context["supplier_count"] = Supplier.objects.count()
         context["contract_count"] = Contract.objects.count()
-        context["cluster_count"] = RiskCluster.objects.count()
+        active_clusters = RiskCluster.objects.filter(is_active=True)
+        context["cluster_count"] = active_clusters.count()
 
         context["money_at_risk"] = (
-                RiskCluster.objects.aggregate(
+                active_clusters.aggregate(
                     total=Sum("total_contract_amount")
                 )["total"]
                 or 0
         )
 
         context["top_clusters"] = (
-            RiskCluster.objects
+            active_clusters
             .order_by("-risk_score")[:5]
         )
 
         suppliers_in_clusters = (
             Supplier.objects
-            .filter(risk_clusters__isnull=False)
+            .filter(risk_clusters__is_active=True)
             .distinct()
-            .prefetch_related('directorships__director', 'risk_clusters')
+            .prefetch_related(Prefetch('directorships', queryset=current_roles()), Prefetch(
+                'risk_clusters', queryset=active_clusters.order_by('-risk_score'), to_attr='active_clusters',
+            ))
             .order_by('-risk_score')[:5]
         )
 
         for s in suppliers_in_clusters:
-            s.primary_cluster = s.risk_clusters.order_by('-risk_score').first()
+            s.primary_cluster = next(iter(s.active_clusters), None)
 
         context["short_suppliers"] = suppliers_in_clusters
 

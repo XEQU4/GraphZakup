@@ -1,8 +1,6 @@
 import logging
-import os
 
 from logging.handlers import TimedRotatingFileHandler
-from datetime import datetime, timezone
 from colorama import Fore, Style
 
 
@@ -25,13 +23,6 @@ class DatedTimedRotatingFileHandler(TimedRotatingFileHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.suffix = "%Y-%m-%d"
-
-    def rotation_filename(self, default_name):
-        base, ext = os.path.splitext(default_name)
-        dt = datetime.fromtimestamp(self.rolloverAt - self.interval, tz=timezone.utc)
-
-        return f"{base.split(".")[0]}-{dt.strftime(self.suffix)}.log"
-
 
 file_fmt = "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
 date_fmt = "%Y-%m-%d %H:%M:%S"

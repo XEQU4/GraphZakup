@@ -26,6 +26,11 @@ celerybeat.pid
 
 # Dev / IDE
 .env
+.env.*
+logs/
+.aws/
+.codex/
+.agents/
 .git/
 .gitignore
 .idea/
@@ -36,3 +41,8 @@ celerybeat.pid
 Dockerfile
 docker-compose*.yml
 .dockerignore
+
+# Local baselines and database backups must not enter images
+/artifacts/
+*.dump
+*.backup

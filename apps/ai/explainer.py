@@ -13,14 +13,14 @@ build_clusters.calculate_risk, и явно перечисляет КАКИЕ к�
 
 from collections import defaultdict
 
-from apps.owners.models import Ownership
+from apps.graph.services import current_directorships
 
 EXCLUDED_EMAILS = {"info@adata.kz", "support@adata.kz"}
 
 
 def _director_map(suppliers):
     return {
-        s.id: {d.director_id: d.director.full_name for d in s.directorships.all()}
+        s.id: {d.director_id: d.director.full_name for d in current_directorships(s)}
         for s in suppliers
     }
 
@@ -38,7 +38,7 @@ def _format_company_list(names):
 
 
 def explain_cluster(cluster):
-    suppliers = list(cluster.suppliers.prefetch_related("directorships__director"))
+    suppliers = list(cluster.suppliers.order_by("pk").prefetch_related("directorships__director", "ownerships__owner"))
     director_map = _director_map(suppliers)
 
     # Группируем компании по конкретному совпадающему значению —
@@ -56,8 +56,9 @@ def explain_cluster(cluster):
             by_address[s.address].add(s.id)
         if s.phone:
             by_phone[s.phone].add(s.id)
-        if s.email and s.email not in EXCLUDED_EMAILS:
-            by_email[s.email].add(s.id)
+        email = s.email.strip().lower()
+        if email and email not in EXCLUDED_EMAILS:
+            by_email[email].add(s.id)
 
     supplier_by_id = {s.id: s for s in suppliers}
 
@@ -68,15 +69,16 @@ def explain_cluster(cluster):
     for (director_id, director_name), supplier_ids in by_director.items():
         if len(supplier_ids) < 2:
             continue
-        names = _format_company_list(supplier_by_id[i].name for i in supplier_ids)
+        names = _format_company_list(supplier_by_id[i].name for i in sorted(supplier_ids))
         sentences.append(
-            f"Директор {director_name} одновременно руководит компаниями {names}."
+            f"В имеющихся сведениях {director_name} указан руководителем компаний {names}; "
+            "периоды руководства требуют подтверждения."
         )
 
     for address, supplier_ids in by_address.items():
         if len(supplier_ids) < 2:
             continue
-        names = _format_company_list(supplier_by_id[i].name for i in supplier_ids)
+        names = _format_company_list(supplier_by_id[i].name for i in sorted(supplier_ids))
         sentences.append(
             f'Компании {names} зарегистрированы по одному адресу: "{address}".'
         )
@@ -84,7 +86,7 @@ def explain_cluster(cluster):
     for phone, supplier_ids in by_phone.items():
         if len(supplier_ids) < 2:
             continue
-        names = _format_company_list(supplier_by_id[i].name for i in supplier_ids)
+        names = _format_company_list(supplier_by_id[i].name for i in sorted(supplier_ids))
         sentences.append(
             f'Компании {names} указывают один и тот же контактный телефон ({phone}).'
         )
@@ -92,7 +94,7 @@ def explain_cluster(cluster):
     for email, supplier_ids in by_email.items():
         if len(supplier_ids) < 2:
             continue
-        names = _format_company_list(supplier_by_id[i].name for i in supplier_ids)
+        names = _format_company_list(supplier_by_id[i].name for i in sorted(supplier_ids))
         sentences.append(
             f'Компании {names} используют один email для связи ({email}).'
         )
@@ -106,7 +108,7 @@ def explain_cluster(cluster):
     checked_owners = set()
 
     for supplier in suppliers:
-        for ownership in Ownership.objects.filter(supplier=supplier).select_related("owner"):
+        for ownership in supplier.ownerships.all():
             owner = ownership.owner
             if owner.id in checked_owners:
                 continue

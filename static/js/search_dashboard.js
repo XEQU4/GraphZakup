@@ -11,6 +11,7 @@
         const originalPagination = pagination.innerHTML;
 
         let timer, controller;
+        let requestVersion = 0;
         const BASE_URL = window.location.pathname;
 
         function toggleClear(v) {
@@ -23,7 +24,7 @@
         }
 
         function escHtml(s) {
-            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
         function renderRows(rows) {
@@ -35,7 +36,7 @@
             <tr>
                 <td class="ps-3 text-nowrap">${r.number_html}</td>
                 <td>${escHtml(r.title)}</td>
-                <td><a href="${r.supplier_url}" class="text-white border-bottom border-secondary text-decoration-none fw-semibold">${escHtml(r.supplier_name)}</a></td>
+                <td><a href="${escHtml(r.supplier_url)}" class="text-white border-bottom border-secondary text-decoration-none fw-semibold">${escHtml(r.supplier_name)}</a></td>
                 <td>${escHtml(r.customer)}</td>
                 <td class="text-end text-nowrap text-success fw-bold">${escHtml(r.amount)} ₸</td>
                 <td class="pe-3 text-nowrap">${escHtml(r.date)}</td>
@@ -50,6 +51,7 @@
         }
 
         function doSearch(q) {
+            const version = ++requestVersion;
             if (controller) controller.abort();
             controller = new AbortController();
 
@@ -63,14 +65,19 @@
             pagination.style.display = 'none';
 
             fetch(`${BASE_URL}?format=json&q=${encodeURIComponent(q)}`, {signal: controller.signal})
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) throw new Error('Search failed');
+                    return r.json();
+                })
                 .then(data => {
+                    if (version !== requestVersion) return;
+                    if (!Array.isArray(data.results)) throw new Error('Invalid search response');
                     setLoading(false);
                     toggleClear(true);
                     renderRows(data.results);
                 })
                 .catch(err => {
-                    if (err.name !== 'AbortError') {
+                    if (version === requestVersion && err.name !== 'AbortError') {
                         setLoading(false);
                     }
                 });
@@ -78,6 +85,9 @@
 
         input.addEventListener('input', function () {
             const q = this.value.trim();
+            ++requestVersion;
+            if (controller) controller.abort();
+            setLoading(false);
             toggleClear(q.length > 0);
             clearTimeout(timer);
             timer = setTimeout(() => doSearch(q), 300);
@@ -85,6 +95,10 @@
 
         clearBtn.addEventListener('click', function () {
             input.value = '';
+            ++requestVersion;
+            clearTimeout(timer);
+            if (controller) controller.abort();
+            setLoading(false);
             toggleClear(false);
             restoreOriginal();
             input.focus();

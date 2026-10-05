@@ -11,5 +11,8 @@ class CoreConfig(AppConfig):
         Инициализируем логирование здесь — до того как любой другой модуль
         попытается получить логгер.
         """
+        from django.conf import settings
+        if settings.GPG_DISABLE_LOGGING_INIT:
+            return
         from logging_setup import init_logging
-        init_logging(log_dir="logs")
+        init_logging(log_dir="logs", to_files=settings.GPG_LOG_TO_FILES)
