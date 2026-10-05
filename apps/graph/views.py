@@ -22,7 +22,7 @@ def build_graph_data(suppliers, cluster=None):
     nodes = []
     links = []
     supplier_list = list(suppliers)
-    prefetch_related_objects(supplier_list, "directorships__director")
+    prefetch_related_objects(supplier_list, "directorships__director", "directorships__person_identity", "directorships__source_observation")
     director_map = build_director_map(supplier_list)
     if cluster is None:
         prefetch_related_objects(supplier_list, "risk_clusters")
@@ -80,7 +80,7 @@ class ClusterListView(ClampedPaginationMixin, ListView):
         qs = (
             RiskCluster.objects
             .filter(is_active=True)
-            .prefetch_related("suppliers__directorships__director")
+            .prefetch_related("suppliers__directorships__director", "suppliers__directorships__person_identity", "suppliers__directorships__source_observation")
             .order_by("-risk_score")
         )
         min_risk = getattr(self, "minimum_risk", None)
@@ -109,7 +109,9 @@ class ClusterDetailView(DetailView):
 
     def get_queryset(self):
         return super().get_queryset().prefetch_related(
-            "suppliers__directorships__director", "suppliers__ownerships__owner", "suppliers__contracts",
+            "suppliers__directorships__director", "suppliers__directorships__person_identity",
+            "suppliers__directorships__source_observation",
+            "suppliers__ownerships__owner", "suppliers__contracts",
         )
 
     def get_context_data(self, **kwargs):

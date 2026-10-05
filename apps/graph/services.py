@@ -12,6 +12,7 @@ from django.utils import timezone
 from apps.companies.models import Supplier
 from apps.core.utils import get_int_setting
 from apps.graph.models import RiskCluster
+from apps.owners.querysets import is_confirmed_role
 
 
 EXCLUDED_EMAILS = {"info@adata.kz", "support@adata.kz"}
@@ -21,13 +22,14 @@ REBUILD_LOCK = 1196443459
 def current_directorships(supplier, as_of=None):
     as_of = as_of or timezone.localdate()
     return [role for role in supplier.directorships.all()
-            if (role.start_date is None or role.start_date <= as_of)
+            if role.is_current and is_confirmed_role(role)
+            and (role.start_date is None or role.start_date <= as_of)
             and (role.end_date is None or role.end_date > as_of)]
 
 
 def build_director_map(suppliers, as_of=None):
     as_of = as_of or timezone.localdate()
-    return {supplier.pk: {role.director_id for role in current_directorships(supplier, as_of)}
+    return {supplier.pk: {role.person_identity_id for role in current_directorships(supplier, as_of)}
             for supplier in suppliers}
 
 
@@ -98,12 +100,14 @@ def analysis_fingerprint(group, weights, as_of):
     data = []
     for supplier in sorted(group, key=lambda item: item.pk):
         directors = sorted((role.director_id, role.director.full_name, role.director.iin,
-                            str(role.start_date), str(role.end_date))
+                            str(role.start_date), str(role.end_date), role.person_identity_id)
                            for role in current_directorships(supplier, as_of))
         owners = sorted((role.owner_id, role.owner.full_name, role.owner.iin,
                          str(role.share_percent), role.owner.has_tax_debt,
                          role.owner.has_court_cases, role.owner.is_bankrupt, role.owner.blacklisted)
-                        for role in supplier.ownerships.all())
+                        for role in supplier.ownerships.all() if role.is_current
+                        and (role.start_date is None or role.start_date <= as_of)
+                        and (role.end_date is None or role.end_date > as_of))
         contracts = sorted((contract.pk, contract.contract_number, contract.tender_id,
                             contract.contract_gos_id, contract.title, str(contract.amount),
                             str(contract.contract_date), contract.customer_name,
@@ -113,7 +117,7 @@ def analysis_fingerprint(group, weights, as_of):
                      "address": supplier.address, "phone": supplier.phone,
                      "email": supplier.email.strip().lower(), "risk_score": supplier.risk_score,
                      "directors": directors, "owners": owners, "contracts": contracts})
-    payload = {"version": "phase1-analysis-v1", "weights": weights, "suppliers": data}
+    payload = {"version": "phase2-analysis-v1", "weights": weights, "suppliers": data}
     return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True,
                                      separators=(",", ":")).encode("utf-8")).hexdigest()
 
@@ -158,7 +162,8 @@ def rebuild_clusters(as_of=None):
     existing = list(RiskCluster.objects.select_for_update().order_by("pk").prefetch_related("suppliers"))
     memberships = {cluster.pk: frozenset(s.pk for s in cluster.suppliers.all()) for cluster in existing}
     suppliers = list(Supplier.objects.order_by("pk").prefetch_related(
-        "directorships__director", "ownerships__owner", "contracts"))
+        "directorships__director", "directorships__person_identity", "directorships__source_observation",
+        "ownerships__owner", "contracts"))
     director_map = build_director_map(suppliers, as_of)
     groups = find_connected_groups(suppliers, director_map)
     weights = get_risk_weights()

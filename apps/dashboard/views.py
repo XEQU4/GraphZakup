@@ -58,7 +58,7 @@ class DashboardView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context["supplier_count"] = Supplier.objects.count()
+        context["supplier_count"] = Supplier.objects.filter(is_supplier=True).count()
         context["contract_count"] = Contract.objects.count()
         active_clusters = RiskCluster.objects.filter(is_active=True)
         context["cluster_count"] = active_clusters.count()

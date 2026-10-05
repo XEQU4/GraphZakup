@@ -5,6 +5,7 @@ from apps.companies.models import Supplier
 
 class Contract(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name="contracts")
+    customer = models.ForeignKey(Supplier, null=True, blank=True, on_delete=models.PROTECT, related_name='purchases')
     # Номер закупки — НЕ уникален: один тендер может иметь несколько
     # договоров/допсоглашений, и часто бывает пустым в реестре.
     tender_id = models.CharField(

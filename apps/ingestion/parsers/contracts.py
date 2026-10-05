@@ -1,12 +1,11 @@
 import logging
-import time
 from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
-from curl_cffi import requests
 
-from services.normalizers import normalize_amount, normalize_bin, normalize_date
-from services.parser_errors import SourceError, is_challenge, require_html_response
+from ..normalizers import normalize_amount, normalize_bin, normalize_date
+from ..errors import SourceError, is_challenge
+from ..transport import HttpTransport
 
 logger = logging.getLogger(__name__)
 
@@ -20,36 +19,20 @@ class ContractPage:
 
 class ContractRegistryParser:
     BASE_URL = "https://goszakup.gov.kz"
-    REQUEST_DELAY = 1.5
-    RATE_LIMIT_COOLDOWN = 60
-    MAX_RATE_LIMIT_RETRIES = 3
 
-    def __init__(self):
+    def __init__(self, transport=None):
         self.headers = {
             "User-Agent": "Mozilla/5.0",
             "Accept-Language": "ru-RU,ru;q=0.9",
             "Referer": f"{self.BASE_URL}/ru/registry/contract",
         }
-        self.session = requests.Session()
+        self.transport = transport or HttpTransport()
+        self.session = self.transport.session
 
     _is_rate_limited = staticmethod(is_challenge)
 
     def _get(self, url, timeout=30):
-        for attempt in range(self.MAX_RATE_LIMIT_RETRIES + 1):
-            time.sleep(self.REQUEST_DELAY)
-            try:
-                response = self.session.get(
-                    url, headers=self.headers, impersonate="chrome120", timeout=timeout,
-                )
-            except requests.RequestsError as error:
-                raise SourceError("source_request_failed") from error
-            if not is_challenge(response):
-                require_html_response(response)
-                return response
-            if attempt >= self.MAX_RATE_LIMIT_RETRIES:
-                raise SourceError("source_challenge_or_rate_limit")
-            logger.warning("Source challenge; retry %d/%d", attempt + 1, self.MAX_RATE_LIMIT_RETRIES)
-            time.sleep(self.RATE_LIMIT_COOLDOWN)
+        return self.transport.get(url, headers=self.headers, timeout=timeout)
 
     def parse_bin_data(self, contract_gos_id):
         if not isinstance(contract_gos_id, int) or contract_gos_id <= 0:
@@ -57,6 +40,7 @@ class ContractRegistryParser:
         url = f"{self.BASE_URL}/ru/egzcontract/cpublic/customer_n_supplier/{contract_gos_id}"
         soup = BeautifulSoup(self._get(url, timeout=15).text, "html.parser")
         result = {"customer_bin": None, "supplier_bin": None}
+        raw = {}
         try:
             for heading in soup.find_all("h3"):
                 title = heading.get_text(strip=True)
@@ -69,13 +53,16 @@ class ContractRegistryParser:
                     if len(cells) == 2:
                         values[cells[0].get_text(strip=True)] = cells[1].get_text(strip=True)
                 if "Заказчик" in title:
+                    raw['customer_bin'] = values.get('БИН')
                     result["customer_bin"] = normalize_bin(values.get("БИН"))
                 elif "Поставщик" in title:
+                    raw['supplier_bin'] = values.get('БИН') or values.get('ИИН')
                     result["supplier_bin"] = normalize_bin(values.get("БИН") or values.get("ИИН"))
         except ValueError as error:
             raise SourceError("contract_party_identifier_invalid") from error
         if not result["supplier_bin"] or not result["customer_bin"]:
             raise SourceError("contract_party_identifier_missing")
+        result['_raw'] = raw
         return result
 
     def fetch_page(self, page_number=1):
@@ -115,11 +102,18 @@ class ContractRegistryParser:
                     "subject": values[9] if len(values) > 9 else "",
                     "amount": normalize_amount(values[6]), "purchase_number": values[2],
                 }
+                record['_raw'] = {
+                    'contract_number': values[1], 'contract_gos_id': values[0], 'sign_date': values[5],
+                    'supplier_name': values[8], 'customer_name': values[7],
+                    'amount': values[6], 'purchase_number': values[2], 'subject': record['subject'],
+                }
             except ValueError as error:
                 raise SourceError("contract_row_invalid") from error
             records.append(record)
         for record in records:
-            record.update(self.parse_bin_data(record["contract_gos_id"]))
+            parties = self.parse_bin_data(record["contract_gos_id"])
+            record['_raw'].update(parties.pop('_raw', {}))
+            record.update(parties)
         return ContractPage(page_number, tuple(records), eof=not records)
 
     def iter_pages(self, start_page=1):

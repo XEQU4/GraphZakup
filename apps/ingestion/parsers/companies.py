@@ -1,25 +1,21 @@
 import re
 
 from bs4 import BeautifulSoup
-from curl_cffi import requests
 
-from services.normalizers import normalize_bin, normalize_date, normalize_email, normalize_phone
-from services.parser_errors import SourceError, require_html_response
+from ..normalizers import normalize_bin, normalize_date, normalize_email, normalize_phone
+from ..errors import SourceError
+from ..transport import HttpTransport
 
 
 class SupplierRegistryParser:
     BASE_URL = "https://goszakup.gov.kz"
 
-    def __init__(self):
-        self.session = requests.Session()
+    def __init__(self, transport=None):
+        self.transport = transport or HttpTransport()
+        self.session = self.transport.session
 
     def _get(self, url):
-        try:
-            response = self.session.get(url, impersonate="chrome120", timeout=30)
-        except requests.RequestsError as error:
-            raise SourceError("supplier_request_failed") from error
-        require_html_response(response)
-        return response
+        return self.transport.get(url)
 
     def parse_region_city(self, address):
         if not address:
@@ -256,6 +252,7 @@ class SupplierRegistryParser:
 
                     break
 
+        result['_raw'] = dict(result)
         try:
             result["bin"] = normalize_bin(result["bin"])
             result["registration_date"] = normalize_date(result["registration_date"])

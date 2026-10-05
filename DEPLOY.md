@@ -50,6 +50,9 @@ docker compose exec web python manage.py createsuperuser
 | ALLOWED_HOSTS | Явные hosts без протокола; wildcard при DEBUG=false запрещён |
 | CSRF_TRUSTED_ORIGINS | Дополнительные origins с протоколом |
 | ENABLE_SCHEDULED_IMPORT | false: задача update_all_data выключена; true: явное разрешение live pipeline |
+| INGESTION_REQUEST_INTERVAL | Минимальная пауза между запросами к одному host; по умолчанию 1.5 секунды |
+| INGESTION_SOURCE_CACHE_SECONDS | TTL успешного наблюдения компании; по умолчанию 900 секунд, 0 отключает |
+| INGESTION_LEASE_SECONDS | Аренда pipeline с heartbeat и fencing; по умолчанию 900 секунд, минимум 60 |
 | GPG_LOG_TO_FILES | true для локального Python; Compose принудительно false, пишет stdout/stderr |
 | OPENROUTER_API_KEY, OPENROUTER_MODEL, GOSZAKUP_TOKEN | Внешние интеграции; ключи могут быть пустыми при проверке инфраструктуры |
 
@@ -85,5 +88,7 @@ docker compose --env-file artifacts/phase1/smoke.env -p gpg_phase1_smoke ps -a
 Поставь reverse proxy с TLS и задай домен в ALLOWED_HOSTS. Включи SECURE_SSL_REDIRECT, SESSION_COOKIE_SECURE и CSRF_COOKIE_SECURE. TRUST_PROXY_SSL_HEADER=true разрешается только когда proxy заменяет входящий X-Forwarded-Proto. HSTS включается через SECURE_HSTS_SECONDS после проверки HTTPS; subdomains/preload требуют готовности соответствующих доменов.
 Health маршруты исключены из SSL redirect для внутреннего HTTP healthcheck; Compose добавляет localhost/127.0.0.1 в hosts. При необходимости отдельный origin frontend добавляется в CSRF_TRUSTED_ORIGINS.
 Автосбор включается намеренно после проверки источников, данных и токенов: ENABLE_SCHEDULED_IMPORT=true. Task guard также блокирует ранее сохранённые расписания beat, пока флаг false; сами записи расписания не удаляются. Расписания доступны в Django admin.
+
+После фазы 2 задача проверяет окно 500 договоров с начала реестра в режиме `update`, затем обновляет нуждающиеся в проверке компании и кластеры. Повтор задачи продолжает тот же `IngestionRun`, параллельный pipeline блокируется арендой в БД. Статус без запросов к источникам: `docker compose exec web python manage.py ingestion_status`. Подробности и локальные команды — в [docs/PHASE2.md](docs/PHASE2.md). Обновлённый образ нужно пересобрать; migrate создаёт наблюдения и изолирует старые роли по ФИО, сохраняя исходные записи.
 
 Официальные справочники: [uv в Docker](https://docs.astral.sh/uv/guides/integration/docker/), [порядок запуска Compose](https://docs.docker.com/compose/how-tos/startup-order/), [Django deployment checklist](https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/).

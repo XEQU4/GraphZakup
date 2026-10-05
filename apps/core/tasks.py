@@ -2,7 +2,8 @@ import logging
 
 from celery import shared_task
 from django.conf import settings
-from django.core.management import call_command
+from apps.ingestion.leases import IngestionBusy
+from apps.ingestion.services import IngestionFailure, run_pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -13,10 +14,10 @@ logger = logging.getLogger(__name__)
     default_retry_delay=120,
     name="apps.core.tasks.update_all_data",
 )
-def update_all_data(self):
+def update_all_data(self, resume=None):
     """
-    Запускает полный пайплайн каждые 12 часов:
-      parse 500 new contracts → enrich_suppliers → build_clusters
+    Проверяет 500 договоров с начала реестра, обновляет компании и граф.
+    При повторе продолжает сохранённый запуск с его текущей стадии.
 
     Ручной запуск:
         uv run celery -A config call apps.core.tasks.update_all_data
@@ -26,19 +27,23 @@ def update_all_data(self):
         return {"status": "disabled"}
     logger.info("=== Старт обновления данных (500 новых контрактов) ===")
     try:
-        call_command("import_contracts", total=500, mode="new")
+        run = run_pipeline(mode='update', total=500, resume=resume)
         logger.info("=== Пайплайн завершён успешно ===")
+    except IngestionBusy:
+        return {'status': 'busy'}
     except Exception as exc:
+        if isinstance(exc, IngestionFailure):
+            resume = exc.run_id
         failure_type = type(exc).__name__
         logger.error("Пайплайн завершился ошибкой (%s)", failure_type)
     else:
-        return None
+        return {'status': run.status, 'run': str(run.uuid)}
 
     # Retry outside the original except block: neither its values nor its
     # cause chain may enter Celery's exception serialization/logging.
     safe_error = RuntimeError(f"Pipeline failed ({failure_type})")
     try:
-        retry = self.retry(exc=safe_error, throw=False)
+        retry = self.retry(exc=safe_error, throw=False, kwargs={'resume': resume})
     except Exception:
         # Covers exhausted retries and failures while publishing the retry.
         raise safe_error from None

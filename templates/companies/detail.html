@@ -210,6 +210,10 @@
                                         {{ ds.director.full_name }}
                                     </a>
 
+                                    {% if ds.identity_status != 'verified' %}
+                                        <br><small class="text-muted">Личность между компаниями не подтверждена</small>
+                                    {% endif %}
+
                                     {% if ds.director.iin %}
                                         <br>
 

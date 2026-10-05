@@ -1,10 +1,12 @@
 """Safe source errors: messages never include response bodies or credentials."""
 
+import re
+
 
 class SourceError(Exception):
     def __init__(self, code):
-        self.code = code
-        super().__init__(code)
+        self.code = code if isinstance(code, str) and re.fullmatch(r'[a-z0-9_]{1,80}', code) else 'source_failed'
+        super().__init__(self.code)
 
 
 def is_challenge(response):

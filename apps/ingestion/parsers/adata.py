@@ -1,10 +1,10 @@
 import re
 
-import requests
 from bs4 import BeautifulSoup
 
-from services.normalizers import normalize_bin, normalize_email, normalize_phone
-from services.parser_errors import SourceError, is_challenge, require_html_response
+from ..normalizers import normalize_bin, normalize_email, normalize_phone
+from ..errors import SourceError
+from ..transport import HttpTransport
 
 
 def parse_company_html(html, bin_number):
@@ -25,6 +25,7 @@ def parse_company_html(html, bin_number):
             result["director"] = candidate
     # Only explicitly labelled fields outside navigation/support blocks are used.
     # The old global first-phone/email regex could attach site contacts to every company.
+    raw = dict(result)
     for label in soup.find_all(["th", "dt"]):
         if label.find_parent(["header", "footer", "nav"]):
             continue
@@ -34,22 +35,27 @@ def parse_company_html(html, bin_number):
         key = label.get_text(" ", strip=True).lower().rstrip(":")
         value = value_node.get_text(" ", strip=True)
         if key in {"email", "e-mail", "электронная почта"}:
+            raw['email'] = value
             result["email"] = normalize_email(value)
         elif key in {"телефон", "контактный телефон"}:
+            raw['phone'] = value
             result["phone"] = normalize_phone(value)
         elif key in {"адрес", "юридический адрес"}:
+            raw['address'] = value
             result["address"] = value or None
+    result['_raw'] = raw
     return result
 
 
-def fetch_company_data(bin_number: str):
+def fetch_company_data(bin_number: str, transport=None):
     bin_number = normalize_bin(bin_number)
     url = f"https://pk.adata.kz/counterparty/main/company/{bin_number}/basic-info"
+    client = transport or HttpTransport()
     try:
-        response = requests.get(url, timeout=20, headers={"User-Agent": "Mozilla/5.0"})
-    except requests.RequestException as error:
-        raise SourceError("adata_request_failed") from error
-    if response.status_code == 404 and not is_challenge(response):
-        return None
-    require_html_response(response)
-    return parse_company_html(response.text, bin_number)
+        response = client.get(url, timeout=20, allow_not_found=True)
+        if response.status_code == 404:
+            return None
+        return parse_company_html(response.text, bin_number)
+    finally:
+        if transport is None:
+            client.close()

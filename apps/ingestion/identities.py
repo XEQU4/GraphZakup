@@ -1,0 +1,137 @@
+from decimal import Decimal
+import hashlib
+
+from django.db import transaction
+
+from apps.owners.models import Director, Directorship, Owner, Ownership, PersonIdentity
+from .models import IdentityCandidate, PersonSourceIdentity
+from .normalizers import normalize_bin, normalize_date
+
+
+def normalized_name(value):
+    return ' '.join(value.casefold().split())
+
+
+@transaction.atomic
+def resolve_person(supplier, observation, role, name, iin='', verified=False):
+    name = ' '.join(name.split())
+    if not name or len(name) > 255:
+        raise ValueError('person_name_invalid')
+    name_key = normalized_name(name)
+    if verified:
+        iin = normalize_bin(iin)
+        scope = 'iin:' + iin
+    else:
+        iin = ''
+        scope = f'{observation.source}:{supplier.bin}:{role}:' + hashlib.sha256(name_key.encode()).hexdigest()
+    person, _ = PersonIdentity.objects.get_or_create(
+        scope_key=scope, defaults={'full_name': name, 'iin': iin, 'is_verified': verified},
+    )
+    field, Model = ('director', Director) if role == 'director' else ('owner', Owner)
+    if not getattr(person, field + '_id'):
+        representation = Model.objects.create(full_name=name, iin=iin)
+        setattr(person, field, representation)
+        person.save(update_fields=[field])
+    # One source identity per company/name observation, even for a verified shared person.
+    source_key = f'{supplier.bin}:{role}:' + hashlib.sha256((scope + ':' + name_key).encode()).hexdigest()
+    identity, _ = PersonSourceIdentity.objects.get_or_create(
+        source=observation.source, source_key=source_key,
+        defaults={'supplier': supplier, 'person': person, 'role': role, 'observed_name': name,
+                  'normalized_name': name_key, 'observation': observation},
+    )
+    for other in PersonSourceIdentity.objects.filter(normalized_name=name_key).exclude(person=person).iterator():
+        if other.person.is_verified and person.is_verified:
+            # Different confirmed IINs are already negative identity evidence.
+            status = 'rejected'
+        else:
+            status = 'pending'
+        left, right = sorted((identity.pk, other.pk))
+        IdentityCandidate.objects.get_or_create(left_id=left, right_id=right, defaults={
+            'confidence': Decimal('0.250'), 'status': status,
+            'evidence': {'rule': 'same_name_v1', 'sources': sorted({identity.source, other.source}),
+                         'requires_identifier_verification': True},
+        })
+    return person
+
+
+def synchronize_director(supplier, observation):
+    data = observation.normalized_values
+    name = data.get('director_name')
+    # Missing/unknown fields cannot close the last known role.
+    if name in (None, '') and data.get('director_absent') is not True:
+        return
+    person = None
+    if name:
+        person = resolve_person(supplier, observation, 'director', name,
+                                data.get('director_iin', ''), data.get('director_iin_verified') is True)
+    current = list(Directorship.objects.select_for_update().filter(supplier=supplier, is_current=True))
+    if any(item.observed_from and observation.observed_at < item.observed_from for item in current):
+        raise ValueError('out_of_order_role_observation')
+    role = next((item for item in current if person and item.person_identity_id == person.pk), None)
+    for item in current:
+        if role and item.pk == role.pk:
+            continue
+        if item.observed_from and observation.observed_at < item.observed_from:
+            raise ValueError('out_of_order_role_observation')
+        item.is_current = False
+        item.observed_until = observation.observed_at
+        # Observation end is not a proven legal end date.
+        item.save(update_fields=['is_current', 'observed_until'])
+    if person is None:
+        return
+    dates = {key: normalize_date(data.get('director_' + key)) for key in ('start_date', 'end_date')}
+    if dates['start_date'] and dates['end_date'] and dates['end_date'] < dates['start_date']:
+        raise ValueError('invalid_role_interval')
+    if role is None:
+        Directorship.objects.create(
+            supplier=supplier, director=person.director, person_identity=person, source=observation.source,
+            source_observation=observation, identity_status='verified' if person.is_verified else 'source_scoped',
+            observed_from=observation.observed_at, **dates,
+        )
+    elif any(getattr(role, key) != value and value is not None for key, value in dates.items()):
+        for key, value in dates.items():
+            if value is not None:
+                setattr(role, key, value)
+        role.source_observation = observation
+        role.save(update_fields=['start_date', 'end_date', 'source_observation'])
+
+
+def synchronize_owners(supplier, observation):
+    data = observation.normalized_values
+    if data.get('owners_complete') is not True:
+        return
+    if not isinstance(data.get('owners'), list):
+        raise ValueError('complete_owner_list_missing')
+    current = list(Ownership.objects.select_for_update().filter(supplier=supplier, source=observation.source, is_current=True))
+    if any(item.observed_from and observation.observed_at < item.observed_from for item in current):
+        raise ValueError('out_of_order_role_observation')
+    observed = set()
+    for item in data.get('owners', []):
+        person = resolve_person(supplier, observation, 'owner', item['full_name'],
+                                item.get('iin', ''), item.get('iin_verified') is True)
+        share = Decimal(str(item['share_percent'])) if item.get('share_percent') is not None else None
+        if share is not None and (not share.is_finite() or not 0 <= share <= 100):
+            raise ValueError('invalid_share_percent')
+        if share is not None:
+            share = Ownership._meta.get_field('share_percent').clean(share, None)
+        dates = {key: normalize_date(item.get(key)) for key in ('start_date', 'end_date')}
+        if dates['start_date'] and dates['end_date'] and dates['end_date'] < dates['start_date']:
+            raise ValueError('invalid_role_interval')
+        role = Ownership.objects.filter(supplier=supplier, person_identity=person, is_current=True).first()
+        if role is None:
+            Ownership.objects.create(
+                supplier=supplier, owner=person.owner, person_identity=person, source=observation.source,
+                source_observation=observation, share_percent=share, observed_from=observation.observed_at,
+                identity_status='verified' if person.is_verified else 'source_scoped', **dates,
+            )
+        else:
+            role.share_percent, role.source_observation = share, observation
+            for key, value in dates.items():
+                if value is not None:
+                    setattr(role, key, value)
+            role.save(update_fields=['share_percent', 'source_observation', 'start_date', 'end_date'])
+        observed.add(person.pk)
+    # Only a complete, successful owner list from the same source can retire roles.
+    Ownership.objects.filter(supplier=supplier, source=observation.source, is_current=True).exclude(
+        person_identity_id__in=observed,
+    ).update(is_current=False, observed_until=observation.observed_at)

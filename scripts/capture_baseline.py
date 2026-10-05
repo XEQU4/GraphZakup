@@ -17,7 +17,7 @@ import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_DIRECTORIES = ("apps", "config", "services", "logging_setup", "static", "templates", "docs", "scripts", "tests")
+SOURCE_DIRECTORIES = ("apps", "config", "logging_setup", "static", "templates", "docs", "scripts", "tests")
 SOURCE_FILES = ("AGENTS.md", "README.md", "DEPLOY.md", "Dockerfile", "docker-compose.yml", "pyproject.toml", "uv.lock", "manage.py", "test.py", ".env.example", ".gitignore", ".dockerignore")
 EXCLUDED_DIRECTORIES = {"__pycache__", "node_modules", ".venv", ".git"}
 EXCLUDED_SUFFIXES = {".pyc", ".pyo", ".pyd", ".dump", ".backup", ".log", ".pem", ".key"}

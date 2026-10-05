@@ -1,4 +1,5 @@
 from django.contrib import admin
+from apps.ingestion.admin import ReadOnlyAdmin
 
 from .models import (
     Owner,
@@ -8,6 +9,7 @@ from .models import (
     CourtCase,
     TaxDebt,
     Bankruptcy,
+    PersonIdentity,
 )
 
 
@@ -55,11 +57,14 @@ class DirectorAdmin(admin.ModelAdmin):
 
 
 @admin.register(Ownership)
-class OwnershipAdmin(admin.ModelAdmin):
+class OwnershipAdmin(ReadOnlyAdmin):
     list_display = (
         "supplier",
         "owner",
         "share_percent",
+        "identity_status",
+        "is_current",
+        "source",
         "created_at",
     )
 
@@ -76,12 +81,15 @@ class OwnershipAdmin(admin.ModelAdmin):
 
 
 @admin.register(Directorship)
-class DirectorshipAdmin(admin.ModelAdmin):
+class DirectorshipAdmin(ReadOnlyAdmin):
     list_display = (
         "supplier",
         "director",
         "start_date",
         "end_date",
+        "identity_status",
+        "is_current",
+        "source",
     )
 
     search_fields = (
@@ -161,3 +169,6 @@ class BankruptcyAdmin(admin.ModelAdmin):
         "started_at",
         "finished_at",
     )
+
+
+admin.site.register(PersonIdentity, ReadOnlyAdmin)

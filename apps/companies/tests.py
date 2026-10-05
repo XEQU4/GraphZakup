@@ -5,7 +5,6 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import IntegrityError
 from django.test import SimpleTestCase, TestCase
@@ -15,16 +14,16 @@ from apps.contracts.models import Contract
 from apps.core.models import SystemSetting
 from apps.graph.models import RiskCluster
 from apps.owners.models import Director, Directorship
-from services.adata_parser import fetch_company_data, parse_company_html
-from services.contract_registry_parser import ContractPage, ContractRegistryParser
-from services.enricher import enrich_supplier
-from services.normalizers import normalize_amount, normalize_bin, normalize_date, normalize_email
-from services.parser_errors import SourceError
-from services.supplier_registry_parser import SupplierRegistryParser
+from apps.ingestion.parsers.adata import fetch_company_data, parse_company_html
+from apps.ingestion.parsers.contracts import ContractPage, ContractRegistryParser
+from apps.ingestion.normalizers import normalize_amount, normalize_bin, normalize_date, normalize_email
+from apps.ingestion.errors import SourceError
+from apps.ingestion.parsers.companies import SupplierRegistryParser
+from apps.ingestion.transport import HttpTransport
+from apps.ingestion.services import IngestionFailure, run_pipeline
+from apps.ingestion.tests.helpers import FakeProviders
 
 FIXTURES = Path(__file__).resolve().parents[2] / "tests" / "fixtures"
-IMPORT_MODULE = "apps.companies.management.commands.import_contracts"
-ENRICH_MODULE = "apps.companies.management.commands.enrich_suppliers"
 
 
 def fixture(name):
@@ -68,14 +67,14 @@ class SourceParserTests(SimpleTestCase):
 
     def test_http_challenge_and_network_error_are_not_empty_pages(self):
         parser = ContractRegistryParser()
-        parser.MAX_RATE_LIMIT_RETRIES = 0
+        parser.transport.retries = 0
         for bad in (response("Service unavailable", 503), response("g-recaptcha", 200), response("", 200)):
             with self.subTest(status=bad.status_code), patch.object(parser.session, "get", return_value=bad):
-                with patch("services.contract_registry_parser.time.sleep"), self.assertRaises(SourceError):
+                with patch.object(parser.transport, 'sleeper'), self.assertRaises(SourceError):
                     parser.fetch_page(5)
         from curl_cffi.requests import RequestsError
         with patch.object(parser.session, "get", side_effect=RequestsError("private response")):
-            with patch("services.contract_registry_parser.time.sleep"), self.assertRaises(SourceError) as caught:
+            with patch.object(parser.transport, 'sleeper'), self.assertRaises(SourceError) as caught:
                 parser.fetch_page(5)
         self.assertEqual(str(caught.exception), "source_request_failed")
 
@@ -118,25 +117,40 @@ class SourceParserTests(SimpleTestCase):
         self.assertIsNone(parse_company_html(unlabelled, "000000000001")["email"])
 
     def test_adata_challenge_is_not_a_not_found_response(self):
-        with patch("services.adata_parser.requests.get", return_value=response("g-recaptcha", 404)):
+        transport = HttpTransport(retries=0)
+        with patch.object(transport.session, 'get', return_value=response('g-recaptcha', 404)):
             with self.assertRaises(SourceError):
-                fetch_company_data("000000000001")
+                fetch_company_data("000000000001", transport=transport)
 
+    def test_contact_normalization_rejects_support_and_invalid_phone(self):
+        from apps.ingestion.normalizers import normalize_phone
+        self.assertEqual(normalize_phone('8 (700) 000-00-01'), '77000000001')
+        self.assertIsNone(normalize_email('SUPPORT@ADATA.KZ'))
+        self.assertIsNone(normalize_phone('invalid'))
+
+
+class SourceSelectionTests(TestCase):
     def test_valid_contact_fallback_is_chosen_after_normalization(self):
         registry = {"bin": "000000000001", "email": "valid@example.com", "phone": "8 (700) 000-00-01",
                     "registration_date": "24.01.2020", "name": "Demo"}
         adata = {"bin": "000000000001", "email": "SUPPORT@ADATA.KZ", "phone": "invalid"}
-        with patch("services.enricher.registry_parser.get_supplier_data", return_value=registry):
-            with patch("services.enricher.fetch_adata", return_value=adata):
-                data = enrich_supplier("000000000001")
-        self.assertEqual(data["email"], "valid@example.com")
-        self.assertEqual(data["phone"], "77000000001")
-        self.assertEqual(data["registration_date"], date(2020, 1, 24))
+        supplier = Supplier.objects.create(bin='000000000001', name='Demo')
+        providers = FakeProviders(results={('goszakup_supplier', supplier.bin): registry, ('adata', supplier.bin): adata})
+        run_pipeline(mode='enrich', providers=providers)
+        supplier.refresh_from_db()
+        self.assertEqual(supplier.email, 'valid@example.com')
+        self.assertEqual(supplier.phone, '77000000001')
+        self.assertEqual(supplier.registration_date, date(2020, 1, 24))
 
     def test_unavailable_enrichment_source_is_visible_with_valid_fallback(self):
-        with patch("services.enricher.registry_parser.get_supplier_data", side_effect=SourceError("offline")):
-            with patch("services.enricher.fetch_adata", return_value={"bin": "000000000001", "name": "Demo"}):
-                self.assertTrue(enrich_supplier("000000000001")["_source_errors"])
+        supplier = Supplier.objects.create(bin='000000000001', name='Old')
+        providers = FakeProviders(results={('goszakup_supplier', supplier.bin): SourceError('offline'),
+                                           ('adata', supplier.bin): {'name': 'Demo'}})
+        with self.assertRaises(IngestionFailure):
+            run_pipeline(mode='enrich', providers=providers)
+        supplier.refresh_from_db()
+        self.assertEqual(supplier.name, 'Demo')
+        self.assertTrue(supplier.source_observations.filter(status='unavailable').exists())
 
     def test_normalizers_reject_invalid_money_and_identifiers(self):
         self.assertEqual(normalize_amount("1\xa0234,50"), Decimal("1234.50"))
@@ -152,11 +166,12 @@ class SourceParserTests(SimpleTestCase):
 
 class ContractImportIntegrityTests(TestCase):
     def run_import(self, pages, **options):
-        with patch(f"{IMPORT_MODULE}.ContractRegistryParser") as parser:
-            parser.return_value.iter_pages.return_value = iter(pages)
-            with patch(f"{IMPORT_MODULE}.call_command") as downstream:
-                call_command("import_contracts", stdout=StringIO(), **options)
-        return parser.return_value.iter_pages.call_args, downstream.call_args_list
+        providers = FakeProviders(pages)
+        try:
+            run = run_pipeline(providers=providers, **{'mode': 'initial', **options})
+        except IngestionFailure as error:
+            raise CommandError(str(error)) from None
+        return SimpleNamespace(kwargs={'start_page': providers.page_calls[0]}), run
 
     def test_full_scan_preserves_existing_data_roles_clusters_and_new_cursor(self):
         old = Supplier.objects.create(bin="000000000009", name="Existing")
@@ -175,14 +190,15 @@ class ContractImportIntegrityTests(TestCase):
         self.assertEqual(cluster.ai_explanation, "Saved")
         self.assertEqual(SystemSetting.objects.get(key="last_import_page").value, "7")
         self.assertEqual(SystemSetting.objects.get(key="full_import_page").value, "2")
-        self.assertEqual([call.args[0] for call in downstream], ["enrich_suppliers", "build_clusters"])
+        self.assertEqual(downstream.stage, 'complete')
+        self.assertIn('clusters', downstream.counters)
 
     def test_empty_eof_preserves_cursor_and_does_not_run_pipeline(self):
         SystemSetting.objects.create(key="last_import_page", value="5")
         _, downstream = self.run_import([ContractPage(5, (), eof=True)])
         self.assertEqual(SystemSetting.objects.get(key="last_import_page").value, "5")
         self.assertFalse(SystemSetting.objects.filter(key="last_import").exists())
-        self.assertEqual(downstream, [])
+        self.assertEqual(downstream.counters, {})
 
     def test_partial_limit_repeats_page_without_losing_remaining_contracts(self):
         first = ContractPage(1, tuple(contract_record(i) for i in range(1, 51)))
@@ -215,16 +231,11 @@ class ContractImportIntegrityTests(TestCase):
         self.assertEqual(SystemSetting.objects.get(key="last_import_page").value, "5")
 
     def test_source_failure_keeps_successful_page_and_retries_failed_page(self):
-        def pages():
-            yield ContractPage(1, (contract_record(1),))
-            raise SourceError("source_http_503")
-
-        with patch(f"{IMPORT_MODULE}.ContractRegistryParser") as parser:
-            parser.return_value.iter_pages.return_value = pages()
-            with patch(f"{IMPORT_MODULE}.call_command") as downstream:
-                with self.assertRaisesMessage(CommandError, "source_http_503"):
-                    call_command("import_contracts", total=2, stdout=StringIO())
-                downstream.assert_not_called()
+        providers = FakeProviders([ContractPage(1, (contract_record(1),))])
+        providers.pages[2] = SourceError('source_http_503')
+        with self.assertRaisesMessage(IngestionFailure, 'source_http_503'):
+            run_pipeline(mode='initial', total=2, providers=providers)
+        self.assertEqual(providers.company_calls, [])
         self.assertEqual(Contract.objects.count(), 1)
         self.assertEqual(SystemSetting.objects.get(key="last_import_page").value, "2")
 
@@ -247,10 +258,10 @@ class SupplierEnrichmentIntegrityTests(TestCase):
     def test_invalid_company_does_not_prevent_next_company_update(self):
         bad = Supplier.objects.create(bin="000000000001", name="Bad")
         good = Supplier.objects.create(bin="000000000002", name="Good")
-        results = [{"registration_date": "31.02.2020"}, {"registration_date": "24.01.2020", "name": "Updated"}]
-        with patch(f"{ENRICH_MODULE}.enrich_supplier", side_effect=results), patch(f"{ENRICH_MODULE}.sleep"):
-            with self.assertRaisesMessage(CommandError, "Enrichment incomplete"):
-                call_command("enrich_suppliers", stdout=StringIO(), stderr=StringIO())
+        providers = FakeProviders(results={('adata', bad.bin): {'registration_date': '31.02.2020'},
+            ('adata', good.bin): {'registration_date': '24.01.2020', 'name': 'Updated'}})
+        with self.assertRaisesMessage(IngestionFailure, 'enrichment_incomplete'):
+            run_pipeline(mode='enrich', providers=providers)
         bad.refresh_from_db()
         good.refresh_from_db()
         self.assertIsNone(bad.adata_updated_at)
@@ -260,13 +271,13 @@ class SupplierEnrichmentIntegrityTests(TestCase):
 
     def test_missing_or_failed_observation_does_not_mark_company_fresh(self):
         supplier = Supplier.objects.create(bin="000000000001", name="Demo")
-        with patch(f"{ENRICH_MODULE}.enrich_supplier", return_value=None), patch(f"{ENRICH_MODULE}.sleep"):
-            call_command("enrich_suppliers", stdout=StringIO())
+        run_pipeline(mode='enrich', providers=FakeProviders())
         supplier.refresh_from_db()
         self.assertIsNone(supplier.adata_updated_at)
-        with patch(f"{ENRICH_MODULE}.enrich_supplier", return_value={"name": "Updated", "_source_errors": ["offline"]}):
-            with patch(f"{ENRICH_MODULE}.sleep"), self.assertRaises(CommandError):
-                call_command("enrich_suppliers", stdout=StringIO())
+        providers = FakeProviders(results={('adata', supplier.bin): {'name': 'Updated'},
+                                           ('goszakup_supplier', supplier.bin): SourceError('offline')})
+        with self.assertRaises(IngestionFailure):
+            run_pipeline(mode='enrich', providers=providers)
         supplier.refresh_from_db()
         self.assertEqual(supplier.name, "Updated")
         self.assertIsNone(supplier.adata_updated_at)

@@ -4,6 +4,8 @@ from django.db import models
 class Supplier(models.Model):
     bin = models.CharField(max_length=12, unique=True, db_index=True)
     name = models.CharField(max_length=500)
+    is_supplier = models.BooleanField(default=True, db_index=True)
+    is_customer = models.BooleanField(default=False, db_index=True)
 
     director_name = models.CharField(
         max_length=255,

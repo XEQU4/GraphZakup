@@ -8,7 +8,7 @@ from django.utils.html import format_html
 from django.views.generic import DetailView, ListView
 
 from apps.core.mixins import ClampedPaginationMixin
-from apps.owners.querysets import current_role_filter, current_roles
+from apps.owners.querysets import current_role_filter, current_roles, confirmed_role_filter
 from .models import Supplier
 
 EXCLUDED_EMAILS = {"info@adata.kz", "support@adata.kz"}
@@ -22,7 +22,7 @@ class SupplierListView(ClampedPaginationMixin, ListView):
 
     @staticmethod
     def _base_queryset():
-        return Supplier.objects.annotate(
+        return Supplier.objects.filter(is_supplier=True).annotate(
             contracts_count=Count('contracts', distinct=True),
             computed_risk=Floor(Coalesce(
                 Avg('risk_clusters__risk_score', filter=Q(risk_clusters__is_active=True)),
@@ -121,7 +121,7 @@ class SupplierDetailView(DetailView):
         )
 
         director_ids = list(
-            directorships.values_list("director_id", flat=True)
+            directorships.filter(confirmed_role_filter()).values_list("person_identity_id", flat=True)
         )
 
         related_by_director = Supplier.objects.none()
@@ -130,7 +130,10 @@ class SupplierDetailView(DetailView):
                 Supplier.objects
                 .filter(
                     current_role_filter('directorships__'),
-                    directorships__director_id__in=director_ids,
+                    confirmed_role_filter('directorships__'),
+                    directorships__person_identity_id__in=director_ids,
+                    directorships__identity_status='verified',
+                    directorships__source_observation__isnull=False,
                 )
                 .exclude(pk=company.pk)
                 .distinct()

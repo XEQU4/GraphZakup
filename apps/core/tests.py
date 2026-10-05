@@ -105,27 +105,27 @@ class HealthTests(TestCase):
 class ImportOptInTests(SimpleTestCase):
     @override_settings(ENABLE_SCHEDULED_IMPORT=False)
     def test_disabled_task_does_not_run_even_if_old_beat_schedule_enqueues_it(self):
-        with patch("apps.core.tasks.call_command") as command:
+        with patch("apps.core.tasks.run_pipeline") as command:
             self.assertEqual(update_all_data.run(), {"status": "disabled"})
         command.assert_not_called()
 
     @override_settings(ENABLE_SCHEDULED_IMPORT=True)
     def test_explicit_opt_in_runs_pipeline(self):
-        with patch("apps.core.tasks.call_command") as command:
+        with patch("apps.core.tasks.run_pipeline") as command:
             update_all_data.run()
-        command.assert_called_once_with("import_contracts", total=500, mode="new")
+        command.assert_called_once_with(mode='update', total=500, resume=None)
 
     @override_settings(ENABLE_SCHEDULED_IMPORT=True)
     def test_retry_and_log_do_not_include_source_exception_values(self):
         marker = "private-source-bin-password-sql-marker"
 
-        def prepare_retry(*, exc, throw):
+        def prepare_retry(*, exc, throw, kwargs):
             self.assertFalse(throw)
             self.assertNotIn(marker, str(exc))
             self.assertIsNone(exc.__context__)
             return Retry(exc=exc, when=120)
 
-        with patch("apps.core.tasks.call_command", side_effect=ValueError(marker)), \
+        with patch("apps.core.tasks.run_pipeline", side_effect=ValueError(marker)), \
                 patch.object(update_all_data, "retry", side_effect=prepare_retry), \
                 self.assertLogs("apps.core.tasks", level="ERROR") as logs:
             with self.assertRaises(Retry) as raised:
@@ -140,7 +140,7 @@ class ImportOptInTests(SimpleTestCase):
         marker = "private-source-sql-on-exhaustion"
         update_all_data.push_request(retries=2, called_directly=False, is_eager=False)
         try:
-            with patch("apps.core.tasks.call_command", side_effect=ValueError(marker)), \
+            with patch("apps.core.tasks.run_pipeline", side_effect=ValueError(marker)), \
                     self.assertLogs("apps.core.tasks", level="ERROR") as logs:
                 with self.assertRaises(RuntimeError) as raised:
                     update_all_data.run()
@@ -153,7 +153,7 @@ class ImportOptInTests(SimpleTestCase):
     @override_settings(ENABLE_SCHEDULED_IMPORT=True)
     def test_failure_publishing_retry_does_not_expose_broker_credentials(self):
         marker = "private-source-or-broker-password"
-        with patch("apps.core.tasks.call_command", side_effect=ValueError(marker)), \
+        with patch("apps.core.tasks.run_pipeline", side_effect=ValueError(marker)), \
                 patch.object(update_all_data, "retry", side_effect=ConnectionError(marker)), \
                 self.assertLogs("apps.core.tasks", level="ERROR") as logs:
             try:

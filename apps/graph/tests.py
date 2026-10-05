@@ -21,6 +21,7 @@ from apps.graph.models import RiskCluster
 from apps.graph.services import build_director_map, rebuild_clusters
 from apps.graph.views import ClusterDetailView, build_graph_data
 from apps.owners.models import Director, Directorship, Owner, Ownership
+from apps.ingestion.tests.helpers import verified_role
 
 
 class ClusterIntegrityTests(TestCase):
@@ -252,20 +253,21 @@ class ClusterIntegrityTests(TestCase):
     def test_prefetched_graph_has_no_pair_queries(self):
         director = Director.objects.create(full_name="Тестовый руководитель")
         suppliers = [self.supplier(number, "") for number in range(1, 9)]
-        Directorship.objects.bulk_create([Directorship(supplier=supplier, director=director) for supplier in suppliers])
-        loaded = list(Supplier.objects.prefetch_related("directorships__director"))
+        for supplier in suppliers:
+            verified_role(supplier, director)
+        loaded = list(Supplier.objects.prefetch_related("directorships__director", "directorships__person_identity", "directorships__source_observation"))
         with self.assertNumQueries(0):
             graph = build_graph_data(loaded, cluster=RiskCluster(risk_score=35))
         self.assertEqual(len(graph["links"]), 28)
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(4):
             build_graph_data(suppliers, cluster=RiskCluster(risk_score=35))
 
     def test_ended_and_future_roles_do_not_connect_current_graph(self):
         today = timezone.localdate()
         suppliers = [self.supplier(1, ""), self.supplier(2, "")]
         director = Director.objects.create(full_name="Тестовый руководитель")
-        Directorship.objects.create(supplier=suppliers[0], director=director, end_date=today)
-        Directorship.objects.create(supplier=suppliers[1], director=director, start_date=today + timedelta(days=1))
+        verified_role(suppliers[0], director, end_date=today)
+        verified_role(suppliers[1], director, start_date=today + timedelta(days=1))
         self.assertEqual(rebuild_clusters(as_of=today)["groups"], 0)
         self.assertEqual(build_director_map(suppliers, today), {s.pk: set() for s in suppliers})
         self.assertEqual(build_graph_data(suppliers, cluster=RiskCluster())["links"], [])
@@ -290,7 +292,7 @@ class ClusterIntegrityTests(TestCase):
         suppliers = [self.supplier(1, ""), self.supplier(2, "")]
         director = Director.objects.create(full_name="Тестовый руководитель")
         for supplier in suppliers:
-            Directorship.objects.create(supplier=supplier, director=director)
+            verified_role(supplier, director)
         rebuild_clusters()
         text = explain_cluster(RiskCluster.objects.get(is_active=True))
         self.assertNotIn("одновременно", text)

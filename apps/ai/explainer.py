@@ -20,7 +20,7 @@ EXCLUDED_EMAILS = {"info@adata.kz", "support@adata.kz"}
 
 def _director_map(suppliers):
     return {
-        s.id: {d.director_id: d.director.full_name for d in current_directorships(s)}
+        s.id: {d.person_identity_id: d.director.full_name for d in current_directorships(s)}
         for s in suppliers
     }
 
@@ -38,7 +38,8 @@ def _format_company_list(names):
 
 
 def explain_cluster(cluster):
-    suppliers = list(cluster.suppliers.order_by("pk").prefetch_related("directorships__director", "ownerships__owner"))
+    suppliers = list(cluster.suppliers.order_by("pk").prefetch_related(
+        "directorships__director", "directorships__person_identity", "directorships__source_observation", "ownerships__owner"))
     director_map = _director_map(suppliers)
 
     # Группируем компании по конкретному совпадающему значению —

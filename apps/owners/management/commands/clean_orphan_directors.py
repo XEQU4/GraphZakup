@@ -5,16 +5,7 @@ from apps.owners.models import Director
 
 
 class Command(BaseCommand):
-    """
-    Команда import_contracts --mode full стирает Supplier и Contract,
-    но не трогает Director/Directorship. Если до этого уже были связи
-    Directorship на удалённые Supplier (через on_delete=CASCADE они тоже
-    удаляются), у Director может остаться 0 directorships — "осиротевшая"
-    запись без единой компании.
-
-    Эта команда находит и удаляет таких "осиротевших" директоров.
-    Безопасна для повторного запуска.
-    """
+    """Удаляет только записи без ролей и без защищённой истории идентичности."""
 
     help = "Remove Director records with zero linked companies"
 
@@ -30,7 +21,7 @@ class Command(BaseCommand):
 
         orphans = Director.objects.annotate(
             companies_count=Count("directorships")
-        ).filter(companies_count=0)
+        ).filter(companies_count=0, personidentity__isnull=True)
 
         count = orphans.count()
 

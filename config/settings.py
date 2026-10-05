@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "apps.dashboard.apps.DashboardConfig",
     "apps.core.apps.CoreConfig",  # ← CoreConfig.ready() вызывает init_logging()
     "apps.ai.apps.AiConfig",
+    "apps.ingestion.apps.IngestionConfig",
 ]
 
 MIDDLEWARE = [
@@ -141,6 +142,11 @@ if ENABLE_SCHEDULED_IMPORT:
     }
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_RESULT_EXPIRES = 60 * 60 * 24
+
+# Applied by ingestion, shared by CLI and Celery. No live requests during offline tests.
+INGESTION_LEASE_SECONDS = int(os.getenv('INGESTION_LEASE_SECONDS', '900'))
+INGESTION_SOURCE_CACHE_SECONDS = int(os.getenv('INGESTION_SOURCE_CACHE_SECONDS', '900'))
+INGESTION_REQUEST_INTERVAL = float(os.getenv('INGESTION_REQUEST_INTERVAL', '1.5'))
 
 # ─── ВНЕШНИЕ API ───────────────────────────────────────────────────────────────
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
