@@ -22,6 +22,9 @@ from .observations import (
     json_values, normalize_company_result, record_observation,
 )
 from .providers import SourceProviders
+from .kgd import normalize_kgd_result, record_kgd_result
+from .parsers.kgd import KgdParser, TAXPAYER_SOURCE, DEBT_SOURCE
+from django.conf import settings
 
 
 class IngestionFailure(Exception):
@@ -96,12 +99,27 @@ def save_contract(run, item):
     return contract
 
 
-def _new_run(mode, total, start_page, force, days):
+def _new_run(mode, total, start_page, force, days, company_bin=None, kgd_service=None):
     mode = {'new': 'initial'}.get(mode, mode)
-    if mode not in ('initial', 'update', 'full', 'enrich'):
+    if mode not in ('initial', 'update', 'full', 'enrich', 'kgd'):
         raise ValueError('invalid_ingestion_mode')
     if total <= 0 or (start_page is not None and start_page < 1) or days <= 0:
         raise ValueError('invalid_ingestion_options')
+    if mode == 'kgd':
+        if total > 500 or start_page is not None or kgd_service not in (None, 'taxpayer', 'tax_debt'):
+            raise ValueError('invalid_kgd_options')
+        companies = Supplier.objects.order_by('pk')
+        if company_bin is not None:
+            companies = companies.filter(bin=normalize_bin(company_bin))
+        ids = list(companies.values_list('pk', flat=True)[:total])
+        if company_bin is not None and not ids:
+            raise ValueError('kgd_company_not_found')
+        return IngestionRun.objects.create(mode=mode, stage='kgd', options={
+            'total': total, 'force': force, 'days': days, 'company_ids': ids,
+            'kgd_service': kgd_service or 'taxpayer',
+        })
+    if company_bin is not None or kgd_service is not None:
+        raise ValueError('kgd_options_require_kgd_mode')
     run = IngestionRun.objects.create(mode=mode, stage='enrichment' if mode == 'enrich' else 'contracts',
                                      options={'total': total, 'force': force, 'days': days})
     if mode != 'enrich':
@@ -248,8 +266,71 @@ def _enrichment_stage(run, lease, providers):
         run.save(update_fields=['stage', 'counters', 'updated_at'])
 
 
+def _kgd_stage(run, lease, providers):
+    """Bounded company checks; never updates people, clusters or explanations."""
+    failed_ids = run.issues.filter(stage='kgd', resolved=False).values_list('supplier_id', flat=True)
+    suppliers = Supplier.objects.filter(pk__in=run.options['company_ids']).filter(
+        Q(pk__gt=run.enrichment_cursor) | Q(pk__in=failed_ids)).order_by('pk')
+    sources = (TAXPAYER_SOURCE, DEBT_SOURCE) if run.options['kgd_service'] == 'tax_debt' else (TAXPAYER_SOURCE,)
+    for supplier in suppliers.iterator(chunk_size=100):
+        lease.heartbeat()
+        results = []
+        for source in sources:
+            confirmed = bool(results and results[0].status == ResultStatus.SUCCESS)
+            try:
+                if source == DEBT_SOURCE and not confirmed:
+                    result = SourceResult(source, f'company:{supplier.bin}', ResultStatus.NOT_CHECKED,
+                                          parser_version=KgdParser.VERSION, error_code='kgd_legal_entity_unconfirmed')
+                else:
+                    cached = None
+                    if not run.options['force'] and providers.kgd_cache_allowed(source, supplier.bin):
+                        cached = cached_company_result(source, supplier, KgdParser.VERSION,
+                                                       seconds=settings.KGD_SOURCE_CACHE_SECONDS)
+                    result = cached or providers.kgd(source, supplier.bin, legal_entity_confirmed=confirmed)
+                result = normalize_kgd_result(result, source, supplier)
+            except LeaseLost:
+                raise
+            except Exception as error:
+                result = SourceResult(source, f'company:{supplier.bin}', ResultStatus.INVALID if isinstance(
+                    error, (ValueError, TypeError, ValidationError)) else ResultStatus.UNAVAILABLE,
+                    parser_version=KgdParser.VERSION, source_url=KgdParser.SOURCE_URLS[source],
+                    error_code='kgd_result_invalid')
+            results.append(result)
+        try:
+            with transaction.atomic():
+                lease.ensure_owned()
+                for result in results:
+                    record_kgd_result(run, result, supplier)
+                    if result.status in (ResultStatus.SUCCESS, ResultStatus.NOT_FOUND):
+                        run.issues.filter(source=result.source, subject_key=result.subject_key,
+                                          stage='kgd').update(resolved=True)
+                    else:
+                        issue(run, result.source, result.subject_key, 'kgd',
+                              result.error_code or 'kgd_not_checked', supplier=supplier)
+                run.issues.filter(source='persistence', subject_key=f'company:{supplier.bin}',
+                                  stage='kgd').update(resolved=True)
+                run.enrichment_cursor = max(run.enrichment_cursor, supplier.pk)
+                run.counters = {**run.counters, 'kgd_company_attempts': run.counters.get('kgd_company_attempts', 0) + 1}
+                run.save(update_fields=['enrichment_cursor', 'counters', 'updated_at'])
+        except LeaseLost:
+            raise
+        except Exception:
+            with transaction.atomic():
+                lease.ensure_owned()
+                run.refresh_from_db()
+                issue(run, 'persistence', f'company:{supplier.bin}', 'kgd', 'kgd_save_failed', supplier=supplier)
+                run.enrichment_cursor = max(run.enrichment_cursor, supplier.pk)
+                run.save(update_fields=['enrichment_cursor', 'updated_at'])
+    if run.issues.filter(stage='kgd', resolved=False).exists():
+        raise IngestionFailure(run, 'kgd_checks_incomplete')
+    with transaction.atomic():
+        lease.ensure_owned()
+        run.stage = 'complete'
+        run.save(update_fields=['stage', 'updated_at'])
+
+
 def run_pipeline(*, mode='update', total=500, start_page=None, force=False, days=7,
-                 resume=None, providers=None, cluster_builder=None):
+                 resume=None, providers=None, cluster_builder=None, company_bin=None, kgd_service=None):
     if resume is not None:
         run = IngestionRun.objects.get(uuid=uuid.UUID(str(resume)))
         if run.mode == 'legacy':
@@ -264,7 +345,7 @@ def run_pipeline(*, mode='update', total=500, start_page=None, force=False, days
         with transaction.atomic():
             lease.ensure_owned()
             if run is None:
-                run = _new_run(mode, total, start_page, force, days)
+                run = _new_run(mode, total, start_page, force, days, company_bin, kgd_service)
             else:
                 run.refresh_from_db()
                 run.status, run.error_code, run.finished_at = 'running', '', None
@@ -272,6 +353,8 @@ def run_pipeline(*, mode='update', total=500, start_page=None, force=False, days
                 run.save(update_fields=['status', 'error_code', 'finished_at', 'attempts', 'updated_at'])
             lease.attach(run)
         client = providers or SourceProviders(heartbeat=lease.heartbeat)
+        if run.stage == 'kgd':
+            _kgd_stage(run, lease, client)
         if run.stage == 'contracts':
             _contracts_stage(run, lease, client)
         if run.stage == 'enrichment':

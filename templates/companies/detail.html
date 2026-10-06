@@ -36,6 +36,41 @@
     {% endif %}
 </div>
 
+<div class="card mb-3">
+    <div class="card-header">KGD checks</div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for check in kgd_checks %}
+                <section class="col-md-6" aria-label="{{ check.title }}">
+                    <h3 class="h6">{{ check.title }}: <span class="badge bg-secondary">{{ check.status }}</span></h3>
+                    {% if check.latest %}
+                        <p class="small mb-1">Latest attempt: {{ check.latest.observed_at|date:"Y-m-d H:i T" }}</p>
+                    {% endif %}
+                    {% if check.successful %}
+                        <p class="small mb-1">Last successful observation: {{ check.successful.observed_at|date:"Y-m-d H:i T" }}</p>
+                        {% if check.stale %}<p class="text-warning small mb-1">Retained result may be outdated. Current status is not confirmed.</p>{% endif %}
+                        {% if check.source == 'kgd_taxpayer' %}
+                            <p class="small mb-1">{{ check.data.kgd_taxpayer_name }} ({{ check.data.kgd_taxpayer_type }})</p>
+                            <p class="small mb-1">Registration begins: {{ check.data.kgd_registration_begin|default:"Not provided" }}</p>
+                            {% if check.data.kgd_registration_end %}
+                                <p class="small mb-1">Registration ends: {{ check.data.kgd_registration_end }}. {{ check.data.kgd_end_reason }}</p>
+                            {% endif %}
+                        {% else %}
+                            <p class="small mb-1">Overall arrears: {{ check.total_arrears|floatformat:2 }} KZT</p>
+                            <p class="small mb-1">Tax arrears: {{ check.tax_arrears|floatformat:2 }} KZT</p>
+                            <p class="small mb-1">Reporting dates: {{ check.reporting_dates|join:", "|default:"Not provided by source" }}</p>
+                            <p class="small mb-1">Totals may include the company's structural units. These are company liabilities.</p>
+                        {% endif %}
+                    {% else %}
+                        <p class="small mb-1">No confirmed result is stored. This does not establish absence of arrears.</p>
+                    {% endif %}
+                    <a class="small text-info" href="{{ check.source_url }}" target="_blank" rel="noopener noreferrer">Official service documentation</a>
+                </section>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
 <div class="row g-3 mb-3 align-items-stretch" style="align-items:stretch;">
     <div class="col-lg-4 d-flex">
         <div class="card w-100">

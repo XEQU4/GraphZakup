@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (IngestionRun, IngestionLease, SourceCheckpoint, SourceObservation,
-                     IngestionIssue, SelectedFact, PersonSourceIdentity, IdentityCandidate)
+                     IngestionIssue, SelectedFact, PersonSourceIdentity, IdentityCandidate, CompanyKgdState)
 
 
 class ReadOnlyAdmin(admin.ModelAdmin):
@@ -41,3 +41,9 @@ class CandidateAdmin(ReadOnlyAdmin):
 
 for model in (IngestionLease, SourceCheckpoint, SelectedFact, PersonSourceIdentity):
     admin.site.register(model, ReadOnlyAdmin)
+
+
+@admin.register(CompanyKgdState)
+class KgdStateAdmin(ReadOnlyAdmin):
+    list_display = ('supplier_id', 'source', 'latest_observation', 'last_successful_observation')
+    list_filter = ('source',)

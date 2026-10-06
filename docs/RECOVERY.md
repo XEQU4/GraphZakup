@@ -78,3 +78,27 @@ On 5 October 2026, a new PostgreSQL 17.6 dump was created before schema changes 
 Another restored database was upgraded through all migrations. Existing values in 28 tables outside migration history matched by original PKs/columns, allowing added fields/rows. Contracts/original people/roles/cluster UUIDs/membership/texts survived. All 128 tests passed in another isolated PostgreSQL database; both temporary databases dropped. Source matched the dump before/after checks.
 
 See `artifacts/phase2/postgresql-verification.json` and [PHASE2.md](PHASE2.md). Legacy roles are archived with company-scoped identities; reverse data migration intentionally does not restore name merges. Recover old schema from a separately restored verified backup. The working database was not migrated during Phase 2. Before upgrading, confirm no writes occurred after backup; otherwise create a current one.
+
+## Verified Phase 3 upgrade
+
+On 5 October 2026, the current PostgreSQL 17.6 database was backed up before adding the KGD state model. `artifacts/phase3/database_20261005T180443Z_3f4eaeb2.json` records passed restoration, equality of all 38 public tables, verified migration history and cleanup. Dump SHA-256: `6d9277931ce1645fed7c5af42c3ebdc99e3e3778456f42ab8c83fa36a872e8a5`.
+
+The dump checksum was checked before another isolated restore/upgrade. `ingestion.0006_companykgdstate` preserved original values in all 37 tables outside migration history and created zero KGD state rows. All 165 offline tests passed in a second isolated PostgreSQL database. Source comparison before/after matched the backup; both temporary databases were removed. See `artifacts/phase3/postgresql-verification.json` and [PHASE3.md](PHASE3.md).
+
+The working database was not migrated during this implementation. Apply the prepared migration only after confirming this backup is still current, or create/verify a fresh one if there have been writes. No live KGD data is present merely because the table exists.
+
+## KGD live-check preparation, 6 October 2026
+
+A fresh backup `artifacts/phase3/database_20261006T100832Z_6181978d.json` passed independent restoration; the restore database was dropped. Dump SHA-256: `2445270a3f32703fe9ef0d2bf2d6512c09524594ed575fad7e6064fc3acf63bb`. All 38 working tables matched this backup after preparation.
+
+A separate empty PostgreSQL database was migrated and seeded with one selected company BIN and a placeholder name, without importing working records or inventing KGD observations. Its exact generated name and ownership marker are in the ignored `artifacts/phase3/kgd-check-preparation.json`; use both to verify ownership before later cleanup. This database was not deleted and must not be confused with the temporary restore database, which was deleted. Preparation checks passed before live authorisation; see `artifacts/phase3/kgd-preparation-verification.json`.
+
+After explicit user authorisation, exactly one taxpayer request succeeded. At that point the separate database retained one accepted source observation and one KGD state; the taxpayer runner guards against repeating that request in the same database. Repeated company GETs, successful resume and cache validation used the saved result without HTTP requests. Afterward, all 38 working tables still matched the fresh verified backup. The working database was neither migrated nor modified. Post-check report: `artifacts/phase3/kgd-live-preservation-verification.json`; scope and remaining limits are in [PHASE3.md](PHASE3.md). Retaining the isolated evidence database does not authorise further collection.
+
+## KGD arrears and reporting-date correction, 6 October 2026
+
+A separately authorised single arrears request reused that day's verified registration within a test-only 24-hour cache; the working cache stayed at 900 seconds. The service accepted the second ISNA token as the account-token parameter and returned a complete zero-arrears response. Version `3.0` rejected its reporting timestamp format and retained the failed attempt safely. Only allowlisted identity, amounts and reporting-date fields were saved privately for offline reprocessing.
+
+Before accepting parser `3.1`, the current backup above was checksum-verified, independently restored and upgraded again. All 37 original tables outside migration history retained their values, all 167 tests passed on a separate PostgreSQL test database, and all 38 working tables still matched the backup. Both generated restore/test databases were removed. Report: `artifacts/phase3/postgresql-reporting-date-verification.json`.
+
+The same partial KGD run was resumed using saved permitted fields, with HTTP blocked, and completed successfully. Original retrieval times and the failed `3.0` observation were retained; accepted `3.1` observations are marked as reused. The isolated evidence database now retains both company checks and remains ownership-marked for later controlled cleanup. It was not deleted. The working database was neither migrated nor modified. Report: `artifacts/phase3/kgd-debt-reprocessing-verification.json`. No full original response or credential value was placed in documentation, fixtures or images.

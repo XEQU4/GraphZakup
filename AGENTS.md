@@ -19,6 +19,7 @@ This project is a thesis system for analysing relationships between participants
 - Do not put passwords, tokens, `.env`, dumps, or original responses containing personal data in documentation, test fixtures, Git or Docker images. Local backups and reports belong in the ignored `artifacts/` directory.
 - Parsers fetch and normalise data; ingestion services own persistence and stage orchestration. Do not add separate orchestration to views or management commands.
 - Parse money as `Decimal` from a string. Distinguish a missing result, a temporary source failure, and confirmed absence of a finding.
+- Phase 3 is complete for its implemented services: two authorised requests verified taxpayer identity and a complete zero-arrears response for one company in an isolated database; see [docs/PHASE3.md](docs/PHASE3.md). The first credential works as `X-Portal-Token`, and the second ISNA credential was accepted as `personalAccountToken` for the selected check. Parser `3.1` fixed the returned reporting timestamp format; offline reprocessing preserved retrieval times and the failed attempt. Keep checks disabled without credentials, preserve company-specific last successes, and do not infer negative checks from unavailable data. Broader company entitlement, quotas and unverified source variants remain operational limits. No automatic KGD pipeline or Phase 4 work is authorised by this status.
 
 ## Graphs and explanations
 

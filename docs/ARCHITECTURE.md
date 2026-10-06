@@ -1,6 +1,6 @@
 # GovernmentProcurementGraph architecture
 
-Recorded on 5 October 2026 after Phase 2. This document distinguishes implemented behaviour from the target thesis architecture. Ingestion, provenance, and identity are implemented; KGD, snapshots, DRF, and React remain planned.
+Recorded on 5 October 2026; KGD acceptance updated on 6 October 2026. This document distinguishes implemented behaviour from the target thesis architecture. Ingestion, provenance, identity and KGD adapters/state are implemented; authorised taxpayer and complete zero-arrears responses are verified for one company. Saved-result reuse and offline reprocessing preserve retrieval times. Broader KGD entitlement/source variants remain unverified. Snapshots, DRF and React remain planned.
 
 Collect procurement/company information, show verifiable links, and explain observed patterns. A link does not establish wrongdoing; group contract volume is not damage. Conclusions require sources, temporal context, and confidence.
 
@@ -13,7 +13,7 @@ A procurement analyst checking company links is the initial design assumption. A
 | Requirement | Status |
 | --- | --- |
 | Consolidate/optimise parsers | Implemented in Phase 2: shared session, pacing, caches, checkpoints, lease, resumable stages |
-| KGD information | Requested; verify service coverage/access in Phase 3 |
+| KGD information | Taxpayer/arrears adapters and retained checks accepted for one company's registration/zero-arrears scenario; broader coverage unverified |
 | DRF backend and React | Requested; gradual transition retaining Django/migrations |
 | Persist graph/analysis/explanations | Requested; proposed storage below |
 | Update explanations after significant changes | Phase 1 preserves texts/checks fingerprint staleness; background versioning planned |
@@ -27,12 +27,13 @@ A procurement analyst checking company links is the initial design assumption. A
 
 Django/PostgreSQL store suppliers, contracts, owners, directors, and clusters. Pages use templates/JavaScript/Bootstrap; D3 draws graphs. DRF/React are absent.
 
-Three [parsers](../apps/ingestion/parsers) handle contracts, participants, and Adata. The shared [service](../apps/ingestion/services.py) stores observations/roles/stage progress; commands and [Celery](../apps/core/tasks.py) call it directly. [Compose](../docker-compose.yml) defines PostgreSQL, Redis, migrate, web, worker, and beat. Automatic collection defaults off. See [PHASE1.md](PHASE1.md)/[PHASE2.md](PHASE2.md).
+The common [parser directory](../apps/ingestion/parsers) handles contracts, participants, Adata and KGD. The shared [service](../apps/ingestion/services.py) stores observations/roles/stage progress; commands and [Celery](../apps/core/tasks.py) call it directly. [Compose](../docker-compose.yml) defines PostgreSQL, Redis, migrate, web, worker, and beat. Automatic collection and manual KGD checks default off. See [PHASE1.md](PHASE1.md), [PHASE2.md](PHASE2.md) and [PHASE3.md](PHASE3.md).
 
 | Area | Implementation | Limitation |
 | --- | --- | --- |
 | Companies/contracts | [Supplier](../apps/companies/models.py) supplier/customer roles; [Contract](../apps/contracts/models.py) customer FK; SourceObservation/SelectedFact | Supplier name retained for compatibility; source completeness/freshness unproven |
 | People/roles | [PersonIdentity, Owner, Director, Ownership, Directorship](../apps/owners/models.py), source identities/candidates | Evidence and observed history exist; confirmed IIN/legal periods/ownership require external sources |
+| KGD company checks | SourceObservation plus CompanyKgdState; identity-gated taxpayer/arrears adapters; manual leased pipeline; read-only UI | Fixture-tested; no official access/live verification; no graph/score integration yet |
 | Graph | [Connection/RiskCluster](../apps/graph/models.py), [service](../apps/graph/services.py) | UUID/text retained; Connection/immutable snapshots not a shared evidence source yet |
 | Explanations | [Deterministic explainer](../apps/ai/explainer.py), saved text | GET reads/checks member fingerprint; versioned analysis/generation absent |
 | LLM | Separate ai integration | Outside normal cluster viewing; no deduplication/version mechanism |
@@ -91,13 +92,15 @@ Distinguish success, object absence, source unavailability, malformed response, 
 | `IdentityCandidate` | Possible match, evidence, confidence, decision |
 | `SelectedFact`, `IngestionIssue`, `IngestionLease` | Selected provenance, retryable errors, concurrent publication fencing |
 | `PersonIdentity`, `PersonSourceIdentity` | Verified or isolated identity, source, observed name |
-| Tax observation (Phase 3 proposal) | Company/person, KGD information type, value, effective date, check state |
+| `CompanyKgdState` (Phase 3) | Company/source, latest attempt and retained last successful observation; reporting dates kept in evidence |
 
 Initial loading, regular updates, and retries are separate. Checkpoints advance after confirmed processing, retaining partial-page state. Repeats produce the same domain data without duplicates.
 
 Verified BIN is an exact company key. Name similarity finds candidates/variants. Names alone cannot merge people without reliable identifiers/supporting evidence. Legacy false merges must be reversible without losing observations.
 
 Keep retrieval dates separate from effective periods. Unknown periods stay unknown. Simultaneous leadership requires proven overlap. Company tax debt is not owner debt.
+
+KGD runs are separate from contract/enrichment/cluster stages and check a fixed selection of up to 500 companies. Taxpayer lookup must confirm the exact BIN and legal-entity type before an arrears request. Private portal/account credentials never enter run options or observation URLs. Latest attempt and retained last success have separate references; cache reuse does not advance retrieval time. Company-page GET reads state only. Current KGD observations do not alter identity/roles or graph scores. Verification scope, payload assumptions and operational limits are explicit in [PHASE3.md](PHASE3.md).
 
 ## Evidence and analysis
 
@@ -166,7 +169,7 @@ Install from lockfile; app services wait for successful migration, not independe
 | DRF/React | User requirement; roadmap proposes implementation |
 | No name-only person merge | Implemented: scoped identities/candidates/IIN evidence/legacy isolation |
 | Observations/temporal roles | Implemented; unknown legal boundaries remain unknown |
-| Tax data linked to verified subject | Proposed; prevents debt transfer to people |
+| Tax data linked to exact legal-entity BIN | Implemented with source identity gates and company evidence; live validation pending |
 | Shared evidence graph | Proposed; prevents divergent computations |
 | Stable UUID/snapshots/lineage | Required; inheritance refined in Phase 4 |
 | Analysis hashes separate from views | Proposed; moving nodes must not regenerate text |

@@ -86,6 +86,21 @@ class SelectedFact(models.Model):
         constraints = [models.UniqueConstraint(fields=['supplier', 'field'], name='ingestion_selected_field_unique')]
 
 
+class CompanyKgdState(models.Model):
+    """Current attempt and retained last success; evidence lives in observations."""
+    supplier = models.ForeignKey('companies.Supplier', on_delete=models.PROTECT, related_name='kgd_states')
+    source = models.CharField(max_length=40, choices=[
+        ('kgd_taxpayer', 'Taxpayer registration'), ('kgd_tax_debt', 'Tax arrears'),
+    ])
+    latest_observation = models.ForeignKey(SourceObservation, on_delete=models.PROTECT,
+                                          related_name='latest_kgd_states')
+    last_successful_observation = models.ForeignKey(SourceObservation, null=True, blank=True,
+                                                   on_delete=models.PROTECT, related_name='successful_kgd_states')
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['supplier', 'source'], name='ingestion_kgd_company_source_unique')]
+
+
 class IngestionIssue(models.Model):
     run = models.ForeignKey(IngestionRun, on_delete=models.PROTECT, related_name='issues')
     source = models.CharField(max_length=40)

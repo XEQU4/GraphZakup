@@ -1,0 +1,9 @@
+{
+  "iinBin": "000000000001",
+  "totalArrear": "123456789012345.67",
+  "totalTaxArrear": "123456789012339.67",
+  "pensionContributionArrear": "1.00",
+  "socialContributionArrear": "2.00",
+  "socialHealthInsuranceArrear": "3.00",
+  "taxOrgInfos": [{"reportAcrualDate": "2026-10-01"}]
+}

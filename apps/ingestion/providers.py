@@ -1,4 +1,5 @@
 from django.conf import settings
+import json
 
 from .dto import ResultStatus, SourceResult
 from .errors import SourceError
@@ -6,6 +7,7 @@ from .normalizers import normalize_bin
 from .parsers.adata import fetch_company_data
 from .parsers.companies import SupplierRegistryParser
 from .parsers.contracts import ContractRegistryParser
+from .parsers.kgd import KgdParser, TAXPAYER_SOURCE, DEBT_SOURCE, LEGAL_TYPES
 from .transport import HttpTransport
 
 
@@ -20,6 +22,7 @@ class SourceProviders:
         )
         self.contracts = ContractRegistryParser(self.transport)
         self.companies = SupplierRegistryParser(self.transport)
+        self._kgd = None
 
     def contract_page(self, number):
         return self.contracts.fetch_page(number)
@@ -52,3 +55,46 @@ class SourceProviders:
 
     def close(self):
         self.transport.close()
+
+    def kgd_client(self):
+        if self._kgd is None:
+            tokens = json.loads(settings.KGD_ACCOUNT_TOKENS_JSON or '{}')
+            if not isinstance(tokens, dict) or len(tokens) > 1000:
+                raise ValueError('kgd_account_configuration_invalid')
+            for key in tokens:
+                normalize_bin(key)
+            self._kgd = KgdParser(self.transport, enabled=settings.ENABLE_KGD_CHECKS,
+                                  portal_token=settings.KGD_PORTAL_TOKEN, account_tokens=tokens,
+                                  taxpayer_type=settings.KGD_TAXPAYER_TYPE, timeout=settings.KGD_HTTP_TIMEOUT)
+        return self._kgd
+
+    @property
+    def kgd_ready(self):
+        try:
+            return self.kgd_client().ready
+        except (ValueError, TypeError):
+            return False
+
+    def kgd(self, source, bin_number, *, legal_entity_confirmed=False):
+        bin_number = normalize_bin(bin_number)
+        if source not in KgdParser.SOURCE_URLS:
+            raise ValueError('kgd_source_invalid')
+        try:
+            client = self.kgd_client()
+        except (ValueError, TypeError):
+            return SourceResult(source, f'company:{bin_number}', ResultStatus.NOT_CHECKED,
+                                parser_version=KgdParser.VERSION, source_url=KgdParser.SOURCE_URLS[source],
+                                error_code='kgd_configuration_invalid')
+        return client.fetch(source, bin_number, legal_entity_confirmed=legal_entity_confirmed)
+
+    def kgd_cache_allowed(self, source, bin_number):
+        """Cache cannot bypass the credentials required by the selected service."""
+        try:
+            client = self.kgd_client()
+        except (ValueError, TypeError):
+            return False
+        if not client.ready:
+            return False
+        if source == TAXPAYER_SOURCE:
+            return client.taxpayer_type in LEGAL_TYPES
+        return source == DEBT_SOURCE and client._valid_token(client.account_tokens.get(bin_number))

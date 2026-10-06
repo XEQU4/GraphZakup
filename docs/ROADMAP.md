@@ -11,7 +11,7 @@ Based on the [audit](AUDIT.md), [baseline](BASELINE.md), [recovery record](RECOV
 | 0 | Record baseline and proposed thesis scope | Complete |
 | 1 | Fix dangerous defects and make startup reproducible | Complete |
 | 2 | Consolidate ingestion and correct the fact model | Complete |
-| 3 | Integrate available KGD information | Planned |
+| 3 | Integrate available KGD information | Complete: taxpayer and zero-arrears checks verified for one authorised company |
 | 4 | Persist graph versions and substantially improve graph interaction | Planned |
 | 5 | Introduce verifiable analysis and versioned explanations | Planned |
 | 6 | Provide a DRF API | Planned |
@@ -100,6 +100,8 @@ Dependency: Phase 2 ingestion/subject model. Read-only access research may start
 - Prepare anonymised fixtures; separately verify live integration when access is available.
 
 Acceptance: identifier-confirmed subjects; distinct `not_found`, `unavailable`, `not_checked`; reproducible results. Live official-source verification is required for completion. Without access, document the limitation rather than claim fixture-only integration is complete.
+
+Outcome: complete for the implemented taxpayer and aggregate company-arrears services. On 6 October 2026 two authorised requests checked one company in an isolated database: registration confirmed the exact BIN/type `UL`, and arrears returned all five zero amounts with a source reporting date. The second ISNA credential was accepted as `personalAccountToken` alongside the first portal token. Parser `3.1` fixed the observed reporting timestamp format; offline reprocessing preserved original retrieval times and the failed attempt, without another HTTP request. All 167 tests passed on isolated PostgreSQL; restored-copy migration preserved existing values and all 38 working tables remained unchanged. GET, successful resume and cache reuse read saved results. Scope and unverified source variants/other-company entitlement are documented in [PHASE3.md](PHASE3.md). Phase 4 requires separate authorisation.
 
 ## Phase 4 Graph state and appearance
 
@@ -203,6 +205,6 @@ Set thresholds after baseline measurement/sample selection. Algorithm-tailored e
 
 ## Open decisions
 
-KGD access/first service; sample size/bidding data; references/UI/graph library; audience/roles/publication (procurement analyst is unconfirmed); LLM need/model/budget; thesis deadline/API costs; phase calendar after scope confirmation without invented estimates.
+KGD broader-company entitlement, quotas and unverified source variants (one taxpayer and complete zero-arrears response verified); sample size/bidding data; references/UI/graph library; audience/roles/publication (procurement analyst is unconfirmed); LLM need/model/budget; thesis deadline/API costs; phase calendar after scope confirmation without invented estimates.
 
-Next ordered step: Phase 3 KGD research/integration, only on user instruction. Completed phases update this roadmap and repository instructions.
+Next ordered step: Phase 4 graph state and interaction, after a separate user instruction. Do not repeat accepted KGD checks merely to read saved results. Future broader KGD validation remains bounded and explicitly authorised. Completed phases update this roadmap and repository instructions.

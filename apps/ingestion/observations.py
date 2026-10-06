@@ -6,6 +6,7 @@ import re
 from urllib.parse import urlsplit, parse_qs
 
 from django.conf import settings
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.companies.models import Supplier
@@ -13,6 +14,7 @@ from .dto import ResultStatus, SourceResult
 from .identities import synchronize_director, synchronize_owners
 from .models import SourceObservation, SelectedFact
 from .normalizers import normalize_bin, normalize_date, normalize_email, normalize_phone
+from .parsers.kgd import FIELDS_BY_SOURCE, KgdParser
 
 COMPANY_FIELDS = (
     'name', 'director_name', 'address', 'region', 'city', 'phone', 'email', 'oked', 'company_status',
@@ -72,8 +74,9 @@ def record_observation(run, result, supplier=None, contract=None):
         raise ValueError('invalid_observation_metadata')
     if not result.subject_key or len(result.subject_key) > 255 or not result.parser_version or len(result.parser_version) > 40:
         raise ValueError('invalid_observation_metadata')
-    values = {key: value for key, value in result.data.items() if key in ALLOWED_FIELDS}
-    raw = {key: value for key, value in result.raw.items() if key in ALLOWED_FIELDS}
+    allowed = FIELDS_BY_SOURCE.get(result.source, ALLOWED_FIELDS)
+    values = {key: value for key, value in result.data.items() if key in allowed}
+    raw = {key: value for key, value in result.raw.items() if key in allowed}
     owner_fields = {'full_name', 'iin', 'iin_verified', 'share_percent', 'start_date', 'end_date'}
     for container in (values, raw):
         if 'owners' in container:
@@ -84,8 +87,11 @@ def record_observation(run, result, supplier=None, contract=None):
     source_url = result.source_url
     if source_url:
         parsed = urlsplit(source_url)
-        if (parsed.scheme != 'https' or parsed.hostname not in ('goszakup.gov.kz', 'pk.adata.kz')
+        kgd = result.source in FIELDS_BY_SOURCE
+        allowed_hosts = ('portal.kgd.gov.kz',) if kgd else ('goszakup.gov.kz', 'pk.adata.kz')
+        if (parsed.scheme != 'https' or parsed.hostname not in allowed_hosts
                 or parsed.username or parsed.password or parsed.port not in (None, 443) or parsed.fragment
+                or (kgd and source_url != KgdParser.SOURCE_URLS[result.source])
                 or len(source_url) > 1000 or set(parse_qs(parsed.query, keep_blank_values=True)) -
                 {'page', 'filter[name]', 'search', 'filter[attribute]'}):
             raise ValueError('invalid_observation_url')
@@ -103,8 +109,8 @@ def record_observation(run, result, supplier=None, contract=None):
     return observation
 
 
-def cached_company_result(source, supplier, version='2.0'):
-    seconds = settings.INGESTION_SOURCE_CACHE_SECONDS
+def cached_company_result(source, supplier, version='2.0', *, seconds=None):
+    seconds = settings.INGESTION_SOURCE_CACHE_SECONDS if seconds is None else seconds
     if seconds <= 0:
         return None
     observation = SourceObservation.objects.filter(
@@ -113,8 +119,9 @@ def cached_company_result(source, supplier, version='2.0'):
     ).order_by('-observed_at', '-pk').first()
     # A newer failure invalidates cache use; retry must contact the failed source.
     if not observation or SourceObservation.objects.filter(
-        source=source, subject_key=observation.subject_key, observed_at__gt=observation.observed_at,
-    ).exclude(status='success').exists():
+        source=source, subject_key=observation.subject_key,
+    ).filter(Q(observed_at__gt=observation.observed_at) |
+             Q(observed_at=observation.observed_at, pk__gt=observation.pk)).exclude(status='success').exists():
         return None
     data = dict(observation.normalized_values)
     return SourceResult(source, observation.subject_key, ResultStatus.SUCCESS, data=data,

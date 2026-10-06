@@ -2,7 +2,7 @@
 
 GrafZakup is a thesis project for analysing company relationships in Kazakhstan's public procurement. It collects contract and company information, shows matching attributes, and explains the grounds for further review by an analyst.
 
-The current version is a Django prototype with PostgreSQL, Celery, Redis, HTML templates and D3.js. Migration to DRF and React, KGD integration, saved analysis versions and interface improvements are planned in phases. Observed matches and the current heuristic score do not establish a violation.
+The current version is a Django prototype with PostgreSQL, Celery, Redis, HTML templates and D3.js. KGD adapters and retained company checks are implemented: authorised taxpayer and complete zero-arrears responses are verified for one company, with saved-result reuse. Broader entitlement and source variants remain unverified. Migration to DRF and React, saved analysis versions and interface improvements are planned in phases. Observed matches and the current heuristic score do not establish a violation.
 
 English is the primary language for project documentation, code comments, interfaces and generated explanations. Russian website localisation will be added later, after the English version is complete. Source data and the labels used to parse official websites retain their original language.
 
@@ -17,6 +17,7 @@ English is the primary language for project documentation, code comments, interf
 | [Backup and recovery](docs/RECOVERY.md) | Database export, restoration checks and local artifacts |
 | [Phase 1 results](docs/PHASE1.md) | Fixes, verification and remaining limitations |
 | [Phase 2 results](docs/PHASE2.md) | Unified ingestion, provenance, role history and migration checks |
+| [Phase 3 implementation](docs/PHASE3.md) | KGD adapters, verified registration/zero-arrears checks, saved results and scope limits |
 | [English project baseline](docs/LANGUAGE.md) | Language rules, translated deliverables and offline verification |
 | [Deployment and updates](DEPLOY.md) | Docker Compose, environment variables and health checks |
 | [Codex instructions](AGENTS.md) | Workflow, data preservation and verification rules |
@@ -60,7 +61,7 @@ node tests/frontend_regressions.cjs
 .\.venv\Scripts\python.exe -B manage.py makemigrations --check --dry-run --settings=config.test_settings
 ```
 
-`test.py` contains the user's learning exercises, not application tests. After Phase 2, all 128 tests passed on PostgreSQL; SQLite skips two PostgreSQL concurrency checks. The update protocol and limitations are in [PHASE2.md](docs/PHASE2.md).
+`test.py` contains the user's learning exercises, not application tests. With Phase 3 parser version `3.1`, all 167 tests passed on isolated PostgreSQL; SQLite skips two PostgreSQL concurrency checks. The update protocols and limitations are in [PHASE2.md](docs/PHASE2.md) and [PHASE3.md](docs/PHASE3.md).
 
 To capture source files and check the current environment from PowerShell:
 
@@ -81,6 +82,8 @@ uv run python manage.py ingestion_status
 ```
 
 Intentional collection uses `ingest_data`: `--mode=initial` continues the initial scan, `--mode=update` reads a window of new/updated contracts from the beginning, and `--mode=enrich` refreshes company profiles. `--resume=UUID` continues a saved run from its failed stage. `full` performs upserts without clearing data. These commands contact live sources; modes, limits and field provenance are documented in [PHASE2.md](docs/PHASE2.md). Local updates require the new migrations; the working database was not changed during phase verification.
+
+Phase 3 adds an opt-in `--mode=kgd` for existing companies: taxpayer registration first, optionally aggregate company arrears. The company page only reads stored checks; failed requests retain the last success and never imply zero arrears. Checks default off (`ENABLE_KGD_CHECKS=false`) and are not added to automatic imports or beat schedules. Registration requires a portal token; arrears additionally require an accepted account token. Two authorised requests verified registration and a complete zero-arrears response for one company in an isolated database. Parser `3.1` fixed the returned reporting timestamp format; offline reprocessing preserved original retrieval times and failure history, without another request. The working database was neither migrated nor modified. Phase 3 is complete within this verified scope; access setup, commands and operational limits are in [PHASE3.md](docs/PHASE3.md).
 
 Start the next implementation after verifying the current phase's acceptance criteria. Phase 4 changes the graph algorithm, storage and presentation. The overall React UI/UX will follow the user's references in Phase 7. Russian localisation follows completion of the English interface.
 

@@ -50,6 +50,32 @@ def update_all_data(self, resume=None):
     raise retry from None
 
 
+@shared_task(bind=True, max_retries=2, default_retry_delay=120, name='apps.core.tasks.check_kgd')
+def check_kgd(self, company_bin=None, service='taxpayer', total=1, resume=None):
+    """Opt-in manual KGD checks using the same leased pipeline as the CLI."""
+    if not settings.ENABLE_KGD_CHECKS:
+        return {'status': 'disabled'}
+    try:
+        run = run_pipeline(mode='kgd', company_bin=company_bin, kgd_service=service, total=total, resume=resume)
+    except IngestionBusy:
+        return {'status': 'busy'}
+    except Exception as error:
+        if isinstance(error, IngestionFailure):
+            resume = error.run_id
+        failure_type = type(error).__name__
+        logger.error('KGD pipeline failed (%s)', failure_type)
+    else:
+        return {'status': run.status, 'run': str(run.uuid)}
+    safe_error = RuntimeError(f'KGD pipeline failed ({failure_type})')
+    try:
+        retry = self.retry(exc=safe_error, throw=False, kwargs={
+            'company_bin': company_bin, 'service': service, 'total': total, 'resume': resume,
+        })
+    except Exception:
+        raise safe_error from None
+    raise retry from None
+
+
 @shared_task(name="apps.core.tasks.cleanup_logs")
 def cleanup_logs():
     """Daily cleanup of logs older than 30 days."""

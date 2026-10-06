@@ -8,6 +8,7 @@ from django.utils.html import format_html
 from django.views.generic import DetailView, ListView
 
 from apps.core.mixins import ClampedPaginationMixin
+from apps.ingestion.kgd import company_kgd_statuses
 from apps.owners.querysets import current_role_filter, current_roles, confirmed_role_filter
 from .models import Supplier
 
@@ -204,6 +205,7 @@ class SupplierDetailView(DetailView):
             "risk_color": risk_color,
             "total_related": total_related,
             "website_url": website_url,
+            "kgd_checks": company_kgd_statuses(company),
         })
 
         return context

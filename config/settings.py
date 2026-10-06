@@ -156,6 +156,17 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "qwen/qwen3-8b:free")
 GOSZAKUP_TOKEN = os.getenv("GOSZAKUP_TOKEN", "")
 
+# Explicit opt-in; credentials are never stored in ingestion parameters/results.
+ENABLE_KGD_CHECKS = env_bool("ENABLE_KGD_CHECKS")
+KGD_PORTAL_TOKEN = os.getenv("KGD_PORTAL_TOKEN", "")
+KGD_ACCOUNT_TOKENS_JSON = os.getenv("KGD_ACCOUNT_TOKENS_JSON", "{}")
+KGD_TAXPAYER_TYPE = os.getenv("KGD_TAXPAYER_TYPE", "UL")
+KGD_HTTP_TIMEOUT = int(os.getenv("KGD_HTTP_TIMEOUT", "30"))
+KGD_SOURCE_CACHE_SECONDS = int(os.getenv("KGD_SOURCE_CACHE_SECONDS", "900"))
+KGD_RESULT_MAX_AGE_DAYS = int(os.getenv("KGD_RESULT_MAX_AGE_DAYS", "7"))
+if not 1 <= KGD_HTTP_TIMEOUT <= 60 or KGD_SOURCE_CACHE_SECONDS < 0 or KGD_RESULT_MAX_AGE_DAYS < 1:
+    raise ImproperlyConfigured("Invalid KGD timeout, cache lifetime or result age.")
+
 # ─── LOGGING ───────────────────────────────────────────────────────────────
 # Logging is configured by logging_setup (CoreConfig.ready()),
 # rather than Django's LOGGING dictionary, preserving colours, rotation,
