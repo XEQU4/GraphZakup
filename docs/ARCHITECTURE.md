@@ -1,6 +1,6 @@
 # GovernmentProcurementGraph architecture
 
-Recorded on 5 October 2026; KGD acceptance updated on 6 October 2026. This document distinguishes implemented behaviour from the target thesis architecture. Ingestion, provenance, identity and KGD adapters/state are implemented; authorised taxpayer and complete zero-arrears responses are verified for one company. Saved-result reuse and offline reprocessing preserve retrieval times. Broader KGD entitlement/source variants remain unverified. Snapshots, DRF and React remain planned.
+Recorded on 5 October 2026; KGD and graph status updated on 6 October 2026. This document distinguishes implemented behaviour from the target thesis architecture. Ingestion, provenance, identity and KGD checks are implemented; registration and complete zero arrears are verified for one company. Phase 4 implements indexed evidence, immutable graph snapshots/lineage, personal views and explicit background recalculation. All 191 PostgreSQL tests passed and the user accepted the revised graph prototype, deferring further design/motion work to Phase 7. Broader KGD coverage, versioned analysis/explanations, DRF and React remain future work.
 
 Collect procurement/company information, show verifiable links, and explain observed patterns. A link does not establish wrongdoing; group contract volume is not damage. Conclusions require sources, temporal context, and confidence.
 
@@ -15,9 +15,9 @@ A procurement analyst checking company links is the initial design assumption. A
 | Consolidate/optimise parsers | Implemented in Phase 2: shared session, pacing, caches, checkpoints, lease, resumable stages |
 | KGD information | Taxpayer/arrears adapters and retained checks accepted for one company's registration/zero-arrears scenario; broader coverage unverified |
 | DRF backend and React | Requested; gradual transition retaining Django/migrations |
-| Persist graph/analysis/explanations | Requested; proposed storage below |
+| Persist graph/analysis/explanations | Graph snapshots and personal views implemented; analysis/explanation versions planned in Phase 5 |
 | Update explanations after significant changes | Phase 1 preserves texts/checks fingerprint staleness; background versioning planned |
-| Substantial graph improvement | Explicitly requested; Phase 4 |
+| Substantial graph improvement | Implemented and prototype accepted; final graph/interface polish follows in Phase 7 |
 | Attractive, usable reference-based UI | Requested; user references pending, final style undecided |
 | Docker backend/Celery/Redis/database | Fixed and verified in Phase 1: shared build, migration gate, health checks |
 | README/startup documentation | Updated as phases progress |
@@ -33,12 +33,12 @@ The common [parser directory](../apps/ingestion/parsers) handles contracts, part
 | --- | --- | --- |
 | Companies/contracts | [Supplier](../apps/companies/models.py) supplier/customer roles; [Contract](../apps/contracts/models.py) customer FK; SourceObservation/SelectedFact | Supplier name retained for compatibility; source completeness/freshness unproven |
 | People/roles | [PersonIdentity, Owner, Director, Ownership, Directorship](../apps/owners/models.py), source identities/candidates | Evidence and observed history exist; confirmed IIN/legal periods/ownership require external sources |
-| KGD company checks | SourceObservation plus CompanyKgdState; identity-gated taxpayer/arrears adapters; manual leased pipeline; read-only UI | Fixture-tested; no official access/live verification; no graph/score integration yet |
-| Graph | [Connection/RiskCluster](../apps/graph/models.py), [service](../apps/graph/services.py) | UUID/text retained; Connection/immutable snapshots not a shared evidence source yet |
+| KGD company checks | SourceObservation plus CompanyKgdState; identity-gated taxpayer/arrears adapters; manual leased pipeline; read-only UI | Registration/zero-arrears accepted for one company; broader coverage and graph/score integration unverified |
+| Graph | RiskCluster, EvidenceEdge, GraphInputState, GraphSnapshot, ClusterLineage; indexed atomic [service](../apps/graph/services.py) | All inputs still read for dirty detection; publication is scoped; legacy score remains uncalibrated |
 | Explanations | [Deterministic explainer](../apps/ai/explainer.py), saved text | GET reads/checks member fingerprint; versioned analysis/generation absent |
 | LLM | Separate ai integration | Outside normal cluster viewing; no deduplication/version mechanism |
 | Background work | Celery, beat, IngestionRun, fenced lease | Resumable shared pipeline; lease protects service calls, not arbitrary scripts |
-| UI | Templates/Bootstrap/D3 | Graph data/layout/explanation do not form a persisted version |
+| UI | Templates/Bootstrap/D3, saved graph history, GraphViewState, search/evidence/path navigation | User accepted graph prototype; automated browser/dense/responsive visual checks unverified; final design/React follow references |
 
 The [audit](AUDIT.md) records defects/check boundaries. Architecture documentation does not verify source quality/completeness.
 
@@ -106,7 +106,7 @@ KGD runs are separate from contract/enrichment/cluster stages and check a fixed 
 
 `EvidenceEdge` links observations with type, participants, normalised feature, interval, sources, and confidence. Graph and explanation use the same evidence.
 
-Feature indexes replace all-pairs comparison. Common contacts/addresses require separate treatment, possibly dedicated feature nodes/aggregates; choose after performance/usability tests.
+Feature indexes and shared person/contact nodes replace all-pairs comparison in production graph publication. Contacts used by more than 20 companies remain weak evidence but do not form groups. This is a provisional conservative heuristic, not a calibrated risk rule. The legacy pair-projection helper remains for compatibility; graph pages read snapshots. See [PHASE4.md](PHASE4.md).
 
 Separate identity, link reliability, and behavioural risk. Connected-component membership proves neither every pair's direct relation nor uniform risk. Version group rules/scoring.
 
@@ -120,18 +120,18 @@ Separate persistent groups, versions, and personal views.
 
 | Entity | Purpose |
 | --- | --- |
-| `Cluster` | Permanent UUID/current published version |
-| `ClusterSnapshot` | Immutable membership, significant nodes, link evidence |
-| `ClusterLineage` | Merge/split transitions |
+| `RiskCluster` (implemented) | Permanent UUID/current GraphSnapshot |
+| `GraphSnapshot` (implemented) | Immutable membership, significant nodes, copied link evidence, graph hash and changes |
+| `ClusterLineage` (implemented) | Merge/split/retirement/reactivation transitions |
 | `AnalysisSnapshot` | Inputs/findings/score/rule versions |
 | `Explanation` | Text/status/language/model/template or prompt version/analysis link |
-| `GraphViewState` | User/state-schema version/coordinates/pins/zoom/filters |
+| `GraphViewState` (implemented) | User/state-schema version/coordinates/pins/zoom/filters, optimistic revision checks |
 
 `graph_hash` covers canonical significant nodes/edges. `analysis_hash` also covers rule-used facts/metrics and relevant rule/normaliser versions. Repeat retrieval dates, row order, and run IDs do not change hashes alone. If a rule uses fact age, include an explicit analysis date/evaluation period.
 
 Reuse text by `analysis_hash`, prompt/template version, model, and language. Changed facts/rules/explanation parameters create new results. Database uniqueness handles concurrent deduplication. Initially prepare English; add Russian variants with later localisation.
 
-Recompute affected components/necessary neighbours and retain old snapshots. Proposed merge policy continues a deterministically chosen UUID with predecessor links; splits continue one old UUID and assign new ones to others. Selection rules require approval/tests in Phase 4. Old links resolve through lineage.
+Rebuilds detect dirty company inputs and close impact over previous/current features and active memberships. The index still reads all inputs; unaffected groups receive no recreated versions. Exact composition wins, including a possible archived UUID; otherwise maximum overlap, Jaccard and oldest record determine continuation. Splits retain one UUID and can reactivate exact archived compositions or create new UUIDs. Old links and predecessor snapshots remain readable through lineage. GraphRebuildJob deduplicates staff-requested work, enqueues after commit, shares the ingestion lease and records exact resulting versions. See the verified scenarios in [PHASE4.md](PHASE4.md).
 
 Jobs target exact snapshots. Late output stays in history without replacing current text. Show version, calculation time, and explanation state. GET reads saved results; authorised POST starts work.
 
@@ -169,13 +169,13 @@ Install from lockfile; app services wait for successful migration, not independe
 | DRF/React | User requirement; roadmap proposes implementation |
 | No name-only person merge | Implemented: scoped identities/candidates/IIN evidence/legacy isolation |
 | Observations/temporal roles | Implemented; unknown legal boundaries remain unknown |
-| Tax data linked to exact legal-entity BIN | Implemented with source identity gates and company evidence; live validation pending |
-| Shared evidence graph | Proposed; prevents divergent computations |
-| Stable UUID/snapshots/lineage | Required; inheritance refined in Phase 4 |
-| Analysis hashes separate from views | Proposed; moving nodes must not regenerate text |
-| Versioned background results | Proposed; prevents late-result overwrites |
+| Tax data linked to exact legal-entity BIN | Implemented and accepted for one company's registration/zero-arrears scenario |
+| Shared evidence graph | Implemented for grouping, graph rendering and compatibility template; Phase 5 rules consume snapshots |
+| Stable UUID/snapshots/lineage | Implemented; repeat, addition, retirement, merge/split and restoration scenarios verified |
+| Analysis hashes separate from views | Graph hashes exclude views now; analysis hashes follow in Phase 5 |
+| Versioned background results | Graph jobs record exact versions and fence publication; analysis/LLM jobs follow in Phase 5 |
 | Rules/templates before LLM | Proposed; verifiable offline explanations |
-| Same-origin sessions initially | Proposed; confirm roles/publication model |
+| Same-origin sessions initially | Implemented for graph writes/CSRF; broader API roles/publication follow in Phase 6 |
 | English first, Russian localisation later | User instruction; preserve original source data |
 
 ## Thesis version and further development

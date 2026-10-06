@@ -1,4 +1,4 @@
-// Offline behavior regressions for the current UI; no npm install required.
+﻿// Offline behavior regressions for the current UI; no npm install required.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
@@ -63,40 +63,39 @@ async function testSearch(filename, prefix, bodyId, paginationId, row) {
 
 function testGraphTooltip() {
     const payload = '<img src=x onerror=alert(1)>';
-    const data = {nodes: [{id: 1, name: payload, risk: 80}], links: []};
-    const callbacks = [];
-    const textWrites = [];
-    const htmlWrites = [];
+    const data = {nodes: [{id: 'company:1', name: payload, kind:'company', bin:'000000000001', url:'/companies/1/'}], links: []};
+    const callbacks = [], textWrites = [], htmlWrites = [];
     let chain;
-    chain = new Proxy({}, {get(_, method) {
-        return (...args) => {
-            if (method === 'on' && args[0] === 'mouseover') callbacks.push(args[1]);
-            if (method === 'text' && typeof args[0] !== 'function') textWrites.push(args[0]);
-            if (method === 'html') htmlWrites.push(args[0]);
-            return chain;
-        };
-    }});
+    chain = new Proxy({}, {get(_, method) { return (...args) => {
+        if (method === 'on' && args[0] === 'mouseover') callbacks.push(args[1]);
+        if (method === 'text' && typeof args[0] !== 'function') textWrites.push(args[0]);
+        if (method === 'html') htmlWrites.push(args[0]);
+        return chain;
+    }; }});
     const d3 = {};
-    for (const name of ['select', 'forceSimulation', 'forceLink', 'forceManyBody', 'forceCenter', 'forceCollide', 'drag', 'zoom']) {
-        d3[name] = () => chain;
-    }
-    d3.zoomIdentity = chain;
-    const context = {
-        document: {getElementById(id) {
-            return id === 'graph' ? {dataset: {companyUrl: '/companies/'}, clientWidth: 800}
-                : {textContent: JSON.stringify(data)};
-        }},
-        d3, console, window: {location: {}},
-    };
-    vm.runInNewContext(fs.readFileSync('static/js/cluster_graph.js', 'utf8'), context);
-    assert.equal(callbacks.length, 2);
-    const event = {pageX: 0, pageY: 0};
-    callbacks[0].call({}, event, data.nodes[0]);
-    callbacks[1].call({}, event, {type: payload});
-    assert.equal(htmlWrites.length, 0, 'Graph hover must not pass source data to an HTML sink');
-    assert.ok(textWrites.some(text => String(text).includes(payload)), 'Malicious name stays literal tooltip text');
+    for (const name of ['select','forceSimulation','forceLink','forceManyBody','forceCenter','forceCollide','drag','zoom']) d3[name] = () => chain;
+    d3.zoomIdentity = chain; d3.zoomTransform = () => ({x:0,y:0,k:1});
+    const element = () => ({textContent:'', addEventListener(){}, setAttribute(){}, replaceChildren(){}, appendChild(item){return item;}});
+    const elements = new Map();
+    const context = {d3, console, window:{d3, location:{}}, document:{
+        getElementById(id) {
+            if (id === 'graph-rebuild') return null;
+            if (!elements.has(id)) elements.set(id,element());
+            const item = elements.get(id);
+            if (id === 'graph') Object.assign(item,{dataset:{},clientWidth:800,clientHeight:640});
+            if (id === 'graph-data') item.textContent = JSON.stringify(data);
+            if (id === 'graph-options') item.textContent = JSON.stringify({cluster_id:'fixture',view:{revision:0,payload:null},authenticated:false});
+            return item;
+        }, querySelectorAll(){return [];}, createElement:element, createTextNode(value){return {textContent:value};},
+    }};
+    vm.runInNewContext(fs.readFileSync('static/js/cluster_graph.js','utf8'),context);
+    assert.equal(callbacks.length,2);
+    const event = {offsetX:0,offsetY:0};
+    callbacks[0].call({},event,{type:payload,value:payload,confidence:'.250'});
+    callbacks[1].call({},event,data.nodes[0]);
+    assert.equal(htmlWrites.length,0,'Graph source data must not reach an HTML sink');
+    assert.ok(textWrites.some(text => String(text).includes(payload)),'Malicious name remains literal tooltip text');
 }
-
 (async () => {
     const payload = '<img src=x onerror=alert(1)>';
     await testSearch('static/js/search_companies.js', 'companies', 'companies-tbody', 'pagination-wrap', {
@@ -113,3 +112,4 @@ function testGraphTooltip() {
     testGraphTooltip();
     console.log('PASS: three searches escape source text and reject obsolete responses; graph tooltips render literal text.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
+

@@ -327,7 +327,8 @@ class ClusterStateMigrationTests(TransactionTestCase):
             identifier = cluster.uuid
             executor = MigrationExecutor(connection)
             executor.migrate([("graph", "0003_cluster_analysis_state")])
-            restored = RiskCluster.objects.get(pk=cluster.pk)
+            state = executor.loader.project_state([('graph', '0003_cluster_analysis_state')])
+            restored = state.apps.get_model('graph', 'RiskCluster').objects.get(pk=cluster.pk)
             self.assertEqual(restored.uuid, identifier)
             self.assertEqual(restored.ai_explanation, "Saved")
             self.assertEqual(restored.suppliers.count(), 1)

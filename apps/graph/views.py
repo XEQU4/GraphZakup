@@ -1,19 +1,26 @@
 from collections import defaultdict
+import json
 import re
 
-from django.db.models import prefetch_related_objects
-from django.http import HttpResponseBadRequest
+from django.db.models import prefetch_related_objects, Prefetch
+from django.http import HttpResponseBadRequest, JsonResponse, Http404
+from django.shortcuts import get_object_or_404
+from django.core.exceptions import ValidationError
+from django.views.decorators.http import require_http_methods, require_POST, require_GET
 from django.utils import timezone
 from django.views.generic import ListView, DetailView
 
 from apps.core.mixins import ClampedPaginationMixin
-from .models import RiskCluster
+from .models import RiskCluster, GraphSnapshot, GraphRebuildJob
+from .view_states import saved_view, save_view, ViewConflict
+from .jobs import request_rebuild
+from apps.owners.models import Directorship, Ownership
 from .services import analysis_fingerprint, build_director_map, get_connection_types, get_risk_weights
 
 
 def build_graph_data(suppliers, cluster=None):
     """
-    Build graph data for D3.js.
+    Legacy pair projection retained for old callers; pages use saved evidence.
 
     Node risk is the score of the currently viewed cluster.
     Without an explicit cluster, average active-cluster scores for each supplier;
@@ -80,7 +87,7 @@ class ClusterListView(ClampedPaginationMixin, ListView):
         qs = (
             RiskCluster.objects
             .filter(is_active=True)
-            .prefetch_related("suppliers__directorships__director", "suppliers__directorships__person_identity", "suppliers__directorships__source_observation")
+            .select_related('current_snapshot').prefetch_related('suppliers')
             .order_by("-risk_score")
         )
         min_risk = getattr(self, "minimum_risk", None)
@@ -91,13 +98,7 @@ class ClusterListView(ClampedPaginationMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         for cluster in context["clusters"]:
-            suppliers = list(cluster.suppliers.all())
-            director_map = build_director_map(suppliers)
-            types_found = set()
-            for i, s1 in enumerate(suppliers):
-                for s2 in suppliers[i + 1:]:
-                    types_found |= get_connection_types(s1, s2, director_map)
-            cluster.connection_types = types_found
+            cluster.connection_types = {edge['type'] for edge in cluster.current_snapshot.payload['links']} if cluster.current_snapshot else set()
         return context
 
 
@@ -108,24 +109,37 @@ class ClusterDetailView(DetailView):
     template_name = "clusters/detail.html"
 
     def get_queryset(self):
-        return super().get_queryset().prefetch_related(
-            "suppliers__directorships__director", "suppliers__directorships__person_identity",
-            "suppliers__directorships__source_observation",
-            "suppliers__ownerships__owner", "suppliers__contracts",
+        return super().get_queryset().select_related('current_snapshot').prefetch_related(
+            Prefetch('suppliers__directorships', queryset=Directorship.objects.select_related(
+                'director', 'person_identity', 'source_observation')),
+            Prefetch('suppliers__ownerships', queryset=Ownership.objects.select_related('owner')),
+            'suppliers__contracts',
         )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         cluster = self.object
         suppliers = list(cluster.suppliers.all())
-        graph_data = build_graph_data(suppliers, cluster=cluster)
+        snapshot = selected_snapshot(self.request, cluster)
+        graph_data = snapshot.payload if snapshot else {'nodes': [], 'links': []}
         context["graph_data"] = graph_data
+        context['snapshot'] = snapshot
+        context['versions'] = list(cluster.snapshots.only('id', 'version', 'state', 'as_of', 'created_at', 'changes'))
+        context['transitions'] = list(snapshot.incoming_transitions.select_related('source__cluster')) if snapshot else []
+        context['graph_options'] = {
+            'cluster_id': str(cluster.uuid), 'snapshot_id': snapshot.pk if snapshot else None,
+            'version': snapshot.version if snapshot else None, 'graph_hash': snapshot.graph_hash if snapshot else None,
+            'view': saved_view(self.request.user, cluster, snapshot),
+            'authenticated': self.request.user.is_authenticated,
+            'historical': snapshot is not None and snapshot.pk != cluster.current_snapshot_id,
+        }
 
         current_fingerprint = analysis_fingerprint(suppliers, get_risk_weights(), timezone.localdate())
         context["explanation_stale"] = cluster.explanation_stale or current_fingerprint != cluster.analysis_fingerprint
-        context["ai_explanation_html"] = self._linkify_explanation(
-            cluster.ai_explanation or "Explanation has not been prepared yet.", suppliers
-        )
+        historical = snapshot and snapshot.pk != cluster.current_snapshot_id
+        text = snapshot.legacy_explanation if historical else cluster.ai_explanation
+        context['explanation_stale'] = context['explanation_stale'] or bool(historical)
+        context["ai_explanation_html"] = self._linkify_explanation(text or "Explanation has not been prepared yet.", suppliers)
         return context
 
     @staticmethod
@@ -152,3 +166,65 @@ class ClusterDetailView(DetailView):
         chunks.append(str(escape(text[position:])))
         from django.utils.safestring import mark_safe
         return mark_safe("".join(chunks))
+
+
+def selected_snapshot(request, cluster):
+    raw = request.GET.get('version')
+    if raw is None:
+        return cluster.current_snapshot
+    if not raw.isascii() or not raw.isdecimal() or len(raw) > 9 or int(raw) < 1:
+        raise Http404('Unknown graph version.')
+    return get_object_or_404(GraphSnapshot, cluster=cluster, version=int(raw))
+
+
+@require_GET
+def graph_data(request, uuid):
+    cluster = get_object_or_404(RiskCluster.objects.select_related('current_snapshot'), uuid=uuid)
+    snapshot = selected_snapshot(request, cluster)
+    return JsonResponse({'cluster': str(cluster.uuid), 'version': snapshot.version if snapshot else None,
+                         'graph_hash': snapshot.graph_hash if snapshot else None,
+                         'state': snapshot.state if snapshot else 'not_calculated',
+                         'graph': snapshot.payload if snapshot else {'nodes': [], 'links': []}})
+
+
+@require_http_methods(['GET', 'POST'])
+def graph_view(request, uuid):
+    cluster = get_object_or_404(RiskCluster.objects.select_related('current_snapshot'), uuid=uuid)
+    if request.method == 'GET':
+        return JsonResponse(saved_view(request.user, cluster, selected_snapshot(request, cluster)))
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'authentication_required'}, status=403)
+    try:
+        data = json.loads(request.body) if len(request.body) <= 2_000_000 else None
+        if not isinstance(data, dict) or set(data) != {'snapshot_id', 'graph_hash', 'revision', 'payload'}:
+            raise ValidationError('Invalid request fields.')
+        if type(data['snapshot_id']) is not int or type(data['revision']) is not int or data['revision'] < 0:
+            raise ValidationError('Invalid version identifiers.')
+        result = save_view(request.user, cluster.pk, data['snapshot_id'], data['graph_hash'], data['revision'], data['payload'])
+        return JsonResponse(result)
+    except ViewConflict as error:
+        return JsonResponse({'error': 'view_conflict', 'message': str(error)}, status=409)
+    except (ValueError, ValidationError):
+        return JsonResponse({'error': 'invalid_view'}, status=400)
+
+
+@require_POST
+def graph_rebuild(request, uuid):
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return JsonResponse({'error': 'staff_required'}, status=403)
+    cluster = get_object_or_404(RiskCluster, uuid=uuid)
+    try:
+        job, created = request_rebuild(request.user, list(cluster.suppliers.values_list('pk', flat=True)))
+    except ValueError as error:
+        return JsonResponse({'error': 'invalid_selection', 'message': str(error)}, status=400)
+    from django.urls import reverse
+    return JsonResponse({'job': str(job.uuid), 'status': job.status, 'created': created,
+                         'url': reverse('graph:job_status', args=[job.uuid])}, status=202)
+
+
+@require_GET
+def job_status(request, uuid):
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return JsonResponse({'error': 'staff_required'}, status=403)
+    job = get_object_or_404(GraphRebuildJob, uuid=uuid)
+    return JsonResponse({'job': str(job.uuid), 'status': job.status, 'summary': job.summary, 'error': job.error_code})

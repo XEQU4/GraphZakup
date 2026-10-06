@@ -1,128 +1,64 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% load static %}
-
 {% block title %}{{ object.name }}{% endblock %}
-
+{% block extra_styles %}<link rel="stylesheet" href="{% static 'css/cluster_graph.css' %}">{% endblock %}
 {% block content %}
-
-<h2 class="mb-4">
-    {{ object.name }}
-</h2>
-
-{% if not object.is_active %}
-    <div class="alert alert-secondary">This cluster is archived. Its membership and explanation are preserved at the original link.</div>
-{% endif %}
-
-<div class="row">
-    <div class="col-lg-8">
-        <div class="card mb-4">
-            <div class="card-header">
-                Connection graph
-            </div>
-
-            <div class="card-body">
-                <div id="graph"
-                     data-company-url="/companies/"
-                     style="height:600px; background:#181818; border-radius:10px;">
-                </div>
-            </div>
-        </div>
-
-        <div class="card mb-4">
-            <div class="card-body">
-                <h6 class="mb-3">
-                    Link legend
-                </h6>
-
-                <div class="d-flex flex-wrap gap-4">
-                    <span>
-                        <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#f1556c;"></span>
-                        Shared owner
-                    </span>
-
-                    <span>
-                        <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#4aa3ff;"></span>
-                        Shared director
-                    </span>
-
-                    <span>
-                        <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#ffd065;"></span>
-                        Shared address
-                    </span>
-
-                    <span>
-                        <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#fd7e14;"></span>
-                        Shared phone
-                    </span>
-
-                    <span>
-                        <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#9b6bff;"></span>
-                        Shared email
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-lg-4">
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5>
-                    Risk
-                </h5>
-
-                {% if object.risk_score >= 80 %}
-                    <span class="badge bg-danger fs-6">
-                        {{ object.risk_score }}/100
-                    </span>
-                {% elif object.risk_score >= 50 %}
-                    <span class="badge bg-warning text-dark fs-6">
-                        {{ object.risk_score }}/100
-                    </span>
-                {% else %}
-                    <span class="badge bg-success fs-6">
-                        {{ object.risk_score }}/100
-                    </span>
-                {% endif %}
-
-                <hr>
-
-                <h6>
-                    Companies ({{ object.suppliers.count }})
-                </h6>
-
-                <ul class="mb-0">
-                    {% for supplier in object.suppliers.all %}
-                        <li>
-                            <a href="{% url 'companies:detail' supplier.pk %}" class="text-info">
-                                {{ supplier.name }}
-                            </a>
-                        </li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                Explanation
-            </div>
-
-            <div class="card-body">
-                <p class="mb-0">
-                    {% if explanation_stale and object.ai_explanation %}
-                        <span class="d-block text-warning small mb-2">Data has changed or the explanation version is unconfirmed. The saved explanation needs updating.</span>
-                    {% endif %}
-                    {{ ai_explanation_html }}
-                </p>
-            </div>
-        </div>
-    </div>
+<div class="d-flex justify-content-between flex-wrap gap-3 mb-3">
+  <div><a href="{% url 'graph:cluster_list' %}">All relationship groups</a><h2 class="mt-2">{{ object.name }}</h2>
+    <p class="text-muted mb-0">Inspect saved relationships and their evidence. Group membership does not establish a violation.</p></div>
+  <form method="get"><label for="graph-version">Saved version</label><select id="graph-version" name="version" class="form-select">
+    {% for item in versions %}<option value="{{ item.version }}" {% if snapshot.pk == item.pk %}selected{% endif %}>v{{ item.version }} · {{ item.state }} · {{ item.created_at|date:"Y-m-d H:i" }}</option>{% endfor %}
+  </select><button class="btn btn-sm btn-outline-light mt-2">Open version</button></form>
 </div>
-
+{% if not object.is_active %}<div class="alert alert-secondary">This group is archived. Select a previous version to inspect its historical relationships.</div>{% endif %}
+{% if snapshot.state == 'legacy' %}<div class="alert alert-secondary">Preserved legacy membership. Links were not verified in this version.</div>{% endif %}
+{% if not snapshot %}<div class="alert alert-secondary">No evidence graph has been published. An authorised recalculation is required.</div>{% endif %}
+{% for transition in transitions %}<div class="small mb-2">{{ transition.kind|title }} from <a href="{% url 'graph:cluster_detail' transition.source.cluster.uuid %}?version={{ transition.source.version }}">{{ transition.source.cluster.name }} · v{{ transition.source.version }}</a>. Shared companies: {{ transition.shared_member_ids|length }}.</div>{% endfor %}
+<div class="graph-workspace card mb-4">
+  <div class="card-body">
+    <div class="graph-heading"><div><span class="graph-eyebrow">RELATIONSHIP EXPLORER</span><h3>Network evidence</h3></div><div id="graph-metrics" class="graph-metrics"></div></div>
+    <div class="graph-toolbar">
+      <label class="graph-search">Find a node<input id="graph-search" type="search" class="form-control" placeholder="Company, BIN, person or contact" autocomplete="off"></label>
+      <button id="graph-fit" class="btn btn-outline-light"><i class="bi bi-arrows-fullscreen" aria-hidden="true"></i> Fit</button>
+      <button id="graph-reset" class="btn btn-outline-light"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Reset layout</button>
+      <button id="graph-restore" class="btn btn-outline-light"><i class="bi bi-clock-history" aria-hidden="true"></i> Restore saved view</button>
+      <button id="graph-save" class="btn btn-outline-light"><i class="bi bi-bookmark" aria-hidden="true"></i> Save view</button>
+      <button id="graph-freeze" class="btn btn-outline-light" aria-pressed="false">Freeze positions</button>
+    </div>
+    <div id="graph-results" class="graph-results" aria-label="Node search results"></div>
+    <fieldset class="graph-filters"><legend class="small">Relationships</legend>
+      <label class="filter-director"><input type="checkbox" value="director" checked><span class="graph-dot"></span> Director</label>
+      <label class="filter-owner"><input type="checkbox" value="owner" checked><span class="graph-dot"></span> Owner</label>
+      <label class="filter-address"><input type="checkbox" value="address" checked><span class="graph-dot"></span> Address</label>
+      <label class="filter-phone"><input type="checkbox" value="phone" checked><span class="graph-dot"></span> Phone</label>
+      <label class="filter-email"><input type="checkbox" value="email" checked><span class="graph-dot"></span> Email</label>
+    </fieldset>
+    <div class="graph-legend"><span>▭ Company</span><span>○ Verified person</span><span>⬡ Shared contact</span><span>━ Role</span><span>┄ Weak contact</span><span>Click to focus · drag to arrange · scroll to zoom</span></div>
+    <div class="graph-panels">
+      <div id="graph" tabindex="0" role="region" aria-label="Relationship graph. Use search or Tab to select nodes. Arrow keys pan; plus and minus zoom."
+           data-view-url="{% url 'graph:graph_view' object.uuid %}" data-rebuild-url="{% url 'graph:graph_rebuild' object.uuid %}"></div>
+      <aside id="graph-inspector" class="graph-inspector" aria-label="Evidence inspector"><span class="graph-eyebrow">EVIDENCE PANEL</span><h3 class="h6">Selection and evidence</h3><div id="graph-inspector-content"><div class="graph-empty-symbol" aria-hidden="true">◎</div><strong>Follow the connections</strong><p>Select a company, person or shared contact to see who is connected and why. Select a line to inspect its source and legal period.</p><p>Drag to arrange nodes. Double-click or press P to pin a node. Saved views keep your arrangement.</p></div></aside>
+    </div>
+    <div id="graph-status" class="small mt-2" role="status" aria-live="polite"></div>
+    <p class="small text-muted mt-2 mb-0">A path through a shared person or contact is different from a direct company-to-company relationship. Confidence describes evidence strength, not a probability of wrongdoing. Unknown legal periods remain unconfirmed.</p>
+    <div class="mt-2 d-flex gap-2 flex-wrap"><button id="graph-clear-selection" class="btn btn-sm btn-outline-light">Clear selection</button>
+      {% if request.user.is_staff %}<button id="graph-rebuild" class="btn btn-sm btn-outline-light">Recalculate saved data</button>{% endif %}
+      <a href="{% url 'graph:graph_data' object.uuid %}{% if snapshot %}?version={{ snapshot.version }}{% endif %}" class="btn btn-sm btn-outline-light">Saved graph JSON</a></div>
+    {% csrf_token %}
+  </div>
+</div>
+<div class="row">
+  <div class="col-lg-4"><div class="card mb-4"><div class="card-body"><h3 class="h6">Current group matching score: {{ object.risk_score }}/100</h3><p class="small text-muted">This score reflects matching features, not a finding of wrongdoing.</p>
+    <h3 class="h6">{% if snapshot %}Companies in v{{ snapshot.version }} ({{ snapshot.member_ids|length }}){% else %}Companies{% endif %}</h3>
+    <ul id="graph-company-list">{% if not snapshot %}{% for supplier in object.suppliers.all %}<li><a href="{% url 'companies:detail' supplier.pk %}">{{ supplier.name }}</a></li>{% endfor %}{% endif %}</ul>
+    {% if snapshot %}<div class="small">Evaluated: {{ snapshot.as_of|date:"Y-m-d" }}<br>Added companies: {{ snapshot.changes.added_members|length }} · Removed companies: {{ snapshot.changes.removed_members|length }}<br>Graph hash: <code>{{ snapshot.graph_hash|slice:":12" }}</code></div>{% endif %}
+  </div></div></div>
+  <div class="col-lg-8"><div class="card mb-4"><div class="card-body"><h3 class="h6">Saved explanation</h3>
+    {% if explanation_stale and object.ai_explanation %}<p class="small text-warning">Data has changed or the explanation version is unconfirmed. The saved explanation needs updating.</p>{% endif %}
+    <p class="mb-0">{{ ai_explanation_html }}</p><p class="small text-muted mt-3 mb-0">Saved text can predate this graph. Compare its claims with the evidence in the selected version.</p>
+  </div></div></div>
+</div>
 {{ graph_data|json_script:"graph-data" }}
-
-<script src="https://d3js.org/d3.v7.min.js"></script>
-<script src="{% static 'js/cluster_graph.js' %}"></script>
-
+{{ graph_options|json_script:"graph-options" }}
 {% endblock %}
+{% block scripts %}<script src="https://d3js.org/d3.v7.min.js"></script><script src="{% static 'js/cluster_graph.js' %}"></script>{% endblock %}

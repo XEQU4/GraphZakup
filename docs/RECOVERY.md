@@ -102,3 +102,26 @@ A separately authorised single arrears request reused that day's verified regist
 Before accepting parser `3.1`, the current backup above was checksum-verified, independently restored and upgraded again. All 37 original tables outside migration history retained their values, all 167 tests passed on a separate PostgreSQL test database, and all 38 working tables still matched the backup. Both generated restore/test databases were removed. Report: `artifacts/phase3/postgresql-reporting-date-verification.json`.
 
 The same partial KGD run was resumed using saved permitted fields, with HTTP blocked, and completed successfully. Original retrieval times and the failed `3.0` observation were retained; accepted `3.1` observations are marked as reused. The isolated evidence database now retains both company checks and remains ownership-marked for later controlled cleanup. It was not deleted. The working database was neither migrated nor modified. Report: `artifacts/phase3/kgd-debt-reprocessing-verification.json`. No full original response or credential value was placed in documentation, fixtures or images.
+
+## Verified Phase 4 upgrade, 6 October 2026
+
+A fresh PostgreSQL 17.6 dump was independently restored before graph schema and
+algorithm changes. All 38 public tables and migration history matched. Report:
+`artifacts/phase4/database_20261006T114348Z_9961d171.json`. SHA-256:
+`2a46400bfe2e30b0d061f2407d5350fd52cc950fc9f0fda5ae28be9dcc9b8a2d`.
+The verification database was dropped.
+
+Another isolated restore was upgraded through `graph.0005`. Original columns and
+rows in all 37 tables outside migration history matched the backup by original
+primary keys, including cluster UUIDs/texts/membership. The new graph tables were
+empty and no legacy evidence or KGD result was invented by migration. All 191
+tests passed in another isolated PostgreSQL database. All 38 working tables
+matched before/after. Both generated databases were dropped; the retained Phase
+3 KGD evidence database was not touched. Report:
+`artifacts/phase4/postgresql-verification.json`. See [PHASE4.md](PHASE4.md).
+
+The working database was neither migrated nor rebuilt. Before applying the
+prepared migrations and explicitly rebuilding graphs from saved facts, confirm
+this backup remains current or create/verify a new one. Graph retirement and
+history preservation are application operations, not a trial restore or data
+cleanup. Layouts and immutable graph snapshots are added only after explicit use.

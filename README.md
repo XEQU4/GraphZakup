@@ -2,7 +2,7 @@
 
 GrafZakup is a thesis project for analysing company relationships in Kazakhstan's public procurement. It collects contract and company information, shows matching attributes, and explains the grounds for further review by an analyst.
 
-The current version is a Django prototype with PostgreSQL, Celery, Redis, HTML templates and D3.js. KGD adapters and retained company checks are implemented: authorised taxpayer and complete zero-arrears responses are verified for one company, with saved-result reuse. Broader entitlement and source variants remain unverified. Migration to DRF and React, saved analysis versions and interface improvements are planned in phases. Observed matches and the current heuristic score do not establish a violation.
+The current version is a Django prototype with PostgreSQL, Celery, Redis, HTML templates and D3.js. KGD adapters and retained company checks are verified for one company's registration and zero-arrears scenario. Phase 4 implements indexed evidence, stable groups, graph history and personal layouts; all 191 PostgreSQL tests passed and the user accepted the revised graph prototype. Further graph/design polishing belongs to Phase 7. DRF, React and versioned analysis/explanations follow in later phases. Observed matches and the legacy matching score do not establish a violation.
 
 English is the primary language for project documentation, code comments, interfaces and generated explanations. Russian website localisation will be added later, after the English version is complete. Source data and the labels used to parse official websites retain their original language.
 
@@ -18,6 +18,7 @@ English is the primary language for project documentation, code comments, interf
 | [Phase 1 results](docs/PHASE1.md) | Fixes, verification and remaining limitations |
 | [Phase 2 results](docs/PHASE2.md) | Unified ingestion, provenance, role history and migration checks |
 | [Phase 3 implementation](docs/PHASE3.md) | KGD adapters, verified registration/zero-arrears checks, saved results and scope limits |
+| [Phase 4 implementation](docs/PHASE4.md) | Indexed evidence, immutable graph versions, lineage, interaction and personal views |
 | [English project baseline](docs/LANGUAGE.md) | Language rules, translated deliverables and offline verification |
 | [Deployment and updates](DEPLOY.md) | Docker Compose, environment variables and health checks |
 | [Codex instructions](AGENTS.md) | Workflow, data preservation and verification rules |
@@ -85,6 +86,6 @@ Intentional collection uses `ingest_data`: `--mode=initial` continues the initia
 
 Phase 3 adds an opt-in `--mode=kgd` for existing companies: taxpayer registration first, optionally aggregate company arrears. The company page only reads stored checks; failed requests retain the last success and never imply zero arrears. Checks default off (`ENABLE_KGD_CHECKS=false`) and are not added to automatic imports or beat schedules. Registration requires a portal token; arrears additionally require an accepted account token. Two authorised requests verified registration and a complete zero-arrears response for one company in an isolated database. Parser `3.1` fixed the returned reporting timestamp format; offline reprocessing preserved original retrieval times and failure history, without another request. The working database was neither migrated nor modified. Phase 3 is complete within this verified scope; access setup, commands and operational limits are in [PHASE3.md](docs/PHASE3.md).
 
-Start the next implementation after verifying the current phase's acceptance criteria. Phase 4 changes the graph algorithm, storage and presentation. The overall React UI/UX will follow the user's references in Phase 7. Russian localisation follows completion of the English interface.
+Phase 4 publishes saved evidence graphs and preserves UUID/version history through changes, merges and splits. Graph pages read saved results; authenticated users save personal views, and staff explicitly request deduplicated background recalculation from saved data. No collection or explanation generation runs on GET. Search, filters, neighbour highlighting, path/evidence inspection, pinning and layout restoration are implemented. See [PHASE4.md](docs/PHASE4.md) for applying migrations, an explicit first rebuild, verification and visual-check limits. The current graph prototype is accepted; further design and animation work follows the user's references in Phase 7. Russian localisation follows completion of the English interface.
 
 The user runs Git commands. For a separate Codex chat, specify the phase, scope and verification criteria; use repository documents for architecture decisions and current status.

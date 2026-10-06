@@ -1,13 +1,13 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% load humanize %}
 
-{% block title %}Suspicious groups{% endblock %}
+{% block title %}Relationship groups{% endblock %}
 
 {% block content %}
 
 <div class="d-flex align-items-baseline justify-content-between flex-wrap gap-2 mb-1">
     <h2 class="mb-0 text-white">
-        <i class="bi bi-diagram-3 page-icon"></i> Suspicious groups
+        <i class="bi bi-diagram-3 page-icon"></i> Relationship groups
     </h2>
 
     <span class="text-muted small">
@@ -17,7 +17,7 @@
 
 <p class="text-muted mb-4" style="max-width: 720px;">
     Groups of companies sharing directors, addresses, phone numbers, or email.
-    The risk score reflects the matching features detected by the current heuristic.
+    The legacy matching score reflects observed features; it does not establish a violation.
 </p>
 
 <div class="row">
@@ -31,15 +31,15 @@
 
                     {% if cluster.risk_score >= 80 %}
                         <span class="badge bg-danger mb-3">
-                            Risk {{ cluster.risk_score }}/100
+                            Matching score {{ cluster.risk_score }}/100
                         </span>
                     {% elif cluster.risk_score >= 50 %}
                         <span class="badge bg-warning text-dark mb-3">
-                            Risk {{ cluster.risk_score }}/100
+                            Matching score {{ cluster.risk_score }}/100
                         </span>
                     {% else %}
                         <span class="badge bg-success mb-3">
-                            Risk {{ cluster.risk_score }}/100
+                            Matching score {{ cluster.risk_score }}/100
                         </span>
                     {% endif %}
 
@@ -166,3 +166,4 @@
 {% endif %}
 
 {% endblock %}
+

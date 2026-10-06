@@ -211,3 +211,24 @@ Current goszakup/Adata markup/completeness/access/selectors were not checked thr
 ## Decisions for later phases
 
 Fix P0/import integrity before adding sources. Parser relocation requires shared states/errors/checkpoints. Persist evidence/snapshots with matching explanation revision; changed membership creates a version, unchanged fingerprints reuse results. Similarity yields review candidates, not irreversible identity merges; verified BIN identifies companies. Add DRF to Django and React to API; Bootstrap decision awaits references. Thesis needs reproducible demonstration/rules/measured quality; pilots also need access/observability/recovery/limits. Record finding updates with date/check/change reference. **This document alone does not mean a defect is fixed.**
+
+## Phase 4 finding updates, 6 October 2026
+
+The production graph pages now read shared saved evidence instead of independent
+company-pair computations. Indexed features, explicit common-contact treatment,
+immutable graph snapshots, stable UUIDs, lineage and personal layouts are
+implemented. Repeat inputs cause no graph writes; changed inputs publish only
+within a verified impact boundary. Templates describe saved evidence and no
+longer turn unsupported owner flags into source-confirmed debt assertions.
+Historical explanation text is preserved with its version binding unconfirmed;
+analysis/explanation versions and calibrated behavioural risk remain Phase 5.
+The legacy score and dashboard metrics are not evidence of wrongdoing/damage.
+
+All 191 PostgreSQL tests passed; restoration/copy migration preserved original
+values and working data remained unchanged. The user accepted the revised
+coloured graph prototype and deferred further design/animation work to Phase 7.
+Automated browser/dense/responsive visual checks were unavailable, and are not
+claimed as passed. Full implementation scope, application-level immutability,
+compatibility helper, benchmark limits and verification are in
+[PHASE4.md](PHASE4.md). Earlier finding evidence describes the audited baseline;
+these updates do not establish that all analysis/UI defects are resolved.

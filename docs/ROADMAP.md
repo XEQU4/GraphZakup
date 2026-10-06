@@ -12,7 +12,7 @@ Based on the [audit](AUDIT.md), [baseline](BASELINE.md), [recovery record](RECOV
 | 1 | Fix dangerous defects and make startup reproducible | Complete |
 | 2 | Consolidate ingestion and correct the fact model | Complete |
 | 3 | Integrate available KGD information | Complete: taxpayer and zero-arrears checks verified for one authorised company |
-| 4 | Persist graph versions and substantially improve graph interaction | Planned |
+| 4 | Persist graph versions and substantially improve graph interaction | Complete: 191 PostgreSQL tests; revised graph prototype accepted by the user |
 | 5 | Introduce verifiable analysis and versioned explanations | Planned |
 | 6 | Provide a DRF API | Planned |
 | 7 | Build a React interface using user references | Planned |
@@ -134,6 +134,10 @@ Acceptance: stable links, explained group transitions, readable evidence, correc
 
 Dependency: Phase 4 versions/evidence; behavioural rules depend on available procurement inputs.
 
+[PHASE5.md](PHASE5.md) records the user's free local model requirement and proposed
+environment-based provider switching. Implementation awaits their report that
+the Phase 4 Git commands are complete; the phase remains planned.
+
 - Version rules, evidence, temporal conditions, and limitations.
 - Separate identity confidence, link strength, behavioural risk; assess false scoring conclusions.
 - Add `AnalysisSnapshot`, findings, `analysis_hash`, shared text/UI metrics.
@@ -205,6 +209,6 @@ Set thresholds after baseline measurement/sample selection. Algorithm-tailored e
 
 ## Open decisions
 
-KGD broader-company entitlement, quotas and unverified source variants (one taxpayer and complete zero-arrears response verified); sample size/bidding data; references/UI/graph library; audience/roles/publication (procurement analyst is unconfirmed); LLM need/model/budget; thesis deadline/API costs; phase calendar after scope confirmation without invented estimates.
+KGD broader-company entitlement, quotas and unverified source variants (one taxpayer and complete zero-arrears response verified); sample size/bidding data; references/UI/graph library; audience/roles/publication (procurement analyst is unconfirmed); measured LLM benefit and final local model choice (free local candidate and configurable paid providers proposed in Phase 5); thesis deadline/API costs; phase calendar after scope confirmation without invented estimates.
 
-Next ordered step: Phase 4 graph state and interaction, after a separate user instruction. Do not repeat accepted KGD checks merely to read saved results. Future broader KGD validation remains bounded and explicitly authorised. Completed phases update this roadmap and repository instructions.
+Phase 4 is complete within its authorised scope; implementation, 191 PostgreSQL tests, preservation protocol and visual-verification limits are in [PHASE4.md](PHASE4.md). The user accepted the revised coloured graph prototype and deferred further design/animation work to Phase 7. Final site styling awaits references. Next ordered step is Phase 5 after a separate instruction. Do not repeat accepted KGD checks merely to read saved results. Future broader KGD validation remains bounded and explicitly authorised.
