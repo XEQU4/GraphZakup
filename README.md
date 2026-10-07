@@ -44,7 +44,9 @@ English is the primary language for project documentation, code comments, interf
 The backend exposes saved companies, people, contracts, role evidence, clusters,
 graph/analysis/text history, personal views and explicit staff jobs at /api/v1/.
 Open http://127.0.0.1:8000/api/v1/docs/ for interactive Swagger documentation;
-the schema and UI assets are served locally. See [Phase 6](docs/PHASE6.md) for the
+the schema and UI assets are served locally. The IZ2 navy reference includes
+resource navigation, filtering, dark code examples and responsive forms.
+See [Phase 6](docs/PHASE6.md) for the
 implemented contracts and measured verification boundaries.
 
 Lists support documented filters/order and page_size 1..100. Public reads omit

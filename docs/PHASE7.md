@@ -331,3 +331,33 @@ Final integrity matched all 50 working-table fingerprints and protected files;
 and their browser were stopped; ports 8770/8772 had no remaining listeners.
 The user's development server was untouched. Reports: `final-verification.json`
 and `cleanup.json` in the same private follow-up directory.
+
+## API reference styling follow-up
+
+The user authorised API-page styling, superseding the earlier deferral.
+`/api/v1/docs/` is a standalone IZ2 reference with solid navy surfaces, resource
+navigation, native endpoint filtering, initially collapsed operations, Nord dark
+syntax/monospace examples, responsive parameter forms and authorisation modal,
+and workspace/schema links. Manrope and IBM Plex Mono OFL assets, the SDK and
+theme assets are bundled locally. The page helper makes no API requests; native
+Swagger bootstrap, session/CSRF interceptors and operation execution are retained.
+API permissions, authentication, data, schema and rules did not change. React,
+next-app, parsing, explanations, localisation and Phase 8 are outside this task.
+
+Sixteen isolated SQLite API static/common tests passed, as did OpenAPI validation
+with warnings treated as failures, targeted formatting and collectstatic.
+Initial Chromium resource navigation, filtering, authorisation-modal and native
+GET 200 checks passed. Completed browser verification covered filter/empty-filter
+states, company-tag deep-link reload and native Try it out: page_size=1 returned
+HTTP 200 with 777 total companies and one record; page_size=0 showed validation
+without issuing a request. Page/modal layouts fit actual document clientWidth at
+320/390/768/1024/1440/1920px; long mobile responses scroll inside code without page
+overflow. No JavaScript exception or failed, external or non-GET request was
+observed. Final 320px/1440px screenshots were inspected. Report:
+`artifacts/phase7/api-docs/browser-verification.json`. The owned normal-settings
+preview on 8774 used read-only working data; user port 8000 was untouched.
+Final integrity matched all 50 working-table fingerprints, protected files and
+existing Python dependency versions. The 357-file scan found no configured
+credentials. The owned preview/browser were stopped and port 8774 had no
+remaining listener. Reports: `final-verification.json` and `cleanup.json` in the
+same private directory. User visual acceptance remains pending.

@@ -36,7 +36,7 @@ urlpatterns = [
     path('account/password/', PasswordView.as_view(), name='account-password'),
     path('account/views/', AccountGraphViewList.as_view(), name='account-views'),
     path('schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('docs/', SpectacularSwaggerView.as_view(url_name='api:schema'), name='docs'),
+    path('docs/', SpectacularSwaggerView.as_view(url_name='api:schema', template_name='api/docs.html'), name='docs'),
     path('companies/', CompanyListView.as_view(), name='company-list'),
     path('companies/<int:pk>/', CompanyDetailView.as_view(), name='company-detail'),
     path('people/', PersonListView.as_view(), name='person-list'),

@@ -217,3 +217,24 @@ account restore without localStorage retained pins, selection, zoom, filters and
 freeze. All 50 source fingerprints matched; the fresh verified backup/report is
 under ignored artifacts/phase7/save-view-followup/. User visual acceptance remains
 pending. No Git, source collection, inference or next-phase work was run.
+
+Current user-authorised API-page styling supersedes the earlier API-page deferral.
+/api/v1/docs/ is a standalone branded navy reference with resource navigation,
+native filter/collapsed operations, Nord dark monospace examples, responsive
+forms/auth modal and workspace/schema links. Local Manrope/IBM Plex Mono OFL
+assets and bundled Swagger assets are retained. Its helper makes no API requests;
+native bootstrap/CSRF and operation execution remain intact. No API permission,
+authentication, data, schema or rule change was made. Sixteen isolated SQLite API
+static/common tests, strict OpenAPI validation, targeted formatting and
+collectstatic passed; initial browser resource/filter/modal/native GET 200 checks
+passed. Completed Chromium checks covered deep links, empty filtering, native
+GET 200/one record, invalid-query validation without a request and page/modal
+layouts at 320–1920px against actual clientWidth. Long code scrolls locally;
+no JavaScript exception or failed/external/non-GET request was observed. Screenshots
+at 320px/1440px were inspected. Report: artifacts/phase7/api-docs/browser-verification.json.
+The owned preview on 8774 used read-only working data; user port 8000 was untouched.
+Final source fingerprints (all 50 tables), protected files and dependency
+versions matched; 357 scanned files contained no configured credentials. Owned
+preview/browser stopped with no 8774 listener. User visual acceptance remains pending.
+No React, next-app, parser,
+explanation, localisation or Phase 8 work is authorised by this update.

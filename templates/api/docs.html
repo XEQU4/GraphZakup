@@ -1,0 +1,160 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#050b16" />
+    <meta
+      name="description"
+      content="IZ2 API reference for saved procurement records, relationship graphs and versioned analysis."
+    />
+    <title>API reference · IZ2</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="{% static 'images/iz2.svg' %}"
+    />
+    <link rel="stylesheet" href="{{ swagger_ui_css }}" />
+    <link rel="stylesheet" href="{% static 'css/api-docs.css' %}" />
+    <style>
+      @font-face {
+        font-family: Manrope;
+        font-style: normal;
+        font-weight: 200 800;
+        font-display: swap;
+        src: url("{% static 'fonts/docs-manrope.woff2' %}") format("woff2");
+      }
+      @font-face {
+        font-family: "IBM Plex Mono";
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+        src: url("{% static 'fonts/docs-plex-mono.woff2' %}") format("woff2");
+      }
+    </style>
+  </head>
+  <body class="api-docs-page">
+    <a class="api-docs-skip" href="#api-reference">Skip to API reference</a>
+    <header class="api-docs-header">
+      <div class="api-docs-header-inner">
+        <a
+          class="api-docs-brand"
+          href="{% url 'frontend-app' %}"
+          aria-label="IZ2 workspace"
+        >
+          <img
+            class="api-docs-brand-mark"
+            src="{% static 'images/iz2.svg' %}"
+            alt=""
+            width="44"
+            height="44"
+          />
+          <span class="api-docs-brand-copy"
+            ><strong>IZ2</strong><span>DEVELOPER REFERENCE</span></span
+          >
+        </a>
+        <nav class="api-docs-nav" aria-label="API documentation navigation">
+          <a href="{% url 'api:schema' %}" download="iz2-openapi.yaml">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3v12m-4-4 4 4 4-4M5 16v5h14v-5" />
+            </svg>
+            <span>OpenAPI schema</span>
+          </a>
+          <a class="api-docs-workspace-link" href="{% url 'frontend-app' %}">
+            <span>Open workspace</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h14m-6-6 6 6-6 6" />
+            </svg>
+          </a>
+        </nav>
+      </div>
+    </header>
+    <main class="api-docs-main" id="main-content">
+      <section class="api-docs-hero" aria-labelledby="api-docs-title">
+        <div>
+          <span class="api-docs-eyebrow">IZ2 / API V1</span>
+          <h1 class="api-docs-title" id="api-docs-title">
+            API reference<span>.</span>
+          </h1>
+          <p class="api-docs-description">
+            Explore saved procurement records, relationship graphs and versioned
+            analysis.
+          </p>
+        </div>
+        <div class="api-docs-meta" aria-label="API details">
+          <span class="api-docs-meta-item"
+            ><span>BASE PATH</span><code>/api/v1/</code></span
+          >
+          <span class="api-docs-meta-item"
+            ><span>FORMAT</span><strong>JSON</strong></span
+          >
+          <span class="api-docs-status" data-state="loading" role="status"
+            >Loading reference…</span
+          >
+        </div>
+      </section>
+      <div class="api-docs-layout">
+        <aside class="api-docs-sidebar" aria-label="API reference guide">
+          <nav aria-labelledby="api-docs-resources-title">
+            <h2 class="api-docs-eyebrow" id="api-docs-resources-title">
+              RESOURCES
+            </h2>
+            <div class="api-docs-toc" id="api-docs-toc">
+              <p class="api-docs-loading">Preparing sections…</p>
+            </div>
+          </nav>
+          <section
+            class="api-docs-notes"
+            aria-labelledby="api-docs-access-title"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="5" y="10" width="14" height="11" rx="2" />
+              <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+            </svg>
+            <h2 id="api-docs-access-title">Session access</h2>
+            <p>
+              Sign in through the workspace to save personal graph views.
+              Background jobs require a staff account.
+            </p>
+            <a href="{% url 'frontend-route' path='profile' %}"
+              >Open your account <span aria-hidden="true">↗</span></a
+            >
+          </section>
+        </aside>
+        <section
+          class="api-docs-content"
+          id="api-reference"
+          tabindex="-1"
+          aria-label="Interactive API reference"
+        >
+          <div id="swagger-ui"></div>
+          <noscript
+            ><p class="api-docs-notes">
+              JavaScript is needed for the interactive reference.
+              <a href="{% url 'api:schema' %}">Download the OpenAPI schema</a>
+              to view the complete contract.
+            </p></noscript
+          >
+        </section>
+      </div>
+      <footer class="api-docs-footer">
+        <span>IZ2 <span aria-hidden="true">/</span> Developer reference</span>
+        <span>Stored evidence. Versioned results.</span>
+        <a class="api-docs-back-top" href="#api-docs-title"
+          >Back to top <span aria-hidden="true">↑</span></a
+        >
+      </footer>
+    </main>
+    <script src="{{ swagger_ui_bundle }}"></script>
+    <script src="{{ swagger_ui_standalone }}"></script>
+    {% if script_url %}
+    <script src="{{ script_url }}"></script>
+    {% else %}
+    <script>
+      {% include template_name_js %}
+    </script>
+    {% endif %}
+    <script src="{% static 'js/api-docs.js' %}" defer></script>
+  </body>
+</html>
