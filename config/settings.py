@@ -56,6 +56,10 @@ INSTALLED_APPS = [
     "django.contrib.humanize",
 
     "django_celery_beat",
+    "rest_framework",
+    "drf_spectacular",
+    "drf_spectacular_sidecar",
+    "apps.api.apps.ApiConfig",
 
     "apps.companies.apps.CompaniesConfig",
     "apps.contracts.apps.ContractsConfig",
@@ -195,3 +199,35 @@ if not 1 <= KGD_HTTP_TIMEOUT <= 60 or KGD_SOURCE_CACHE_SECONDS < 0 or KGD_RESULT
 # Django and Celery use the same root logger and need no separate
 # configuration.
 LOGGING_CONFIG = None  # Disable Django dictConfig and use init_logging
+
+# Versioned, same-origin JSON API. GET reads saved domain results only.
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': ['rest_framework.authentication.SessionAuthentication'],
+    'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny'],
+    'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
+    'DEFAULT_PARSER_CLASSES': ['rest_framework.parsers.JSONParser'],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 25,
+    'EXCEPTION_HANDLER': 'apps.api.common.exception_handler',
+    'DEFAULT_SCHEMA_CLASS': 'apps.api.schema.ApiAutoSchema',
+    'DEFAULT_THROTTLE_RATES': {'api_login': '10/min'},
+    'NUM_PROXIES': 0,
+    'COERCE_DECIMAL_TO_STRING': True,
+    'URL_FORMAT_OVERRIDE': None,
+}
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'IZ2 API',
+    'DESCRIPTION': 'Saved procurement relationship evidence and versioned analysis. '
+        'Public scores prioritise review; they are not probabilities of wrongdoing. '
+        'Same-origin sessions and CSRF protect writes. Source collection is not launched by this API.',
+    'VERSION': '1.0.0',
+    'SCHEMA_PATH_PREFIX': r'/api/v1',
+    'SCHEMA_PATH_PREFIX_TRIM': False,
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SWAGGER_UI_DIST': 'SIDECAR',
+    'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
+    'SERVE_AUTHENTICATION': [],
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
+    'COMPONENT_SPLIT_REQUEST': True,
+    'ENUM_NAME_OVERRIDES': {},
+}

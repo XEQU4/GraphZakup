@@ -1,4 +1,4 @@
-"""Temporary session-protected endpoints; DRF replaces this boundary in Phase 6."""
+"""Legacy template/JSON compatibility endpoints; versioned clients use apps.api."""
 import json
 
 from django.http import JsonResponse, Http404

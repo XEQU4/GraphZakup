@@ -14,7 +14,7 @@ Based on the [audit](AUDIT.md), [baseline](BASELINE.md), [recovery record](RECOV
 | 3 | Integrate available KGD information | Complete: taxpayer and zero-arrears checks verified for one authorised company |
 | 4 | Persist graph versions and substantially improve graph interaction | Complete: 191 PostgreSQL tests; revised graph prototype accepted by the user |
 | 5 | Introduce verifiable analysis and versioned explanations | Complete: 238 PostgreSQL tests and five local-model synthetic cases passed |
-| 6 | Provide a DRF API | Planned |
+| 6 | Provide a DRF API | Complete: 320 PostgreSQL tests; versioned API and locally served OpenAPI verified |
 | 7 | Build a React interface using user references | Planned |
 | 8 | Prepare thesis demonstration and operations | Planned |
 
@@ -193,6 +193,14 @@ Verification: permissions, invalid filters, query limits, job status, schema con
 
 Acceptance: documented API supports main scenarios; GET never generates or changes domain data; unauthorised users cannot launch collection/resource-consuming jobs.
 
+Outcome: complete on 7 October 2026. [PHASE6.md](PHASE6.md) records versioned
+JSON entities, snapshots/evidence/analysis/text histories, own-view concurrency,
+same-origin sessions/CSRF, staff-only explicit jobs and OpenAPI. All 320 tests
+passed on isolated PostgreSQL; original restored data and all 50 working tables
+were preserved. Sixteen synthetic HTTP reads and browser Swagger execution
+passed. No new schema migration, live collection or model inference was run.
+Phase 7 and final design require separate authorisation and user references.
+
 ## Phase 7 React and reference-based design
 
 Dependency: Phase 6 contracts and Phase 4 graph; user supplies references before visual approval.
@@ -240,4 +248,4 @@ Set thresholds after baseline measurement/sample selection. Algorithm-tailored e
 
 KGD broader-company entitlement, quotas and unverified source variants (one taxpayer and complete zero-arrears response verified); sample size/bidding data; references/UI/graph library; audience/roles/publication (procurement analyst is unconfirmed); independent model benefit/calibration labels (local Qwen3:4b and configurable API adapters implemented in Phase 5); thesis deadline/API costs; phase calendar after scope confirmation without invented estimates.
 
-The user accepted the revised graph prototype and deferred further design/animation work to Phase 7. Final site styling awaits references. Phase 5 is complete within its implemented scope; measurements and limitations are in [PHASE5.md](PHASE5.md). Phase 6 requires a separate instruction. Do not repeat accepted KGD checks merely to read saved results. Broader KGD validation remains bounded and explicitly authorised.
+The user accepted the revised graph prototype and deferred further design/animation work to Phase 7. Final site styling awaits references. Phase 5 is complete within its implemented scope; measurements and limitations are in [PHASE5.md](PHASE5.md). Phase 6 is complete; Phase 7 requires a separate instruction and references. Do not repeat accepted KGD checks merely to read saved results. Broader KGD validation remains bounded and explicitly authorised.

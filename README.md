@@ -25,7 +25,7 @@ a possible later pilot.
 | Court records, bankruptcy and restricted-participant lists | Planned source-verified indicators; legacy person flags are not verified findings |
 | Owner-specific history | Planned exact-person evidence; company debt is not automatically owner debt |
 | Coordinated tender behaviour | Not assessable yet without bidders, bids, lots and outcomes |
-| DRF / React | Phases 6 / 7; final interface design awaits user references |
+| DRF / React | Versioned DRF API implemented in Phase 6; React/reference-based design planned for Phase 7 |
 
 The original product goal is to combine relationship evidence with relevant,
 verified company/person history and explain review priorities in plain language.
@@ -34,9 +34,32 @@ access. A shared address, an ordinary court case or a legacy flag alone cannot
 establish dishonest tender allocation. Current scores are uncalibrated review
 indices, not probabilities of wrongdoing.
 
-The current stack is Django, PostgreSQL, Celery, Redis, HTML templates and D3.js.
+The current stack is Django/DRF, PostgreSQL, Celery, Redis, HTML templates and D3.js.
 
 English is the primary language for project documentation, code comments, interfaces and generated explanations. Russian website localisation will be added later, after the English version is complete. Source data and the labels used to parse official websites retain their original language.
+
+
+## Versioned API
+
+The backend exposes saved companies, people, contracts, role evidence, clusters,
+graph/analysis/text history, personal views and explicit staff jobs at /api/v1/.
+Open http://127.0.0.1:8000/api/v1/docs/ for interactive Swagger documentation;
+the schema and UI assets are served locally. See [Phase 6](docs/PHASE6.md) for the
+implemented contracts and measured verification boundaries.
+
+Lists support documented filters/order and page_size 1..100. Public reads omit
+personal IIN, raw observations and experimental model estimates. KGD failures and
+unknown legal dates remain explicit. All monetary amounts are JSON strings.
+
+GET /api/v1/session/ returns the current role and a CSRF token. Use Django session
+cookies and X-CSRFToken for login and writes; only staff can launch jobs. An
+explanation job defaults to template preparation; use_model=true is explicit and
+uses server configuration/paid gates. GET never regenerates domain results.
+
+No new .env settings or domain migrations are needed for the API. Restart the
+server after installing locked dependencies; legacy pages/admin remain available
+until the React interface is ready. API introduction does not start collection
+or enable a model. Russian localisation follows the completed English frontend.
 
 ## Try the free local AI
 
@@ -80,6 +103,7 @@ are not distributed in Git or application images.
 | [Phase 3 implementation](docs/PHASE3.md) | KGD adapters, verified registration/zero-arrears checks, saved results and scope limits |
 | [Phase 4 implementation](docs/PHASE4.md) | Indexed evidence, immutable graph versions, lineage, interaction and personal views |
 | [Phase 5 implementation](docs/PHASE5.md) | Versioned review priority, saved explanations, free local model setup and experimental scoring |
+| [Phase 6 API](docs/PHASE6.md) | Versioned JSON routes, sessions/CSRF, permissions, histories, jobs and OpenAPI verification |
 | [English project baseline](docs/LANGUAGE.md) | Language rules, translated deliverables and offline verification |
 | [Deployment and updates](DEPLOY.md) | Docker Compose, environment variables and health checks |
 | [Codex instructions](AGENTS.md) | Workflow, data preservation and verification rules |
@@ -124,7 +148,7 @@ node tests/graph_interactions.cjs
 .\.venv\Scripts\python.exe -B manage.py makemigrations --check --dry-run --settings=config.test_settings
 ```
 
-`test.py` contains the user's learning exercises, not application tests. All 238 tests passed on isolated PostgreSQL in Phase 5; SQLite skips three PostgreSQL-only concurrency scenarios. Five real free-local-model synthetic cases also passed. The protocol, recovery checks, measurements and unverified quality/operational limits are in [PHASE5.md](docs/PHASE5.md); earlier phase documents retain their historical results.
+`test.py` contains the user's learning exercises, not application tests. The current 320-test suite passed on isolated PostgreSQL in Phase 6; SQLite skips four PostgreSQL-only checks, including concurrency and full-precision money. Five real free-local-model synthetic cases also passed. API/recovery verification is in [PHASE6.md](docs/PHASE6.md); AI measurements and quality/operational limits are in [PHASE5.md](docs/PHASE5.md). Earlier phase documents retain their historical results.
 
 To capture source files and check the current environment from PowerShell:
 

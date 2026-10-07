@@ -188,3 +188,19 @@ matched. Existing explanations were not rewritten; new presentation versions
 were checked only on synthetic data. `.env`, learning exercises and dependency
 resolution were preserved. Reports: `artifacts/explanations/postgresql-verification.json`
 and `repository-verification.json`. The last user demo/report was untouched.
+
+## Verified Phase 6 API, 7 October 2026
+
+A current 50-table backup was independently restored with migration history and
+all values matching. Report: artifacts/phase6/database_20261007T093012Z_af7436d0.json.
+Dump SHA-256: cc084d7e345583036da4cb66cf557ffa6042d904b569ccaef0ec9e44a82f22fd.
+A second isolated restore/migration retained original values in all 49 tables
+outside migration history. All 320 tests passed on a separate PostgreSQL test
+database; both owned databases were dropped. All 50 working tables matched before
+and after. Report: artifacts/phase6/postgresql-verification.json.
+
+The DRF API adds no domain models/migrations and does not modify rules or saved
+histories. Existing dependency versions, .env and test.py were preserved; API
+packages were added to the lockfile. A copied synthetic SQLite fixture retained
+all table contents after real HTTP GET checks. The owned localhost:8768 API probe
+was stopped. The user's existing synthetic demo and working data were untouched.

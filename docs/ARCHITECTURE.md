@@ -1,6 +1,6 @@
 # IZ2 architecture
 
-Recorded on 5 October 2026; analysis status updated on 7 October 2026. This document distinguishes implemented behaviour from the target thesis architecture. Ingestion, provenance, identity and KGD checks are implemented; registration and complete zero arrears are verified for one company. Indexed evidence, immutable graph snapshots/lineage, personal views and explicit background recalculation are implemented. Phase 5 adds immutable analysis/explanations, deterministic review priority and optional validated local model presentations. The accepted graph prototype awaits further design in Phase 7. Broader KGD coverage, calibrated prediction, DRF and React remain future work.
+Recorded on 5 October 2026; analysis status updated on 7 October 2026. This document distinguishes implemented behaviour from the target thesis architecture. Ingestion, provenance, identity and KGD checks are implemented; registration and complete zero arrears are verified for one company. Indexed evidence, immutable graph snapshots/lineage, personal views and explicit background recalculation are implemented. Phase 5 adds immutable analysis/explanations, deterministic review priority and optional validated local model presentations. The accepted graph prototype awaits further design in Phase 7. Phase 6 implements versioned DRF reads/jobs and locally served OpenAPI. Broader KGD coverage, calibrated prediction and React remain future work.
 
 Collect procurement/company information, show verifiable links, and explain observed patterns. A link does not establish wrongdoing; group contract volume is not damage. Conclusions require sources, temporal context, and confidence.
 
@@ -22,7 +22,7 @@ A procurement analyst checking company links is the initial design assumption. A
 | --- | --- |
 | Consolidate/optimise parsers | Implemented in Phase 2: shared session, pacing, caches, checkpoints, lease, resumable stages |
 | KGD information | Taxpayer/arrears adapters and retained checks accepted for one company's registration/zero-arrears scenario; broader coverage unverified |
-| DRF backend and React | Requested; gradual transition retaining Django/migrations |
+| DRF backend and React | Versioned DRF API implemented in Phase 6; React remains planned, retaining Django/admin/migrations |
 | Persist graph/analysis/explanations | Immutable graph/analysis/text histories and personal views implemented |
 | Update explanations after significant changes | Authorised graph refresh atomically updates affected analyses/templates; model generation remains explicit |
 | Substantial graph improvement | Implemented and prototype accepted; final graph/interface polish follows in Phase 7 |
@@ -33,7 +33,7 @@ A procurement analyst checking company links is the initial design assumption. A
 
 ## Existing system
 
-Django/PostgreSQL store suppliers, contracts, owners, directors, and clusters. Pages use templates/JavaScript/Bootstrap; D3 draws graphs. DRF/React are absent.
+Django/PostgreSQL store suppliers, contracts, owners, directors, and clusters. Pages use templates/JavaScript/Bootstrap; D3 draws graphs. DRF serves /api/v1/; React is planned.
 
 The common [parser directory](../apps/ingestion/parsers) handles contracts, participants, Adata and KGD. The shared [service](../apps/ingestion/services.py) stores observations/roles/stage progress; commands and [Celery](../apps/core/tasks.py) call it directly. [Compose](../docker-compose.yml) defines PostgreSQL, Redis, migrate, web, worker, and beat. Automatic collection and manual KGD checks default off. See [PHASE1.md](PHASE1.md), [PHASE2.md](PHASE2.md) and [PHASE3.md](PHASE3.md).
 
@@ -159,7 +159,7 @@ Template is the default provider; local Ollama Qwen3:4b is the free candidate. O
 
 `/api/v1/` exposes companies/contracts/people/clusters/snapshots/evidence/explanations/job states without HTML fragments. Require validated filters/pagination/write permissions/OpenAPI.
 
-Initially propose same-origin React/API with Django sessions and CSRF on writes. Confirm with access scenarios; revisit for separate public/mobile clients. Only permitted roles launch collection/costly generation.
+Phase 6 uses same-origin Django sessions and CSRF on login/writes. Public reads match the local thesis site; users save their own views and staff launch saved-data jobs/read operational status. No HTTP collection-start route exists. Personal IIN/raw source payloads/experimental estimates are excluded from public projections. Revisit publication policy and separate mobile clients before a pilot. See [PHASE6.md](PHASE6.md).
 
 React uses TypeScript. Prototype graph libraries for layout quality, density, interaction, coordinates, maintenance. React does not force Bootstrap removal; choose UI components from future references.
 
@@ -186,7 +186,7 @@ Install from lockfile; app services wait for successful migration, not independe
 | Versioned background results | Graph/analysis jobs fence publication; late model output remains in history; GET reads saved data |
 | Rules/templates before LLM | Implemented with capped categories/no group-size bonus; public indices remain uncalibrated |
 | Model scoring | User authorised considering it if better; experimental estimates remain separate until independent evaluation |
-| Same-origin sessions initially | Implemented for graph writes/CSRF; broader API roles/publication follow in Phase 6 |
+| Same-origin sessions initially | Phase 6 API implements CSRF-protected login/own views/staff jobs; public pilot access policy remains future work |
 | English first, Russian localisation later | User instruction; preserve original source data |
 
 ## Thesis version and further development

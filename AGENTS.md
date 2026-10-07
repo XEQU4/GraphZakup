@@ -6,7 +6,7 @@ Brand: IZ2; package and GitHub repository: iz2; intended future domain: iz2.kz.
 The user supplied the original scope: relationship evidence combined with verified
 company/person history and plain-language explanations. Court, bankruptcy and
 restricted-participant integrations remain planned; legacy flags do not establish
-verified findings. Do not start those sources or Phase 6 automatically.
+verified findings. Do not start those sources or Phase 7 automatically.
 Keep existing database/volume identifiers, GPG compatibility settings and the
 graph-view storage key when rebranding. Compose pins its legacy default namespace
 so renaming the local directory does not select empty replacement volumes.
@@ -76,3 +76,22 @@ without treating the current prototype as final design. Drag automation timed
 out; authenticated storage, physical touch and larger browser performance are
 unverified. Report and screenshots stay in ignored artifacts/browser-check/.
 No application code, working data or saved explanations changed in this check.
+
+## Phase 6 completion
+
+Phase 6 was explicitly authorised and completed on 7 October 2026. apps/api owns
+versioned /api/v1 JSON projections, typed immutable histories/evidence, own-view
+revision fencing, session bootstrap/CSRF login and staff-only explicit jobs/status.
+Swagger/schema assets are locally bundled. All 320 PostgreSQL tests passed;
+restored original values and all 50 working tables were preserved. Sixteen real
+synthetic HTTP reads and browser Swagger GET passed. No new schema/rule change,
+source collection, inference or working recalculation was run. GET must keep
+reading saved domain state; public projections omit IIN/raw observations/model
+estimates. Model POST defaults to template and cannot override server settings.
+No HTTP ingestion-start route exists. .env/test.py and existing dependency
+versions remain unchanged. The temporary owned API server on 8768 was stopped;
+user-owned server on 8766 was untouched. Details in docs/PHASE6.md; private verification in
+ignored artifacts/phase6/. Login throttle is process-local and ignores untrusted
+forwarding headers; production/shared throttling and public release policy remain
+later operational work. Phase 7 requires separate authorisation and user UI/UX
+references; do not start it automatically or finalise the design now.
