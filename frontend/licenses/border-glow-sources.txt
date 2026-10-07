@@ -1,0 +1,24 @@
+React Bits Border Glow adapted for IZ2
+
+Source supplied by the user on 7 October 2026:
+React Bits BorderGlow-JS-CSS, including edge proximity, pointer angle,
+conic masks, mesh gradients and layered glow shadows.
+
+Official reference: https://reactbits.dev/components/border-glow
+Typed source: https://github.com/DavidHDev/react-bits/blob/main/src/ts-default/Components/BorderGlow/BorderGlow.tsx
+Styles: https://github.com/DavidHDev/react-bits/blob/main/src/ts-default/Components/BorderGlow/BorderGlow.css
+
+Adaptations:
+- Blue/white palette and restrained fill on existing IZ2 cards.
+- Hook retains native links, sections, focus behaviour and tab order.
+- One pending animation frame per pointer movement; no idle animation loop.
+- Cancellation/reset on pointer leave/cancel, disabled motion, hidden document,
+  offscreen state and unmount.
+- Keyboard focus works without pointer input; native focus outline remains when
+  decorative motion is disabled.
+- No external asset, package installation or canvas/WebGL runtime.
+
+Copyright (c) 2026 David Haz.
+MIT + Commons Clause License Condition v1.0.
+Full license retained in frontend/licenses/react-bits.txt and the distributed
+frontend/public/third-party-notices.txt.

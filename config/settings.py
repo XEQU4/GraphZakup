@@ -210,7 +210,8 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 25,
     'EXCEPTION_HANDLER': 'apps.api.common.exception_handler',
     'DEFAULT_SCHEMA_CLASS': 'apps.api.schema.ApiAutoSchema',
-    'DEFAULT_THROTTLE_RATES': {'api_login': '10/min'},
+    'DEFAULT_THROTTLE_RATES': {'api_login': '10/min', 'api_register': '5/hour',
+        'api_account': '60/min', 'api_password': '10/hour'},
     'NUM_PROXIES': 0,
     'COERCE_DECIMAL_TO_STRING': True,
     'URL_FORMAT_OVERRIDE': None,
@@ -231,3 +232,11 @@ SPECTACULAR_SETTINGS = {
     'COMPONENT_SPLIT_REQUEST': True,
     'ENUM_NAME_OVERRIDES': {},
 }
+
+# Apply password checks to signup and explicit password changes; existing logins remain compatible.
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]

@@ -1,0 +1,119 @@
+.aurora-atmosphere {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+  border-radius: inherit;
+  contain: paint;
+}
+
+.aurora-atmosphere__wash {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 84% 6%, #285fff38, transparent 45%),
+    radial-gradient(ellipse at 74% 68%, #174ced48, transparent 46%),
+    radial-gradient(ellipse at 40% 104%, #102a7b30, transparent 42%);
+}
+
+.aurora-atmosphere__veil {
+  position: absolute;
+  inset: -38% -22%;
+  background-image: repeating-linear-gradient(
+    104deg,
+    #2148ce00 0%,
+    #216fff18 9%,
+    #286dff65 13%,
+    #9ebcff3a 16%,
+    #244fcf35 20%,
+    #1630712a 24%,
+    #2450cc00 30%
+  );
+  background-size: 190% 100%;
+  mask-image: radial-gradient(
+    ellipse at 74% 32%,
+    black 8%,
+    #0009 35%,
+    transparent 68%
+  );
+  filter: blur(14px);
+  transform: translate3d(-3%, 0, 0) rotate(-8deg);
+  opacity: 0.74;
+  animation: iz2-aurora-far 34s ease-in-out infinite alternate;
+  animation-play-state: paused;
+}
+
+.aurora-atmosphere__veil--near {
+  background-size: 135% 100%;
+  mask-image: radial-gradient(ellipse at 83% 80%, #0008, transparent 63%);
+  filter: blur(8px);
+  opacity: 0.35;
+  animation-name: iz2-aurora-near;
+  animation-duration: 27s;
+  animation-delay: -12s;
+}
+
+.aurora-atmosphere__dust {
+  position: absolute;
+  inset: 0;
+}
+
+.aurora-atmosphere__dust i {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #b5eaff;
+  box-shadow: 0 0 8px #74caff70;
+  opacity: 0.35;
+  animation: iz2-aurora-dust var(--dust-duration, 17s) ease-in-out infinite
+    alternate;
+  animation-delay: var(--dust-delay, 0s);
+  animation-play-state: paused;
+}
+
+.aurora-atmosphere[data-active="true"] .aurora-atmosphere__veil,
+.aurora-atmosphere[data-active="true"] .aurora-atmosphere__dust i {
+  animation-play-state: running;
+}
+
+.aurora-atmosphere[data-active="true"] .aurora-atmosphere__veil {
+  will-change: transform;
+}
+
+@keyframes iz2-aurora-far {
+  from {
+    transform: translate3d(-3%, 0, 0) rotate(-8deg);
+  }
+  to {
+    transform: translate3d(7%, 3%, 0) rotate(1deg);
+  }
+}
+
+@keyframes iz2-aurora-near {
+  from {
+    transform: translate3d(5%, 2%, 0) rotate(3deg);
+  }
+  to {
+    transform: translate3d(-5%, -3%, 0) rotate(-6deg);
+  }
+}
+
+@keyframes iz2-aurora-dust {
+  from {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.25;
+  }
+  to {
+    transform: translate3d(-12px, -18px, 0);
+    opacity: 0.7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-atmosphere .aurora-atmosphere__veil,
+  .aurora-atmosphere .aurora-atmosphere__dust i {
+    animation: none;
+  }
+}

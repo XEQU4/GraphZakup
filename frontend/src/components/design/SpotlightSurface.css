@@ -1,0 +1,82 @@
+.iz2-spotlight {
+  --spotlight-x: 50%;
+  --spotlight-y: 50%;
+  --spotlight-radius: 300px;
+  --spotlight-color: 76, 143, 255;
+  position: relative;
+  isolation: isolate;
+}
+
+.iz2-spotlight::before,
+.iz2-spotlight::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  content: "";
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+
+.iz2-spotlight::before {
+  background: radial-gradient(
+    circle var(--spotlight-radius) at var(--spotlight-x) var(--spotlight-y),
+    rgba(var(--spotlight-color), 0.12),
+    rgba(var(--spotlight-color), 0.035) 44%,
+    transparent 76%
+  );
+}
+
+.iz2-spotlight::after {
+  padding: 1px;
+  background: radial-gradient(
+    circle calc(var(--spotlight-radius) * 0.75) at var(--spotlight-x)
+      var(--spotlight-y),
+    #83c4ffcc,
+    #3982ff40 50%,
+    transparent 85%
+  );
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .iz2-spotlight:hover::before,
+  .iz2-spotlight:hover::after {
+    opacity: 1;
+  }
+}
+
+.iz2-spotlight:focus-within::before,
+.iz2-spotlight:focus-within::after {
+  --spotlight-x: 50%;
+  --spotlight-y: 50%;
+  opacity: 1;
+}
+
+.iz2-spotlight[data-spotlight-motion="off"]::before,
+.iz2-spotlight[data-spotlight-motion="off"]::after,
+:root[data-motion="off"] .iz2-spotlight::before,
+:root[data-motion="off"] .iz2-spotlight::after {
+  --spotlight-x: 50%;
+  --spotlight-y: 50%;
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iz2-spotlight::before,
+  .iz2-spotlight::after {
+    --spotlight-x: 50%;
+    --spotlight-y: 50%;
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .iz2-spotlight::before,
+  .iz2-spotlight::after {
+    display: none;
+  }
+}

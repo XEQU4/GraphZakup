@@ -1,0 +1,246 @@
+.section-emblem {
+  position: relative;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  width: 138px;
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px solid #1d3560;
+  border-radius: 24px;
+  background:
+    radial-gradient(ellipse at 50% 40%, #122d5d70, transparent 75%),
+    linear-gradient(145deg, #0a1426, #050a13);
+  box-shadow:
+    inset 0 1px 0 #4672a824,
+    0 18px 40px #0005;
+  transform: none;
+}
+
+.section-emblem::after {
+  position: absolute;
+  inset: 10px;
+  border: 1px solid #3c669e18;
+  border-radius: 16px;
+  content: "";
+  pointer-events: none;
+}
+
+.section-emblem > svg {
+  width: 120px;
+  height: 120px;
+  overflow: visible;
+  stroke: #8bc5ff;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.section-emblem-edge {
+  position: absolute;
+  inset: 0 35% auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #62a8ff, transparent);
+  box-shadow: 0 0 14px #4e9cff60;
+}
+
+.section-emblem-guide {
+  stroke: #35608e;
+  stroke-width: 1;
+}
+
+.section-emblem-face-top {
+  fill: #2254a13d;
+}
+.section-emblem-face-left {
+  fill: #0d24413d;
+}
+.section-emblem-face-right {
+  fill: #3672b837;
+}
+.section-emblem-outline {
+  stroke: #a4d1ff;
+}
+.section-emblem-cube {
+  transform-origin: 60px 60px;
+  animation: section-cube-turn 7s ease-in-out infinite;
+}
+.section-emblem-sweep {
+  stroke: #d7edff;
+  stroke-width: 2.5;
+  stroke-dasharray: 0.18 0.82;
+  stroke-dashoffset: 1;
+  opacity: 0;
+  animation: section-cube-sweep 7s ease-in-out infinite;
+}
+
+.section-emblem-person-halo {
+  stroke: #21446e;
+  stroke-width: 1;
+}
+.section-emblem-person-orbit {
+  transform-origin: 60px 60px;
+  animation: section-person-orbit 10s linear infinite;
+}
+.section-emblem-orbit-arc {
+  stroke: #4a8ffb;
+  stroke-dasharray: 0.12 0.88;
+}
+.section-emblem-orbit-point {
+  fill: #adceff;
+  stroke: #7aacff;
+}
+.section-emblem-person-head {
+  fill: #20457845;
+  stroke: #c4dfff;
+}
+.section-emblem-person-body {
+  fill: #1733583b;
+  stroke: #8cc0ff;
+}
+.section-emblem-scan {
+  stroke: #6db5ff;
+  stroke-width: 1;
+  opacity: 0;
+  animation: section-person-scan 7s ease-in-out infinite;
+}
+
+.section-emblem-paper {
+  fill: #19345635;
+  stroke: #b8d8ff;
+}
+.section-emblem-document-base {
+  stroke: #315984;
+}
+.section-emblem-document-line {
+  stroke: #8cc5ff;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: section-document-draw 7s ease-in-out infinite;
+}
+.section-emblem-line-1 {
+  animation-delay: 140ms;
+}
+.section-emblem-line-2 {
+  animation-delay: 280ms;
+}
+.section-emblem-line-3 {
+  animation-delay: 420ms;
+}
+.section-emblem-registration {
+  stroke: #5f9fe1;
+}
+
+.section-emblem[data-active="false"] *,
+:root[data-motion="off"] .section-emblem * {
+  animation-play-state: paused;
+}
+:root[data-motion="off"] .section-emblem * {
+  animation: none;
+}
+:root[data-motion="off"] .section-emblem-cube,
+:root[data-motion="off"] .section-emblem-person-orbit {
+  transform: none;
+}
+:root[data-motion="off"] .section-emblem-document-line {
+  stroke-dashoffset: 0;
+}
+
+@keyframes section-cube-turn {
+  0%,
+  100% {
+    transform: perspective(250px) rotateY(0deg);
+  }
+  32% {
+    transform: perspective(250px) rotateY(18deg);
+  }
+  66% {
+    transform: perspective(250px) rotateY(-14deg);
+  }
+}
+@keyframes section-cube-sweep {
+  0%,
+  15%,
+  90%,
+  100% {
+    opacity: 0;
+  }
+  20%,
+  75% {
+    opacity: 1;
+  }
+  15% {
+    stroke-dashoffset: 1;
+  }
+  90% {
+    stroke-dashoffset: -1;
+  }
+}
+@keyframes section-person-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes section-person-scan {
+  0%,
+  20%,
+  80%,
+  100% {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  30% {
+    opacity: 0.7;
+    transform: translateY(-24px);
+  }
+  70% {
+    opacity: 0.7;
+    transform: translateY(30px);
+  }
+  80% {
+    transform: translateY(34px);
+  }
+}
+@keyframes section-document-draw {
+  0%,
+  12% {
+    stroke-dashoffset: 1;
+    opacity: 0.5;
+  }
+  35%,
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+@media (max-width: 680px) {
+  .section-emblem {
+    width: 94px;
+    border-radius: 18px;
+  }
+  .section-emblem > svg {
+    width: 90px;
+    height: 90px;
+  }
+  .section-emblem::after {
+    inset: 7px;
+    border-radius: 12px;
+  }
+}
+@media (max-width: 430px) {
+  .section-emblem {
+    width: 72px;
+    border-radius: 14px;
+  }
+  .section-emblem > svg {
+    width: 69px;
+    height: 69px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .section-emblem * {
+    animation: none !important;
+  }
+}

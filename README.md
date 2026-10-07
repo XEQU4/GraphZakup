@@ -25,7 +25,7 @@ a possible later pilot.
 | Court records, bankruptcy and restricted-participant lists | Planned source-verified indicators; legacy person flags are not verified findings |
 | Owner-specific history | Planned exact-person evidence; company debt is not automatically owner debt |
 | Coordinated tender behaviour | Not assessable yet without bidders, bids, lots and outcomes |
-| DRF / React | Versioned DRF API implemented in Phase 6; React/reference-based design planned for Phase 7 |
+| DRF / React | Versioned DRF API and React/TypeScript workspace implemented; visual acceptance pending |
 
 The original product goal is to combine relationship evidence with relevant,
 verified company/person history and explain review priorities in plain language.
@@ -34,7 +34,7 @@ access. A shared address, an ordinary court case or a legacy flag alone cannot
 establish dishonest tender allocation. Current scores are uncalibrated review
 indices, not probabilities of wrongdoing.
 
-The current stack is Django/DRF, PostgreSQL, Celery, Redis, HTML templates and D3.js.
+The current stack is Django/DRF, React/TypeScript, PostgreSQL, Celery, Redis and D3.js. Django serves React at /app/; the home page redirects there. Legacy templates remain at /legacy/ and their existing detail routes.
 
 English is the primary language for project documentation, code comments, interfaces and generated explanations. Russian website localisation will be added later, after the English version is complete. Source data and the labels used to parse official websites retain their original language.
 
@@ -58,9 +58,88 @@ uses server configuration/paid gates. GET never regenerates domain results.
 
 No new .env settings or domain migrations are needed for the API. Run
 `uv run python manage.py collectstatic --noinput` after installing or updating
-dependencies, then restart the server; legacy pages/admin remain available
-until the React interface is ready. API introduction does not start collection
+dependencies, then restart the server; legacy pages and admin remain available. API introduction does not start collection
 or enable a model. Russian localisation follows the completed English frontend.
+
+## React workspace
+
+The English interface includes an overview, searchable company/person directories,
+company/person details, contracts, relationship groups, saved graphs, evidence and
+analysis histories, an About Us guide and a project footer with contacts, sources
+and credits. Sign-up/sign-in dialogs and a personal profile support username
+updates and password changes; email is read-only and no avatar is used. The
+project is independently developed by Barakhat Mukhtar Batyruly; Yestay Arnuruly
+(Estay-2020@bk.ru) is preparing a related article.
+It reads the existing API and saved working records. Lighting
+and motion combine Lightswind-derived aurora, local React Bits text/focus/count
+adaptations, Particles/Border Glow and Magic UI Border Beam; Radix provides icons
+and accessible dialogs. Motion can be paused and follows device preferences.
+Fonts, assets and dependency notices are served locally. Bootstrap
+is excluded from React; compatibility templates retain it.
+
+Use Node 24 LTS (minimum 22.12) and run these commands from the repository root:
+
+```powershell
+cd frontend
+npm.cmd ci
+npm.cmd run build
+cd ..
+uv run python manage.py migrate
+uv run python manage.py collectstatic --noinput
+uv run python manage.py runserver
+```
+
+Open http://127.0.0.1:8000/app/ . No environment change, new domain migration, Redis,
+collection or model is required to browse saved data. Restart Django after rebuilding
+and collecting assets. For development with hot reload, keep Django on port 8000 and
+run `npm.cmd run dev` in frontend, then open http://127.0.0.1:5173/ . The development
+proxy stays same-origin from the browser and forwards CSRF origin to Django.
+
+Docker builds React automatically from package-lock.json before collectstatic.
+English design follows the supplied blue, restrained cyberpunk references; rewriting
+saved explanations and the relationship-group page remain separate follow-up work.
+Russian localisation remains deferred. See [Phase 7](docs/PHASE7.md) for verification.
+
+The overview combines Lightswind-derived aurora lighting with original dimensional
+artwork, glass cards and accessible saved-record controls. Mobile contract cards
+show complete records. Motion can be paused and follows device preferences.
+The standalone ignored next-app/ experiment is not part of the application.
+
+The current design uses an original IZ monogram/local favicon and a deep-blue,
+black and white palette. Semantic animated headings, navigation focus frames,
+saved-count reveals and continuous emblems follow the motion preferences.
+Graph controls share 44px heights; analysis status spans both aligned panels.
+Graph selection contours, bounded edge accents and structured evidence panels
+preserve saved positions, filters and versions. Directory tables use separated
+rows and labelled mobile cards, with inset desktop navigation arrows. The article
+author's email appears in the footer contact panel beside the developer's email.
+Chromium checks passed from 320 to 1920px;
+user visual acceptance remains pending.
+
+Accounts keep personal graph layouts on the server: positions, pinned nodes,
+zoom, selection, relationship filters and frozen state. The profile's **Your graph
+views** section opens each saved snapshot, and views restore in another browser.
+Guests can browse saved records and keep layouts in their current browser.
+`GET /api/v1/account/views/` provides authenticated, paginated view metadata.
+Save view shows feedback beside its toolbar and commits the final camera target
+when a navigation animation is still running. A failed account-view read or a
+revision conflict requires **Reload saved account view** before another write.
+An account without a saved view can adopt the guest layout after a successful
+account-view read; saving it remains an explicit action.
+
+Account writes use session cookies and CSRF. Registration creates ordinary users;
+profile changes cannot edit email or permissions. Changing a password checks the
+current password, retains the requesting session and invalidates other sessions.
+`api.0001_account_identity_indexes` adds case-insensitive username/email uniqueness
+without rewriting existing accounts. Empty legacy emails remain supported. The
+migration and reversal were verified on a restored copy; the working database now
+has all 69 existing migrations applied, with no pending or newly added migration
+in this follow-up.
+Email verification and email-based password recovery are not implemented.
+Latest checks: 357 isolated PostgreSQL tests without skips and 88 React tests,
+production build, formatting and migration drift passed. A fresh browser restored
+an account view without localStorage, including its pinned selected node, zoom,
+filters and frozen state. All 50 working-table fingerprints remained unchanged.
 
 ## Try the free local AI
 
@@ -105,6 +184,7 @@ are not distributed in Git or application images.
 | [Phase 4 implementation](docs/PHASE4.md) | Indexed evidence, immutable graph versions, lineage, interaction and personal views |
 | [Phase 5 implementation](docs/PHASE5.md) | Versioned review priority, saved explanations, free local model setup and experimental scoring |
 | [Phase 6 API](docs/PHASE6.md) | Versioned JSON routes, sessions/CSRF, permissions, histories, jobs and OpenAPI verification |
+| [Phase 7 frontend](docs/PHASE7.md) | React integration, visual references, verification and remaining limits |
 | [English project baseline](docs/LANGUAGE.md) | Language rules, translated deliverables and offline verification |
 | [Deployment and updates](DEPLOY.md) | Docker Compose, environment variables and health checks |
 | [Codex instructions](AGENTS.md) | Workflow, data preservation and verification rules |
@@ -132,11 +212,15 @@ Startup, shutdown without data loss, HTTPS and migration of an existing database
 
 ## Local development and verification
 
-The project requires Python 3.13 or later. Dependencies are defined in `pyproject.toml` and `uv.lock`. Set local credentials in `.env`; a real `SECRET_KEY` is required. Before running Django against an existing database, verify its backup, then apply migrations:
+The project requires Python 3.13 or later and Node 22.12 or later (Node 24 LTS recommended). Dependencies are defined in `pyproject.toml` and `uv.lock`. Set local credentials in `.env`; a real `SECRET_KEY` is required. Before running Django against an existing database, verify its backup, then apply migrations:
 
 ```powershell
 uv sync --frozen
 uv run python manage.py migrate
+cd frontend
+npm.cmd ci
+npm.cmd run build
+cd ..
 uv run python manage.py collectstatic --noinput
 uv run python manage.py runserver
 ```
@@ -152,7 +236,7 @@ node tests/graph_interactions.cjs
 .\.venv\Scripts\python.exe -B manage.py makemigrations --check --dry-run --settings=config.test_settings
 ```
 
-`test.py` contains the user's learning exercises, not application tests. The 320-test phase-completion suite passed on isolated PostgreSQL in Phase 6. The working-data/static/logging follow-up ran 328 offline tests, passing with four PostgreSQL-only skips for concurrency and full-precision money. Five real free-local-model synthetic cases also passed. API/recovery verification is in [PHASE6.md](docs/PHASE6.md); AI measurements and quality/operational limits are in [PHASE5.md](docs/PHASE5.md). Earlier phase documents retain their historical results.
+`test.py` contains the user's learning exercises, not application tests. The 320-test phase-completion suite passed on isolated PostgreSQL in Phase 6. The working-data/static/logging follow-up ran 328 offline tests, passing with four PostgreSQL-only skips for concurrency and full-precision money. Phase 7 passed 338 isolated PostgreSQL tests without skips and 35 React tests; responsive browser and synthetic session/view checks passed. Five real free-local-model synthetic cases also passed. API/recovery verification is in [PHASE6.md](docs/PHASE6.md); AI measurements and quality/operational limits are in [PHASE5.md](docs/PHASE5.md). Earlier phase documents retain their historical results.
 
 To capture source files and check the current environment from PowerShell:
 

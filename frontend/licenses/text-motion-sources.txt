@@ -1,0 +1,38 @@
+React Bits text motion sources used in IZ2
+
+TechHeading.tsx / TechHeading.css:
+Interaction concepts adapted from the Tech Text code supplied by the user on
+7 October 2026: per-glyph outlined reveal, selection frame and dimension labels.
+Reimplemented with semantic HTML/CSS rather than the original draggable canvas,
+to preserve heading text, responsive wrapping and browser text selection.
+Reference: https://reactbits.dev/text-animations/tech-text
+Source: https://github.com/DavidHDev/react-bits/blob/main/src/ts-default/TextAnimations/TechText/TechText.tsx
+
+GlitchText.tsx / GlitchText.css:
+Adapted clipped duplicate-text technique and clip keyframe percentages from
+React Bits Glitch Text. Blue/cyan palette; short episodes and hover/focus burst
+replace the original continuous animation.
+Reference: https://reactbits.dev/text-animations/glitch-text
+Source: https://github.com/DavidHDev/react-bits/blob/main/src/ts-default/TextAnimations/GlitchText/GlitchText.tsx
+Styles: https://github.com/DavidHDev/react-bits/blob/main/src/ts-default/TextAnimations/GlitchText/GlitchText.css
+
+FocusFrame.tsx:
+Local adaptation of the manual-focus corner frame from React Bits True Focus.
+The IZ2 frame follows pointer/keyboard navigation targets; it does not blur
+navigation text or cycle through links automatically.
+Reference: https://reactbits.dev/text-animations/true-focus
+Source: https://github.com/DavidHDev/react-bits/blob/main/src/ts-default/TextAnimations/TrueFocus/TrueFocus.tsx
+
+CountUp.tsx:
+Local adaptation of React Bits CountUp, restricted to saved non-negative integer
+quantities. IZ2 adds bounded frame timing, offscreen/hidden-document pause,
+reduced/manual-motion handling, stable label width and accessible final text.
+Money, identifiers and review-priority scores are not animated by this component.
+Reference: https://reactbits.dev/text-animations/count-up
+Source: https://github.com/DavidHDev/react-bits/blob/main/src/ts-default/TextAnimations/CountUp/CountUp.tsx
+
+Copyright (c) 2026 David Haz.
+MIT + Commons Clause. Full license retained in frontend/licenses/react-bits.txt
+and frontend/public/third-party-notices.txt.
+Decorations stop when reduced motion is requested, manually disabled, offscreen,
+or the document is hidden. No external runtime asset or canvas text is used.

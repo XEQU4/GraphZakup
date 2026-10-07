@@ -1,6 +1,6 @@
 # IZ2 architecture
 
-Recorded on 5 October 2026; analysis status updated on 7 October 2026. This document distinguishes implemented behaviour from the target thesis architecture. Ingestion, provenance, identity and KGD checks are implemented; registration and complete zero arrears are verified for one company. Indexed evidence, immutable graph snapshots/lineage, personal views and explicit background recalculation are implemented. Phase 5 adds immutable analysis/explanations, deterministic review priority and optional validated local model presentations. The accepted graph prototype awaits further design in Phase 7. Phase 6 implements versioned DRF reads/jobs and locally served OpenAPI. Broader KGD coverage, calibrated prediction and React remain future work.
+Recorded on 5 October 2026; analysis status updated on 7 October 2026. This document distinguishes implemented behaviour from the target thesis architecture. Ingestion, provenance, identity and KGD checks are implemented; registration and complete zero arrears are verified for one company. Indexed evidence, immutable graph snapshots/lineage, personal views and explicit background recalculation are implemented. Phase 5 adds immutable analysis/explanations, deterministic review priority and optional validated local model presentations. The accepted graph prototype is ported into React; further graph design is deferred by the user. Phase 6 implements versioned DRF reads/jobs and locally served OpenAPI. Phase 7 implements the reference-based React workspace and integrated builds. Broader KGD coverage and calibrated prediction remain future work.
 
 Collect procurement/company information, show verifiable links, and explain observed patterns. A link does not establish wrongdoing; group contract volume is not damage. Conclusions require sources, temporal context, and confidence.
 
@@ -22,11 +22,11 @@ A procurement analyst checking company links is the initial design assumption. A
 | --- | --- |
 | Consolidate/optimise parsers | Implemented in Phase 2: shared session, pacing, caches, checkpoints, lease, resumable stages |
 | KGD information | Taxpayer/arrears adapters and retained checks accepted for one company's registration/zero-arrears scenario; broader coverage unverified |
-| DRF backend and React | Versioned DRF API implemented in Phase 6; React remains planned, retaining Django/admin/migrations |
+| DRF backend and React | Versioned DRF API and React/TypeScript workspace implemented, retaining Django/admin/migrations |
 | Persist graph/analysis/explanations | Immutable graph/analysis/text histories and personal views implemented |
 | Update explanations after significant changes | Authorised graph refresh atomically updates affected analyses/templates; model generation remains explicit |
 | Substantial graph improvement | Implemented and prototype accepted; final graph/interface polish follows in Phase 7 |
-| Attractive, usable reference-based UI | Requested; user references pending, final style undecided |
+| Attractive, usable reference-based UI | Implemented using supplied blue animation references; user visual acceptance pending |
 | Docker backend/Celery/Redis/database | Fixed and verified in Phase 1: shared build, migration gate, health checks |
 | README/startup documentation | Updated as phases progress |
 | Specific LLM/budget/public startup | Free local Qwen3:4b selected for verification; paid use opt-in, benefit/calibration and public pilot remain unapproved |
@@ -161,13 +161,13 @@ Template is the default provider; local Ollama Qwen3:4b is the free candidate. O
 
 Phase 6 uses same-origin Django sessions and CSRF on login/writes. Public reads match the local thesis site; users save their own views and staff launch saved-data jobs/read operational status. No HTTP collection-start route exists. Personal IIN/raw source payloads/experimental estimates are excluded from public projections. Revisit publication policy and separate mobile clients before a pilot. See [PHASE6.md](PHASE6.md).
 
-React uses TypeScript. Prototype graph libraries for layout quality, density, interaction, coordinates, maintenance. React does not force Bootstrap removal; choose UI components from future references.
+React uses TypeScript, React Router, Radix icons/dialogs, Motion and OGL. The accepted D3 interaction is ported; graph redesign is deferred. Vite emits its own hashed chunks under static/frontend. Django serves the same Vite entry URL used by lazy imports; applying a second manifest hash to that entry would duplicate React contexts. The collected Vite manifest is read without rebuilding. The home route redirects to /app/, whose deep routes serve the SPA; /legacy/ retains template compatibility. API mount/navigation are reads. Anonymous views retain the original localStorage key; authenticated view writes retain CSRF and revision fencing. Bootstrap is absent from React.
 
 Phase 4 improves graph readability, highlighting, search, filters, zoom, legend, evidence, and layout restoration. Final colours/typography/components/page composition follow user references. Substantial graph improvement must not wait for final polishing. Russian website localisation follows the complete English interface.
 
 ## Deployment
 
-Compose runs PostgreSQL/Redis/migrate/web/worker/beat. Optional `local-ai` adds Ollama and a model-initialisation gate with persistent weights. Phase 5 validates both Compose configurations; actual local-ai profile startup/GPU operation remains unverified. Integrate React into builds or add a service in its phase.
+Compose runs PostgreSQL/Redis/migrate/web/worker/beat. Optional `local-ai` adds Ollama and a model-initialisation gate with persistent weights. Phase 5 validates both Compose configurations; actual local-ai profile startup/GPU operation remains unverified. A pinned Node builder compiles React before Python static collection; no separate frontend container is needed. Actual Phase 7 Linux image build remains unverified while Docker Engine is unavailable.
 
 Install from lockfile; app services wait for successful migration, not independent concurrent migrations. Keep secrets outside images/repository. Persist data in volumes; verify backups separately. The user performs Git operations.
 
@@ -176,7 +176,7 @@ Install from lockfile; app services wait for successful migration, not independe
 | Decision | Status/reason |
 | --- | --- |
 | Modular Django/PostgreSQL | Implemented; Phase 2 separated ingestion |
-| DRF/React | User requirement; roadmap proposes implementation |
+| DRF/React | Implemented in Phases 6–7; user frontend visual acceptance pending |
 | No name-only person merge | Implemented: scoped identities/candidates/IIN evidence/legacy isolation |
 | Observations/temporal roles | Implemented; unknown legal boundaries remain unknown |
 | Tax data linked to exact legal-entity BIN | Implemented and accepted for one company's registration/zero-arrears scenario |

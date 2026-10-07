@@ -37,3 +37,13 @@ celerybeat.pid
 /artifacts/
 *.dump
 *.backup
+
+# Frontend dependencies and reproducible build output
+/frontend/node_modules/
+/static/frontend/
+/frontend/coverage/
+*.tsbuildinfo
+
+# Standalone accidental Next.js experiment; IZ2 uses frontend/.
+/next-app/
+/.playwright-mcp/

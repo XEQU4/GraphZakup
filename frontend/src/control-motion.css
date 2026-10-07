@@ -1,0 +1,421 @@
+/* Brief blue feedback keeps the real label, icon and click target in place. */
+:is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+  :is(.button, .icon-button) {
+  isolation: isolate;
+  overflow: hidden;
+  transform: none;
+}
+
+:is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+  :is(.button, .icon-button):not(.dialog-close):not(.drawer-close) {
+  position: relative;
+}
+
+:is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+  :is(.button, .icon-button)::before,
+:is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+  :is(.button, .icon-button)::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  z-index: -1;
+}
+
+:is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+  :is(.button, .icon-button)::before {
+  background: linear-gradient(
+    115deg,
+    transparent 32%,
+    #5b90ff24 43%,
+    #c3dcff36 49%,
+    transparent 60%
+  );
+  background-size: 230% 100%;
+  background-position: 140% 0;
+}
+
+:is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+  :is(.button, .icon-button)::after {
+  background: linear-gradient(
+    transparent 28%,
+    #7aa5ff32 29%,
+    transparent 31%,
+    transparent 70%,
+    #3f79ff38 71%,
+    transparent 73%
+  );
+}
+
+:is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+  :is(.button, .icon-button):not(:disabled):not([aria-disabled="true"]):not(
+    [aria-busy="true"]
+  ):is(:hover, :focus-visible, :active) {
+  transform: none;
+  border-color: #739aff;
+  box-shadow:
+    0 0 0 1px #4179ff21,
+    0 0 20px #2858d52b,
+    inset 0 1px 0 #adcaff25;
+}
+
+:is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+  :is(.button, .icon-button):focus-visible {
+  outline: 2px solid var(--blue, #4d83ff);
+  outline-offset: 3px;
+}
+
+.app-shell
+  :is(.global-search, .entity-search, .cluster-search, .graph-search-input) {
+  position: relative;
+  isolation: isolate;
+  transition:
+    box-shadow 180ms ease-out,
+    border-color 180ms ease-out;
+}
+
+.app-shell :is(.global-search, .cluster-search) {
+  border-radius: 12px;
+}
+
+/* The wrapper owns the focus frame; avoid a second ring around its input. */
+.app-shell
+  :is(.global-search, .entity-search, .cluster-search, .graph-search-input)
+  input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.app-shell .clusters-page .cluster-search {
+  min-height: 58px;
+  padding: 6px 10px;
+  border: 1px solid #28446b;
+  background: #071225;
+  box-shadow: inset 0 1px 0 #bad4ff0b;
+}
+
+.app-shell
+  :is(
+    .global-search,
+    .entity-search,
+    .cluster-search,
+    .graph-search-input
+  )::before,
+.app-shell
+  :is(
+    .global-search,
+    .entity-search,
+    .cluster-search,
+    .graph-search-input
+  )::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.app-shell
+  :is(
+    .global-search,
+    .entity-search,
+    .cluster-search,
+    .graph-search-input
+  )::before {
+  inset: -1px;
+  border: 1px solid #739aff;
+  border-radius: inherit;
+  box-shadow: 0 0 15px #376aff24;
+}
+
+.app-shell
+  :is(
+    .global-search,
+    .entity-search,
+    .cluster-search,
+    .graph-search-input
+  )::after {
+  inset: auto 12px 1px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #a9cbff,
+    #457bff,
+    transparent
+  );
+  background-repeat: no-repeat;
+  background-size: 42% 100%;
+  background-position: -80% 0;
+}
+
+.app-shell
+  :is(.global-search, .entity-search, .cluster-search, .graph-search-input):not(
+    :has(input:disabled)
+  ):not([aria-busy="true"]):focus-within {
+  border-color: var(--blue, #4d83ff);
+  box-shadow:
+    0 0 0 2px #4d83ff2d,
+    0 0 22px #2c5dce1f;
+}
+
+.app-shell
+  :is(.global-search, .entity-search, .cluster-search, .graph-search-input):not(
+    :has(input:disabled)
+  ):not([aria-busy="true"]):focus-within
+  > svg {
+  color: #a9c5ff;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="off"])
+    :is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+    :is(.button, .icon-button):not(:disabled):not([aria-disabled="true"]):not(
+      [aria-busy="true"]
+    ):is(:hover, :focus-visible) {
+    animation: iz2-control-glitch 280ms ease-out;
+  }
+
+  :root:not([data-motion="off"])
+    :is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+    :is(.button, .icon-button):not(:disabled):not([aria-disabled="true"]):not(
+      [aria-busy="true"]
+    ):is(:hover, :focus-visible)::before {
+    animation: iz2-control-shine 460ms ease-out;
+  }
+
+  :root:not([data-motion="off"])
+    :is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+    :is(.button, .icon-button):not(:disabled):not([aria-disabled="true"]):not(
+      [aria-busy="true"]
+    ):is(:hover, :focus-visible)::after {
+    animation: iz2-control-slices 240ms steps(3, end);
+  }
+
+  :root:not([data-motion="off"])
+    :is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+    :is(.button, .icon-button):not(:disabled):not([aria-disabled="true"]):not(
+      [aria-busy="true"]
+    ):active {
+    animation: iz2-control-press 160ms ease-out;
+  }
+
+  :root:not([data-motion="off"])
+    :is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+    :is(.button, .icon-button):not(:disabled):not([aria-disabled="true"]):not(
+      [aria-busy="true"]
+    ):active::after {
+    animation: iz2-control-press-slices 160ms steps(2, end);
+  }
+
+  :root:not([data-motion="off"])
+    .app-shell
+    :is(
+      .global-search,
+      .entity-search,
+      .cluster-search,
+      .graph-search-input
+    ):not(:has(input:disabled)):not([aria-busy="true"]):focus-within::before {
+    animation: iz2-search-border 680ms ease-out;
+  }
+
+  :root:not([data-motion="off"])
+    .app-shell
+    :is(
+      .global-search,
+      .entity-search,
+      .cluster-search,
+      .graph-search-input
+    ):not(:has(input:disabled)):not([aria-busy="true"]):focus-within::after {
+    animation: iz2-search-scan 680ms ease-out;
+  }
+
+  :root:not([data-motion="off"])
+    .app-shell
+    :is(
+      .global-search,
+      .entity-search,
+      .cluster-search,
+      .graph-search-input
+    ):not(:has(input:disabled)):not([aria-busy="true"]):focus-within
+    > svg {
+    animation: iz2-search-icon 500ms ease-out;
+  }
+}
+
+@keyframes iz2-control-glitch {
+  0%,
+  42%,
+  100% {
+    filter: blur(0);
+    text-shadow: none;
+  }
+  18% {
+    filter: blur(0.18px);
+    text-shadow:
+      -0.5px 0 #548cff66,
+      0.5px 0 #bdd6ff4d;
+  }
+  32% {
+    filter: blur(0.08px);
+    text-shadow: 0.5px 0 #548cff38;
+  }
+}
+
+@keyframes iz2-control-press {
+  0%,
+  100% {
+    filter: blur(0);
+  }
+  30% {
+    filter: blur(0.12px);
+  }
+}
+
+@keyframes iz2-control-shine {
+  0% {
+    opacity: 0;
+    background-position: 140% 0;
+  }
+  22% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    background-position: -140% 0;
+  }
+}
+
+@keyframes iz2-control-press-slices {
+  0%,
+  100% {
+    opacity: 0;
+    translate: 0;
+  }
+  30% {
+    opacity: 0.6;
+    translate: -1px;
+  }
+  70% {
+    opacity: 0.2;
+    translate: 1px;
+  }
+}
+
+@keyframes iz2-control-slices {
+  0%,
+  100% {
+    opacity: 0;
+    translate: 0;
+  }
+  25% {
+    opacity: 0.7;
+    translate: 1px;
+  }
+  60% {
+    opacity: 0.25;
+    translate: -1px;
+  }
+}
+
+@keyframes iz2-search-border {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  28% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes iz2-search-scan {
+  0% {
+    opacity: 0;
+    background-position: -80% 0;
+  }
+  20% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    background-position: 180% 0;
+  }
+}
+
+@keyframes iz2-search-icon {
+  0%,
+  100% {
+    filter: none;
+  }
+  35% {
+    filter: drop-shadow(0 0 3px #6c9cff8c);
+  }
+}
+
+/* Busy/disabled controls and reduced motion retain ordinary, static focus feedback. */
+:is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+  :is(.button, .icon-button):is(
+    :disabled,
+    [aria-disabled="true"],
+    [aria-busy="true"]
+  ),
+:is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+  [aria-busy="true"]
+  :is(.button, .icon-button) {
+  animation: none !important;
+  filter: none;
+}
+
+:is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+  :is(.button, .icon-button):is(
+    :disabled,
+    [aria-disabled="true"],
+    [aria-busy="true"]
+  )::before,
+:is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+  :is(.button, .icon-button):is(
+    :disabled,
+    [aria-disabled="true"],
+    [aria-busy="true"]
+  )::after,
+:is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+  [aria-busy="true"]
+  :is(.button, .icon-button)::before,
+:is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+  [aria-busy="true"]
+  :is(.button, .icon-button)::after,
+.app-shell
+  [aria-busy="true"]
+  :is(
+    .global-search,
+    .entity-search,
+    .cluster-search,
+    .graph-search-input
+  )::before,
+.app-shell
+  [aria-busy="true"]
+  :is(
+    .global-search,
+    .entity-search,
+    .cluster-search,
+    .graph-search-input
+  )::after {
+  animation: none !important;
+  opacity: 0;
+}
+
+.app-shell
+  [aria-busy="true"]
+  :is(.global-search, .entity-search, .cluster-search, .graph-search-input)
+  > svg {
+  animation: none !important;
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
+    :is(.button, .icon-button) {
+    filter: none;
+  }
+}

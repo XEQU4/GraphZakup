@@ -8,6 +8,12 @@ directory rename does not replace database/Redis volumes. `.env.example` selects
 `iz2` for a new installation. Database/user names and GPG environment settings are
 compatibility identifiers and do not need a destructive rename.
 
+The image builds the React workspace with a pinned Node stage and npm lockfile,
+then collects its assets with Django. No Node installation or separate frontend
+service is required on the Docker host. Native development needs the frontend
+build before collectstatic; see README. Phase 7 configuration/image-tag checks
+passed, but an actual image build remains unverified without Docker Engine.
+
 ## Preparation
 
 Docker with Linux containers and Docker Compose v2 is required. For existing data, first verify backup and recovery as described in [docs/RECOVERY.md](docs/RECOVERY.md).

@@ -15,7 +15,7 @@ Based on the [audit](AUDIT.md), [baseline](BASELINE.md), [recovery record](RECOV
 | 4 | Persist graph versions and substantially improve graph interaction | Complete: 191 PostgreSQL tests; revised graph prototype accepted by the user |
 | 5 | Introduce verifiable analysis and versioned explanations | Complete: 238 PostgreSQL tests and five local-model synthetic cases passed |
 | 6 | Provide a DRF API | Complete: 320 PostgreSQL tests; versioned API and locally served OpenAPI verified |
-| 7 | Build a React interface using user references | Planned |
+| 7 | Build a React interface using user references | Implemented; browser checks passed, user visual acceptance pending |
 | 8 | Prepare thesis demonstration and operations | Planned |
 
 Phases 0-2 were completed on 5 October 2026. Phase 2 consolidated parsers/the service pipeline, added provenance, resumable runs, and safe person identity. All 128 tests passed on PostgreSQL; a new backup was restored and migrated separately with existing values preserved. The source database and user files remained unchanged. See [BASELINE.md](BASELINE.md), [PHASE1.md](PHASE1.md), and [PHASE2.md](PHASE2.md) for protocols and limits. Audience, schedule, and spending limits remain open.
@@ -249,3 +249,18 @@ Set thresholds after baseline measurement/sample selection. Algorithm-tailored e
 KGD broader-company entitlement, quotas and unverified source variants (one taxpayer and complete zero-arrears response verified); sample size/bidding data; references/UI/graph library; audience/roles/publication (procurement analyst is unconfirmed); independent model benefit/calibration labels (local Qwen3:4b and configurable API adapters implemented in Phase 5); thesis deadline/API costs; phase calendar after scope confirmation without invented estimates.
 
 The user accepted the revised graph prototype and deferred further design/animation work to Phase 7. Final site styling awaits references. Phase 5 is complete within its implemented scope; measurements and limitations are in [PHASE5.md](PHASE5.md). Phase 6 is complete; Phase 7 requires a separate instruction and references. Do not repeat accepted KGD checks merely to read saved results. Broader KGD validation remains bounded and explicitly authorised.
+
+## Phase 7 delivery scope, 7 October 2026
+
+The user supplied React Bits, Magic UI, Spline and an article of UI resources, and
+authorised a serious animated blue interface with restrained cyberpunk details.
+React/TypeScript now supports saved-data workflows and is integrated into Django
+and Docker builds. Bootstrap remains only on compatibility templates. User visual
+acceptance is pending; saved explanation rewriting and further graph design were
+explicitly deferred by the user. No localisation or Phase 8 work started.
+See [PHASE7.md](PHASE7.md) for actual checks and deployment limits.
+
+The latest user-directed Phase 7 refinement adds About Us, the full project footer,
+React Bits Particles and Border Glow. Technical checks are recorded in PHASE7.md;
+visual acceptance remains pending. Authentication, parsing, API-page and saved
+explanation redesign remain separate follow-up tasks.

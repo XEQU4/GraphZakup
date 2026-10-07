@@ -1,0 +1,342 @@
+.account-dialog.login-dialog {
+  display: grid;
+  grid-template-columns: minmax(210px, 0.82fr) minmax(0, 1.18fr);
+  width: min(790px, calc(100vw - 36px));
+  max-width: none;
+  max-height: min(850px, calc(100dvh - 36px));
+  padding: 0;
+  overflow-y: auto;
+  border: 1px solid #315080;
+  border-radius: 24px;
+  background: #060d1b;
+  box-shadow:
+    0 32px 130px #000b,
+    0 0 70px #235dd51c;
+}
+.account-story {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  padding: 36px 28px;
+  min-width: 0;
+  border-right: 1px solid #284369;
+  background:
+    radial-gradient(ellipse at 40% 42%, #1242a344, transparent 64%),
+    linear-gradient(145deg, #0d2248, #050a14);
+}
+.account-story::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.24;
+  background-image:
+    linear-gradient(#74a4ff19 1px, transparent 1px),
+    linear-gradient(90deg, #74a4ff19 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(transparent, #000, transparent);
+}
+.account-story > * {
+  position: relative;
+}
+.account-story-label {
+  color: #8db4ff;
+  font:
+    9px "IBM Plex Mono",
+    monospace;
+  letter-spacing: 0.16em;
+}
+.account-orbit {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 160px;
+  height: 160px;
+  margin: 38px auto;
+  color: #b9d5ff;
+}
+.account-orbit > svg {
+  width: 50px;
+  height: 50px;
+  filter: drop-shadow(0 0 22px #3e7bff77);
+}
+.account-orbit > span {
+  position: absolute;
+  inset: 0;
+  border: 1px solid #4e87e866;
+  border-radius: 50%;
+}
+.account-orbit > span:nth-child(2) {
+  inset: 16px;
+  border-style: dashed;
+  border-color: #88c2ff77;
+  transform: rotate(20deg);
+}
+.account-orbit > span:nth-child(3) {
+  inset: 35px;
+  border-color: #3d69af66;
+}
+.account-orbit > span:first-child::after {
+  content: "";
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d8eaff;
+  left: calc(50% - 3px);
+  top: -3px;
+  box-shadow: 0 0 12px #72aeff;
+}
+html[data-motion="on"]
+  .account-story[data-active="true"]
+  .account-orbit
+  > span:first-child {
+  animation: account-orbit 22s linear infinite;
+}
+.account-story h2 {
+  font:
+    600 clamp(23px, 3vw, 29px)/1.18 "Space Grotesk Variable",
+    sans-serif;
+  margin: 0 0 14px;
+  letter-spacing: -0.045em;
+}
+.account-story p {
+  font-size: 12px;
+  color: #a7b8d4;
+  line-height: 1.85;
+  margin: 0 0 26px;
+}
+.account-story-note {
+  font-size: 11px;
+  color: #bbcfed;
+  margin: 8px 0;
+  display: flex;
+  gap: 9px;
+  align-items: center;
+}
+.account-story-note svg {
+  color: #80b6ff;
+  width: 15px;
+  height: 15px;
+}
+.account-dialog-body {
+  padding: 26px 30px 28px;
+  min-width: 0;
+}
+.account-dialog-body .dialog-header {
+  margin-bottom: 24px;
+}
+.account-dialog-body h2 {
+  font-size: 25px;
+  margin: 23px 0 9px;
+  line-height: 1.24;
+  letter-spacing: -0.04em;
+}
+.account-dialog-body > p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #9caecc;
+  margin-bottom: 20px;
+}
+.account-tabs {
+  display: flex;
+  border: 1px solid #20385d;
+  border-radius: 12px;
+  padding: 4px;
+  gap: 4px;
+  background: #050b16;
+}
+.account-tabs button {
+  flex: 1;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #97abca;
+  min-height: 40px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.account-tabs button[aria-selected="true"] {
+  background: linear-gradient(120deg, #1743a2, #112548);
+  color: #f1f6ff;
+  border-color: #426fbc;
+  box-shadow: inset 0 1px 0 #96bbff26;
+}
+.account-tabs button:focus-visible {
+  outline: 2px solid #8fb8ff;
+  outline-offset: 2px;
+}
+.account-tabs button:disabled {
+  cursor: wait;
+}
+.account-form.login-form {
+  gap: 7px;
+}
+.account-form .field {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #c5d5f0;
+}
+.account-form input,
+.profile-field input {
+  width: 100%;
+  height: 46px;
+  border: 1px solid #294063;
+  border-radius: 10px;
+  padding: 0 13px;
+  color: #edf4ff;
+  background: #040a15;
+  caret-color: #b1d3ff;
+  outline: none;
+  min-width: 0;
+}
+.account-form input:focus,
+.profile-field input:focus {
+  border-color: #6a9aef;
+  box-shadow: 0 0 0 3px #4682ef18;
+}
+.account-form input[aria-invalid="true"],
+.profile-field input[aria-invalid="true"] {
+  border-color: #d97f96;
+}
+.account-form input:disabled,
+.profile-field input:disabled {
+  opacity: 0.65;
+}
+.account-form .button {
+  margin-top: 18px;
+  min-height: 46px;
+  justify-content: space-between;
+}
+.account-field-note {
+  color: #8399bd;
+  font-size: 10px;
+  line-height: 1.6;
+}
+.account-field-error {
+  color: #f3a1b7;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.account-dialog-body .dialog-footnote {
+  margin: 20px 0 0;
+  display: flex;
+  gap: 8px;
+  font-size: 10px;
+  line-height: 1.6;
+  color: #8195b6;
+}
+.account-dialog-body .dialog-footnote svg {
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+}
+@keyframes account-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 620px) {
+  .account-dialog.login-dialog {
+    grid-template-columns: 1fr;
+    width: min(430px, calc(100vw - 28px));
+    max-height: calc(100dvh - 28px);
+    border-radius: 18px;
+  }
+  .account-story {
+    display: none;
+  }
+  .account-dialog-body {
+    padding: 22px;
+  }
+  .account-dialog-body h2 {
+    font-size: 23px;
+  }
+  .account-dialog-body .dialog-header {
+    margin-bottom: 18px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .account-orbit > span {
+    animation: none !important;
+  }
+}
+
+.topbar .account-signup {
+  padding-inline: 15px;
+  min-height: 44px;
+}
+.topbar .account-profile-link {
+  max-width: 200px;
+}
+.topbar .account-profile-link span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 520px) {
+  .topbar .account-signup {
+    padding-inline: 12px;
+    min-height: 44px;
+  }
+}
+
+/* Preserve complete account actions; the search field can use the remaining space. */
+.topbar .topbar-actions {
+  flex-shrink: 0;
+}
+.topbar .topbar-actions .account-signup {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.topbar .topbar-actions .account-profile-link {
+  min-width: 0;
+  max-width: min(200px, 30vw);
+}
+.topbar .topbar-actions .account-profile-link > svg {
+  flex-shrink: 0;
+}
+.topbar .topbar-actions .account-profile-link > span {
+  min-width: 0;
+  max-width: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .topbar .global-search {
+    min-width: 0;
+  }
+  .topbar .global-search input {
+    min-width: 0;
+    width: 100%;
+  }
+  .topbar .topbar-actions {
+    gap: 5px;
+  }
+  .topbar .topbar-actions .account-button:not(.account-profile-link),
+  .topbar .topbar-actions .account-signup {
+    flex: 0 0 auto;
+    min-width: 60px;
+    min-height: 44px;
+    padding: 10px 9px;
+    font-size: 11px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .topbar .topbar-actions .account-button:not(.account-profile-link) > svg {
+    display: none;
+  }
+  .topbar .topbar-actions .account-button:not(.account-profile-link) > span {
+    max-width: none;
+    overflow: visible;
+    text-overflow: clip;
+  }
+  .topbar .topbar-actions .account-profile-link {
+    max-width: min(160px, 32vw);
+    min-width: 44px;
+  }
+}

@@ -1,0 +1,194 @@
+.iz2-glitch {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.iz2-glitch__duplicate {
+  position: absolute;
+  inset: 0;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  color: #fff;
+  -webkit-text-fill-color: currentColor;
+}
+
+.iz2-glitch__duplicate::after {
+  content: attr(data-text);
+}
+
+.iz2-glitch__duplicate--blue {
+  text-shadow: -2px 0 #3688ff;
+}
+
+.iz2-glitch__duplicate--cyan {
+  text-shadow: 2px 0 #8cddff;
+}
+
+.iz2-glitch[data-active="true"] .iz2-glitch__duplicate--blue {
+  animation: iz2-glitch-blue var(--glitch-period, 10s) linear infinite;
+}
+
+.iz2-glitch[data-active="true"] .iz2-glitch__duplicate--cyan {
+  animation: iz2-glitch-cyan var(--glitch-period, 10s) linear infinite;
+}
+
+.iz2-glitch[data-active="true"]:hover .iz2-glitch__duplicate,
+:is(a, button):focus-visible
+  .iz2-glitch[data-active="true"]
+  .iz2-glitch__duplicate {
+  animation: iz2-glitch-interaction 560ms steps(1, end) 1 both;
+}
+
+.iz2-glitch[data-active="true"]:hover .iz2-glitch__duplicate--cyan,
+:is(a, button):focus-visible
+  .iz2-glitch[data-active="true"]
+  .iz2-glitch__duplicate--cyan {
+  animation-direction: reverse;
+}
+
+@keyframes iz2-glitch-blue {
+  0%,
+  7%,
+  93%,
+  100% {
+    opacity: 0;
+    transform: none;
+    clip-path: inset(50% 0 50%);
+  }
+  1%,
+  94% {
+    opacity: 0.85;
+    transform: translateX(-2px);
+    clip-path: inset(20% 0 50%);
+  }
+  2%,
+  95% {
+    opacity: 0.85;
+    transform: translateX(2px);
+    clip-path: inset(10% 0 60%);
+  }
+  3%,
+  96% {
+    opacity: 0.75;
+    transform: translateX(-1px);
+    clip-path: inset(40% 0 20%);
+  }
+  4%,
+  97% {
+    opacity: 0.8;
+    transform: translateX(1px);
+    clip-path: inset(25% 0 35%);
+  }
+  5%,
+  98% {
+    opacity: 0.75;
+    transform: translateX(-2px);
+    clip-path: inset(30% 0 40%);
+  }
+  6%,
+  99% {
+    opacity: 0.7;
+    transform: translateX(1px);
+    clip-path: inset(15% 0 55%);
+  }
+}
+
+@keyframes iz2-glitch-cyan {
+  0%,
+  7%,
+  93%,
+  100% {
+    opacity: 0;
+    transform: none;
+    clip-path: inset(50% 0 50%);
+  }
+  1%,
+  94% {
+    opacity: 0.65;
+    transform: translateX(2px);
+    clip-path: inset(40% 0 20%);
+  }
+  2%,
+  95% {
+    opacity: 0.75;
+    transform: translateX(-1px);
+    clip-path: inset(25% 0 35%);
+  }
+  3%,
+  96% {
+    opacity: 0.75;
+    transform: translateX(2px);
+    clip-path: inset(20% 0 50%);
+  }
+  4%,
+  97% {
+    opacity: 0.65;
+    transform: translateX(-2px);
+    clip-path: inset(30% 0 40%);
+  }
+  5%,
+  98% {
+    opacity: 0.7;
+    transform: translateX(1px);
+    clip-path: inset(10% 0 60%);
+  }
+  6%,
+  99% {
+    opacity: 0.7;
+    transform: translateX(-1px);
+    clip-path: inset(15% 0 55%);
+  }
+}
+
+@keyframes iz2-glitch-interaction {
+  0%,
+  100% {
+    opacity: 0;
+    transform: none;
+    clip-path: inset(50% 0 50%);
+  }
+  12% {
+    opacity: 0.9;
+    transform: translateX(-2px);
+    clip-path: inset(20% 0 50%);
+  }
+  27% {
+    opacity: 0.8;
+    transform: translateX(2px);
+    clip-path: inset(10% 0 60%);
+  }
+  41% {
+    opacity: 0.75;
+    transform: translateX(-1px);
+    clip-path: inset(40% 0 20%);
+  }
+  58% {
+    opacity: 0.85;
+    transform: translateX(2px);
+    clip-path: inset(25% 0 35%);
+  }
+  74% {
+    opacity: 0.75;
+    transform: translateX(-2px);
+    clip-path: inset(30% 0 40%);
+  }
+  89% {
+    opacity: 0.6;
+    transform: translateX(1px);
+    clip-path: inset(15% 0 55%);
+  }
+}
+
+.iz2-glitch[data-active="false"] .iz2-glitch__duplicate {
+  animation: none;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iz2-glitch .iz2-glitch__duplicate {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+}

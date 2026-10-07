@@ -27,6 +27,10 @@ celerybeat.pid
 # Dev / IDE
 .env
 .env.*
+**/.env
+**/.env.*
+.npmrc
+**/.npmrc
 logs/
 .aws/
 .codex/
@@ -46,3 +50,14 @@ docker-compose*.yml
 /artifacts/
 *.dump
 *.backup
+
+# Rebuild browser assets in Docker; never copy host dependencies or cached output.
+**/node_modules/
+/static/frontend/
+frontend/.vite/
+frontend/coverage/
+frontend/*.tsbuildinfo
+
+# Standalone accidental Next.js experiment; IZ2 uses frontend/.
+/next-app/
+/.playwright-mcp/

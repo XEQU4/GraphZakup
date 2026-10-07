@@ -1,0 +1,194 @@
+.iz2-border-glow {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+}
+
+.iz2-border-glow__decoration,
+.iz2-border-glow__border,
+.iz2-border-glow__mesh,
+.iz2-border-glow__fill,
+.iz2-border-glow__edge {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.iz2-border-glow__decoration {
+  z-index: 2;
+  overflow: visible;
+}
+
+.iz2-border-glow__border,
+.iz2-border-glow__fill,
+.iz2-border-glow__edge {
+  opacity: 0;
+  transition: opacity 240ms ease-out;
+}
+
+.iz2-border-glow__border {
+  inset: -1px;
+  padding: 1px;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+
+.iz2-border-glow__mesh,
+.iz2-border-glow__fill {
+  background:
+    var(--border-glow-gradient-1), var(--border-glow-gradient-2),
+    var(--border-glow-gradient-3), var(--border-glow-gradient-4),
+    var(--border-glow-gradient-5), var(--border-glow-gradient-6),
+    var(--border-glow-gradient-7), var(--border-glow-base);
+}
+
+.iz2-border-glow__mesh {
+  mask-image: conic-gradient(
+    from var(--border-glow-angle) at center,
+    black calc(var(--border-glow-cone) * 1%),
+    transparent calc((var(--border-glow-cone) + 15) * 1%),
+    transparent calc((100 - var(--border-glow-cone) - 15) * 1%),
+    black calc((100 - var(--border-glow-cone)) * 1%)
+  );
+}
+
+.iz2-border-glow__fill {
+  mask-image:
+    radial-gradient(ellipse at center, transparent 42%, black 75%),
+    conic-gradient(
+      from var(--border-glow-angle) at center,
+      transparent 5%,
+      black 15%,
+      black 85%,
+      transparent 95%
+    );
+  mask-composite: intersect;
+  mix-blend-mode: soft-light;
+}
+
+.iz2-border-glow__edge {
+  inset: calc(var(--border-glow-padding) * -1);
+  mask-image: conic-gradient(
+    from var(--border-glow-angle) at center,
+    black 2.5%,
+    transparent 10%,
+    transparent 90%,
+    black 97.5%
+  );
+}
+
+.iz2-border-glow__edge::before {
+  content: "";
+  position: absolute;
+  inset: var(--border-glow-padding);
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px var(--border-glow-color-100),
+    inset 0 0 1px 0 var(--border-glow-color-60),
+    inset 0 0 3px 0 var(--border-glow-color-50),
+    inset 0 0 6px 0 var(--border-glow-color-40),
+    inset 0 0 15px 0 var(--border-glow-color-30),
+    inset 0 0 25px 2px var(--border-glow-color-20),
+    inset 0 0 50px 2px var(--border-glow-color-10),
+    0 0 1px 0 var(--border-glow-color-60),
+    0 0 3px 0 var(--border-glow-color-50),
+    0 0 6px 0 var(--border-glow-color-40),
+    0 0 15px 0 var(--border-glow-color-30),
+    0 0 25px 2px var(--border-glow-color-20),
+    0 0 50px 2px var(--border-glow-color-10);
+}
+
+.iz2-border-glow[data-border-glow-focus="true"]:not(
+    [data-border-glow-hover="true"]
+  ) {
+  --border-glow-edge: 92 !important;
+  --border-glow-angle: 45deg !important;
+}
+
+.iz2-border-glow[data-border-glow-active="true"]:is(
+    [data-border-glow-hover="true"],
+    [data-border-glow-focus="true"]
+  )
+  .iz2-border-glow__border {
+  opacity: clamp(
+    0,
+    calc(
+      (var(--border-glow-edge) - var(--border-glow-sensitivity) - 20) /
+        (80 - var(--border-glow-sensitivity))
+    ),
+    1
+  );
+}
+
+.iz2-border-glow[data-border-glow-active="true"]:is(
+    [data-border-glow-hover="true"],
+    [data-border-glow-focus="true"]
+  )
+  .iz2-border-glow__fill {
+  opacity: clamp(
+    0,
+    calc(
+      var(--border-glow-fill) *
+        (var(--border-glow-edge) - var(--border-glow-sensitivity) - 20) /
+        (80 - var(--border-glow-sensitivity))
+    ),
+    0.4
+  );
+}
+
+.iz2-border-glow[data-border-glow-active="true"]:is(
+    [data-border-glow-hover="true"],
+    [data-border-glow-focus="true"]
+  )
+  .iz2-border-glow__edge {
+  opacity: clamp(
+    0,
+    calc(
+      (var(--border-glow-edge) - var(--border-glow-sensitivity)) /
+        (100 - var(--border-glow-sensitivity))
+    ),
+    1
+  );
+}
+
+.iz2-border-glow[data-border-glow-active="false"]
+  :is(
+    .iz2-border-glow__border,
+    .iz2-border-glow__fill,
+    .iz2-border-glow__edge
+  ) {
+  opacity: 0;
+  transition: none;
+}
+
+.iz2-border-glow:focus-visible {
+  outline: 2px solid #a9c9ff;
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iz2-border-glow
+    :is(
+      .iz2-border-glow__border,
+      .iz2-border-glow__fill,
+      .iz2-border-glow__edge
+    ) {
+    opacity: 0 !important;
+    transition: none;
+  }
+}
+
+/* Keep the decorative outer surface inside narrow page gutters. */
+@media (max-width: 800px) {
+  .iz2-border-glow {
+    --border-glow-padding: 12px !important;
+  }
+}
+
+/* Moving the hit target would repeatedly lose a pointer at the bottom edge. */
+.iz2-border-glow:is(.cluster-card, .home-group-card):hover {
+  transform: none;
+}

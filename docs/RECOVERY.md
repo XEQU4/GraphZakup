@@ -204,3 +204,45 @@ histories. Existing dependency versions, .env and test.py were preserved; API
 packages were added to the lockfile. A copied synthetic SQLite fixture retained
 all table contents after real HTTP GET checks. The owned localhost:8768 API probe
 was stopped. The user's existing synthetic demo and working data were untouched.
+
+
+## Phase 7 self-service accounts, 7 October 2026
+
+Before account-index changes, a fresh backup was independently restored and all
+50 tables, values and migration history matched. Report:
+`artifacts/phase7/account-ui/database_20261007T160644Z_2dc3026c.json`. Dump SHA-256:
+`914e5c9600d737117ff3667578711c84fcee257eb8b8fd79988e5fb922117719`.
+The owned verification database was dropped.
+
+A second isolated restore verified `api.0001_account_identity_indexes`, retaining
+all 49 original tables outside migration history. Duplicate case probes rolled
+back; empty legacy emails remained supported. Reverse/reapply preserved values.
+All 353 tests passed on a separate PostgreSQL test database without skips; both
+owned databases were dropped and their absence checked. Reports:
+`artifacts/phase7/account-ui/postgresql-migration-latest.json` and
+`postgresql-tests-latest.json`. Browser account writes used only a synthetic SQLite
+preview with external HTTP, background dispatch and models disabled. Working
+migration/account writes, graph recalculation and source collection were not run.
+Apply the migration before using registration; refresh the backup after any
+intervening working-data writes. Final integrity checks are recorded separately.
+
+Final source comparison matched all 50 working-table fingerprints. Protected
+files and existing Python dependency versions were unchanged; 353 scanned project
+files contained no configured credentials. Account-index migration remains pending
+on the working database. Report: artifacts/phase7/account-ui/final-verification.json.
+
+## Phase 7 saved-view follow-up, 7 October 2026
+
+A fresh backup was independently restored with all 50 tables, values and
+migration history equal. Report:
+`artifacts/phase7/save-view-followup/database_20261007T170237Z_05462997.json`.
+Dump SHA-256:
+`35b69ff355ded29efdbd26610edd71b058c4c052da3bf685a3de1eaf9d839493`.
+The generated restore database was dropped. The working database now has all
+69 existing migrations applied; no new migration was added in this follow-up.
+
+All 357 tests passed without skips in a separate owned PostgreSQL test database;
+the test runner dropped it and its absence was verified. All 50 working-table
+fingerprints matched the fresh backup before and after. Report:
+`artifacts/phase7/save-view-followup/postgresql-tests-latest.json`. No working
+write, migration, source collection or model job was run during verification.

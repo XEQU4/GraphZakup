@@ -1,0 +1,6 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#070b14"><meta name="description" content="IZ2 — explore saved evidence behind Kazakhstan public procurement relationships."><link rel="icon" href="{% static 'frontend/favicon.svg' %}" type="image/svg+xml"><title>IZ2 · Procurement intelligence</title>{% for href in entry_styles %}<link rel="stylesheet" href="{{ href }}">{% endfor %}</head>
+<body><div id="root"></div><noscript>IZ2 uses JavaScript for its interactive interface. <a href="/legacy/">Open the legacy workspace</a>.</noscript><script type="module" src="{{ entry_script }}"></script></body>
+</html>

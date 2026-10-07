@@ -6,7 +6,7 @@ Brand: IZ2; package and GitHub repository: iz2; intended future domain: iz2.kz.
 The user supplied the original scope: relationship evidence combined with verified
 company/person history and plain-language explanations. Court, bankruptcy and
 restricted-participant integrations remain planned; legacy flags do not establish
-verified findings. Do not start those sources or Phase 7 automatically.
+verified findings. Do not start those sources or Phase 8 automatically.
 Keep existing database/volume identifiers, GPG compatibility settings and the
 graph-view storage key when rebranding. Compose pins its legacy default namespace
 so renaming the local directory does not select empty replacement volumes.
@@ -115,3 +115,105 @@ without shared-output rename. The 328-test offline follow-up passed with four
 PostgreSQL-only skips; actual Windows startup/concurrent logging and strict static
 regressions passed. POSIX/network-share locking remains unverified. Details:
 docs/PHASE6.md; private reports: artifacts/data-followup/.
+
+## Phase 7 frontend scope
+
+On 7 October 2026 the user explicitly authorised React with supplied UI references:
+serious blue design, restrained cyberpunk details and expressive motion. The user
+deferred explanation rewriting and further graph design until after this frontend.
+English React supports the existing saved dataset and same-origin session API;
+Django serves /app/ and retains /legacy/ compatibility. Node builds are integrated
+into Docker. React Bits/Magic UI source licenses and dependency notices are retained.
+Use Vite original hashed entry URLs, not storage.url extra hashes, so lazy imports
+share one React root/context. GET must remain domain-read-only. Do not silently
+rebuild old 5.0 explanations. User visual acceptance is pending; see docs/PHASE7.md.
+No Phase 8 or Russian localisation is authorised automatically. The user still runs
+Git. Required next-step commands must be given directly in final responses.
+
+Phase 7 technical checks: 338 isolated PostgreSQL tests and 35 React tests passed.
+Normal-settings browser checks covered 390/768/1440/1920px, saved working reads,
+synthetic CSRF login/logout and independent personal views. All 50 working table
+hashes and protected-file hashes matched. OpenAPI, clean npm build, formatting,
+Docker config and Node image manifest passed. Linux image execution, physical
+touch and high-density graph performance remain unverified. Private reports are
+in artifacts/phase7; owned preview servers were stopped.
+
+Phase 7 follow-up (7 October 2026): the user requested Lightswind/Coss UI/UILib as
+the main design references. The overview now has licensed aurora lighting,
+original dimensional illustration, glass surfaces, spotlight cards, responsive
+contract cards and 44px mobile header targets. React/Vite remains in frontend/.
+The accidental standalone next-app/ starter was inspected, kept and excluded
+from Git/Docker; do not delete it or migrate the application to Next.js without
+a task requesting that change. User visual acceptance remains pending; further
+graph and stored-explanation redesign is still deferred. See docs/PHASE7.md.
+
+Phase 7 motion/alignment follow-up (7 October 2026): original IZ monogram/local
+favicon, deep-blue/black/white identity, semantic TechHeading, manual FocusFrame,
+saved integer CountUp and continuous emblems are implemented. Motion follows
+manual/device preferences and visibility; do not animate money, identifiers or
+review scores. Graph controls are 44px; shared analysis status aligns both cards.
+All 48 React tests and six isolated Django frontend tests passed. Chromium
+verified motion, keyboard/hover focus, reduced motion and 320–1920px layouts;
+all 50 working-table fingerprints and protected file hashes matched. User visual
+acceptance remains pending. Preserve local-adaptation
+credits and the full React Bits license. No collected source or saved graph,
+analysis/text data was changed; no Phase 8 or localisation work is authorised
+by this update.
+
+Latest Phase 7 refinement: TechHeading page titles now use transparent hovered
+glyphs with dashed SVG outlines/measurement handles; original GroupGlyph and a
+fixed 66-star CSS twinkle layer are decorative. Finite button glitch/shine stays
+within 0.18px transient blur; search fields gain focus borders/scans/icon glow.
+All 48 React tests, six isolated Django frontend tests, build and formatting
+passed; bounded browser scenarios and 320–1920px layouts were checked. Final
+tooltip-edge and integrity checks passed: all 50 working-table fingerprints and
+protected-file hashes matched. User visual acceptance remains pending. Footer, authentication, source/parsing, API-page
+and explanation improvements were explicitly deferred; do not start them from
+this refinement. No dependency, backend or saved-data change was required.
+
+
+Latest user-authorised Phase 7 update: About Us is the sixth navigation route; the
+full footer restores existing contacts/GitHub/credits and current stack/sources.
+React Bits Particles (240 points) replaces the 66-star layer; Border Glow retains
+native group-card links and decorates About panels. Ctrl+K was removed; input
+carets remain visible, ordinary text has transparent caret styling. Glyph strokes
+are thinner and reveal completion is cancellable and independent of final-glyph
+hover. All 61 React tests, six Django frontend tests, build and formatting passed;
+bounded Chromium checks include 320–1920px, real WebGL, motion/fallback, navigation,
+search and saved evidence. Private reports use about-particles prefixes. User
+visual acceptance remains pending. Authentication, parsing, API-page, explanation
+redesign, localisation and Phase 8 remain deferred. Preserve next-app unchanged.
+
+
+Latest authorised Phase 7 follow-up supersedes the earlier account/footer
+deferrals: independent developer Barakhat Mukhtar Batyruly; related article author
+Yestay Arnuruly, Estay-2020@bk.ru. Remove supervisor/department claims from UI.
+Sign-up/sign-in dialogs and /app/profile support username changes, read-only email
+and current-password-protected password changes without avatars. api.0001 adds
+case-insensitive account indexes; restored-copy/reverse checks preserved original
+values. Working migration remains pending and must precede registration use.
+Graph visual accents/controller and Companies/People/Contracts list surfaces were
+updated; evidence, IDs, stored layouts and immutable results remain unchanged.
+353 PostgreSQL tests, 77 React tests, build, formatting and bounded Chromium
+flows/320–1920px checks passed. Account browser writes used synthetic SQLite only.
+Reports and backup are in ignored artifacts/phase7/account-ui/. User visual
+acceptance remains pending. No Git commands are authorised yet; the user wants
+to review these four items before committing/pushing. Do not automatically start
+AI-explanation/group-page work, parser/data-quality work, entity-detail redesign,
+localisation or Phase 8. Preserve next-app and the protected learning/environment
+files.
+
+Current Phase 7 saved-view follow-up supersedes the previous pending-migration
+status: all 69 existing working migrations are applied; no new migration was
+added. Article email is in the contact panel; desktop directory arrows are inset.
+Authenticated /api/v1/account/views/ returns own paginated metadata, and Profile
+Your graph views opens saved snapshots. Save view commits pending camera targets
+and clears completed targets to preserve later manual pan/zoom; toolbar feedback
+is visible beside controls. Failed private GET/revision conflicts block PUT until
+Reload saved account view. Guest state enters an account without a personal view
+only after successful GET and explicit save. 357 PostgreSQL tests without skips,
+88 React tests, build, formatting and migration drift passed. Fresh-browser
+account restore without localStorage retained pins, selection, zoom, filters and
+freeze. All 50 source fingerprints matched; the fresh verified backup/report is
+under ignored artifacts/phase7/save-view-followup/. User visual acceptance remains
+pending. No Git, source collection, inference or next-phase work was run.

@@ -1,0 +1,777 @@
+/* Directory-only surfaces leave company and person detail pages unchanged. */
+.app-shell .directory-page .panel.entity-directory {
+  position: relative;
+  border: 1px solid #263d63;
+  border-radius: 24px;
+  background:
+    radial-gradient(ellipse at 8% 0, #17356b40, transparent 42%),
+    linear-gradient(145deg, #091321e8, #040a15f2);
+  box-shadow:
+    0 24px 70px #00000025,
+    inset 0 1px 0 #e0ecff0a;
+  overflow: hidden;
+}
+.app-shell .directory-page .entity-section-head {
+  padding: 28px 28px 24px;
+  gap: 18px;
+}
+.app-shell .directory-page .entity-section-head h2 {
+  font-size: 23px;
+  letter-spacing: -0.04em;
+  color: #f4f7ff;
+  gap: 13px;
+}
+.app-shell .directory-page .entity-section-head p {
+  color: #9caec9;
+  line-height: 1.7;
+  max-width: 650px;
+}
+.app-shell .directory-page .entity-count {
+  border-radius: 8px;
+  padding: 7px 11px;
+  color: #dce8ff;
+  background: #16336b73;
+  border-color: #5e88d15c;
+  box-shadow: inset 0 1px 0 #b8d5ff12;
+  font-size: 13px;
+  letter-spacing: 0;
+}
+.app-shell .directory-page .entity-data-label {
+  padding: 9px 12px;
+  border: 1px solid #2d456654;
+  border-radius: 100px;
+  color: #a9bedb;
+  background: #091323b8;
+  font-size: 9px;
+}
+.app-shell .directory-page .entity-data-label i {
+  background: #82acff;
+  box-shadow: 0 0 9px #5989ff73;
+}
+.app-shell .directory-page .entity-toolbar {
+  padding: 20px 28px 22px;
+  align-items: end;
+  gap: 14px;
+  background: #06101f99;
+  border-color: #3b5a8438;
+}
+.app-shell .directory-page .entity-search {
+  flex-basis: 280px;
+  min-height: 56px;
+  padding: 5px 6px 5px 16px;
+  gap: 12px;
+  border-radius: 14px;
+  background: #040b17;
+  border-color: #334e77;
+  box-shadow: inset 0 1px 0 #bed3ff08;
+}
+.app-shell .directory-page .entity-search > svg {
+  color: #9ab4d9;
+  width: 18px;
+  height: 18px;
+}
+.app-shell .directory-page .entity-search input {
+  font-size: 13px;
+  min-height: 44px;
+  color: #ecf3ff;
+}
+.app-shell .directory-page .entity-search input::placeholder {
+  color: #91a5c3;
+}
+.app-shell .directory-page .entity-search .entity-search-button {
+  border-radius: 10px;
+  min-height: 44px;
+  padding: 10px 16px;
+  background: linear-gradient(145deg, #183b78, #10264e);
+  color: #f5f8ff;
+  border-color: #4d73ad;
+  font-size: 12px;
+  box-shadow: inset 0 1px 0 #b3d2ff12;
+}
+.app-shell .directory-page .entity-select-label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  flex: 0 1 185px;
+}
+.app-shell .directory-page .directory-control-label {
+  padding-left: 3px;
+  color: #9bb0d0;
+  font: 9px var(--font-mono, monospace);
+  letter-spacing: 0.05em;
+}
+.app-shell .directory-page .entity-select-label select {
+  width: 100%;
+  max-width: none;
+  min-height: 56px;
+  padding: 12px 13px;
+  font-size: 12px;
+  border-color: #2c4264;
+  border-radius: 14px;
+  background-color: #0a1526;
+  color: #c8d8ee;
+  cursor: pointer;
+}
+.app-shell .directory-page .entity-clear {
+  min-height: 44px;
+  margin-bottom: 6px;
+}
+.app-shell .directory-page .directory-results {
+  padding: 0 18px 10px;
+  overflow-x: auto;
+  outline-offset: -3px;
+}
+.app-shell .directory-page .entity-table {
+  border-collapse: separate;
+  border-spacing: 0 9px;
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+.app-shell .directory-page .entity-table th {
+  padding: 13px 20px 7px;
+  color: #839bc0;
+  border: 0;
+  background: transparent;
+  font: 9px var(--font-mono, monospace);
+  letter-spacing: 0.09em;
+  text-align: left;
+}
+.app-shell .directory-page .entity-table th:first-child {
+  width: 40%;
+}
+.app-shell .directory-page .entity-table th:nth-child(2) {
+  width: 19%;
+}
+.app-shell .directory-page .entity-table th:last-child {
+  width: 94px;
+}
+.app-shell .directory-page .entity-table tbody tr {
+  background: transparent;
+  box-shadow: none;
+}
+.app-shell .directory-page .entity-table td {
+  padding: 21px 20px;
+  border-block: 1px solid #253a5b73;
+  background: linear-gradient(160deg, #10223b6b, #081321b5);
+  color: #c7d7ed;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.app-shell .directory-page .entity-table td:first-child {
+  border-left: 1px solid #253a5b73;
+  border-radius: 15px 0 0 15px;
+  box-shadow: inset 3px 0 #467bce00;
+}
+.app-shell .directory-page .entity-table td:last-child {
+  border-right: 1px solid #253a5b73;
+  border-radius: 0 15px 15px 0;
+}
+.app-shell .directory-page .entity-table tbody tr:last-child td {
+  border-bottom: 1px solid #253a5b73;
+}
+.app-shell .directory-page .entity-table tbody tr:is(:hover, :focus-within) td {
+  background: linear-gradient(160deg, #15366699, #0b1b3599);
+  border-color: #4771b8;
+}
+.app-shell
+  .directory-page
+  .entity-table
+  tbody
+  tr:is(:hover, :focus-within)
+  td:first-child {
+  box-shadow: inset 3px 0 #669bff;
+}
+.app-shell .directory-page .entity-name-link {
+  gap: 15px;
+  min-height: 44px;
+  color: #eff5ff;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 9px;
+}
+.app-shell .directory-page .directory-identity {
+  min-width: 0;
+}
+.app-shell .directory-page .entity-name-link strong {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: inherit;
+}
+.app-shell .directory-page .entity-name-link:hover {
+  color: #b9d4ff;
+}
+.app-shell .directory-page .entity-subline {
+  color: #91a9cc;
+  font-size: 11px;
+  margin-top: 6px;
+}
+.app-shell .directory-page .entity-company-symbol {
+  position: relative;
+  width: 43px;
+  height: 43px;
+  border-radius: 12px;
+  color: #a0c2ff;
+  border-color: #456faa80;
+  background: linear-gradient(145deg, #1b3b67, #0c1d35);
+  box-shadow:
+    inset 0 1px 0 #c2dcff21,
+    0 5px 12px #0000001f;
+}
+.app-shell .directory-page .entity-company-symbol::after {
+  content: "";
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  top: 6px;
+  right: 6px;
+  border-radius: 50%;
+  background: #92bdff;
+  opacity: 0.6;
+}
+.app-shell .directory-page .entity-company-symbol svg {
+  width: 20px;
+  height: 20px;
+}
+.app-shell .directory-page .entity-badges .badge,
+.app-shell .directory-page .entity-table .badge {
+  border-radius: 7px;
+  padding: 5px 9px;
+  font-size: 10px;
+  line-height: 1.4;
+  white-space: normal;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.app-shell .directory-page .entity-table .badge::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.app-shell .directory-page .entity-row-open {
+  width: 44px;
+  height: 44px;
+  color: #a3bbdf;
+  border: 1px solid #29466c7a;
+  border-radius: 11px;
+  background: #0c1b3078;
+}
+.app-shell .directory-page .entity-row-open:hover {
+  background: #183b7161;
+  color: #e3edff;
+  border-color: #709de9;
+}
+.app-shell .directory-page .entity-row-open svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.app-shell .directory-page .directory-open-label {
+  display: none;
+}
+.app-shell
+  .directory-page
+  :is(
+    .entity-name-link,
+    .entity-row-open,
+    .entity-inline-link,
+    summary
+  ):focus-visible {
+  outline: 2px solid #8eb7ff;
+  outline-offset: 4px;
+}
+.app-shell .directory-page .entity-pagination {
+  padding: 20px 28px;
+  background: #070f1cb8;
+  border-color: #3450795e;
+  color: #a7bad7;
+  font-size: 12px;
+}
+.app-shell .directory-page .entity-pagination > div {
+  gap: 12px;
+}
+.app-shell .directory-page .entity-pagination .button {
+  min-height: 44px;
+  padding: 10px 13px;
+  border-radius: 11px;
+  background: #0d1c33;
+  border-color: #35527b;
+  font-size: 11px;
+}
+.app-shell .directory-page .entity-pagination .button:disabled {
+  opacity: 0.45;
+}
+.app-shell .directory-page .directory-page-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 66px;
+  justify-content: center;
+  font: 12px var(--font-mono, monospace);
+}
+.app-shell .directory-page .directory-page-indicator strong {
+  display: grid;
+  place-items: center;
+  min-width: 31px;
+  min-height: 35px;
+  padding: 4px 7px;
+  border-radius: 8px;
+  border: 1px solid #507dbe66;
+  background: #1b376373;
+  color: #f1f6ff;
+  font-weight: 500;
+}
+.app-shell .directory-page .entity-footnote {
+  margin: 19px 9px;
+  color: #9badc8;
+  line-height: 1.8;
+}
+.app-shell .directory-page .entity-contract-table th:first-child {
+  width: 37%;
+}
+.app-shell .directory-page .entity-contract-table th:nth-child(2) {
+  width: 28%;
+}
+.app-shell .directory-page .entity-contract-table th:nth-child(3) {
+  width: 15%;
+}
+.app-shell .directory-page .entity-contract-table th:last-child {
+  width: 20%;
+}
+.app-shell .directory-page .directory-contract-identity {
+  display: flex;
+  align-items: start;
+  gap: 12px;
+}
+.app-shell .directory-page .entity-contract-title strong {
+  color: #eef4ff;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.7;
+}
+.app-shell .directory-page .entity-contract-title details {
+  margin: 13px 0 0 55px;
+  font-size: 11px;
+}
+.app-shell .directory-page .entity-contract-title summary {
+  color: #a4bfeb;
+  padding-block: 4px;
+}
+.app-shell .directory-page .entity-contract-title details[open] {
+  margin-left: 0;
+  padding: 10px 12px;
+  border: 1px solid #33578469;
+  border-radius: 10px;
+  background: #030b18b3;
+}
+.app-shell .directory-page .entity-contract-title details p {
+  line-height: 1.8;
+  color: #a3b9d9;
+}
+.app-shell .directory-page .directory-party-label {
+  display: block;
+  font: 9px var(--font-mono, monospace);
+  color: #8fa6ca;
+  margin-bottom: 7px;
+}
+.app-shell .directory-page .entity-inline-link {
+  color: #c1d7ff;
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.app-shell .directory-page .directory-date {
+  font: 11px var(--font-mono, monospace);
+  white-space: nowrap;
+}
+.app-shell .directory-page .entity-money {
+  color: #f0f6ff;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+.app-shell .directory-page .entity-contract-table th:last-child {
+  text-align: right;
+}
+.app-shell .directory-page .entity-contract-filters {
+  padding: 18px 28px 20px;
+  border-top: 1px solid #34507938;
+  background: #06101f99;
+  gap: 14px;
+}
+.app-shell .directory-page .entity-contract-filters label {
+  font-size: 10px;
+  color: #a1b4d1;
+  gap: 8px;
+}
+.app-shell .directory-page .entity-contract-filters input {
+  border-radius: 11px;
+  border-color: #2c4264;
+  background: #0a1526;
+  min-height: 44px;
+}
+.app-shell .directory-page .entity-contract-filters .button {
+  min-height: 44px;
+  border-radius: 11px;
+}
+.app-shell .directory-page .entity-filter-note {
+  background: #10234870;
+  border-block: 1px solid #3b5a8438;
+  line-height: 1.8;
+  flex-wrap: wrap;
+}
+.app-shell .directory-page .entity-loading {
+  padding: 24px;
+}
+.app-shell .directory-page .entity-skeleton-row {
+  padding: 22px 18px;
+  margin: 9px 0;
+  border: 1px solid #253a5b73;
+  border-radius: 15px;
+  background: #0a16288c;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="off"])
+    .app-shell
+    .directory-page[data-decorative-active="true"]
+    .entity-table
+    td {
+    transition:
+      background 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+  :root:not([data-motion="off"])
+    .app-shell
+    .directory-page[data-decorative-active="true"]
+    .entity-table
+    tbody
+    tr:nth-child(-n + 7) {
+    animation: iz2-directory-enter 380ms ease-out both;
+  }
+  :root:not([data-motion="off"])
+    .app-shell
+    .directory-page[data-decorative-active="true"]
+    .entity-table
+    tbody
+    tr:nth-child(2) {
+    animation-delay: 25ms;
+  }
+  :root:not([data-motion="off"])
+    .app-shell
+    .directory-page[data-decorative-active="true"]
+    .entity-table
+    tbody
+    tr:nth-child(3) {
+    animation-delay: 50ms;
+  }
+  :root:not([data-motion="off"])
+    .app-shell
+    .directory-page[data-decorative-active="true"]
+    .entity-table
+    tbody
+    tr:nth-child(4) {
+    animation-delay: 75ms;
+  }
+  :root:not([data-motion="off"])
+    .app-shell
+    .directory-page[data-decorative-active="true"]
+    .entity-table
+    tbody
+    tr:nth-child(5) {
+    animation-delay: 100ms;
+  }
+  :root:not([data-motion="off"])
+    .app-shell
+    .directory-page[data-decorative-active="true"]
+    .entity-table
+    tbody
+    tr:nth-child(6) {
+    animation-delay: 125ms;
+  }
+  :root:not([data-motion="off"])
+    .app-shell
+    .directory-page[data-decorative-active="true"]
+    .entity-table
+    tbody
+    tr:nth-child(7) {
+    animation-delay: 150ms;
+  }
+  :root:not([data-motion="off"])
+    .app-shell
+    .directory-page[data-decorative-active="true"]
+    .entity-table
+    tbody
+    tr:is(:hover, :focus-within)
+    .entity-company-symbol
+    svg {
+    animation: iz2-directory-icon 340ms ease-out;
+  }
+  :root:not([data-motion="off"])
+    .app-shell
+    .directory-page[data-decorative-active="true"]
+    .entity-row-open:is(:hover, :focus-visible)
+    svg {
+    animation: iz2-directory-arrow 330ms ease-out;
+  }
+}
+@keyframes iz2-directory-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes iz2-directory-icon {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  45% {
+    transform: translateY(-2px) rotate(-7deg);
+    filter: drop-shadow(0 0 5px #89b3ff80);
+  }
+}
+@keyframes iz2-directory-arrow {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(3px);
+  }
+}
+@media (min-width: 901px) {
+  .app-shell .directory-page .entity-table td.directory-action-cell {
+    padding-inline: 16px 34px;
+  }
+}
+@media (max-width: 1100px) {
+  .app-shell .directory-page .entity-toolbar {
+    gap: 10px;
+  }
+  .app-shell .directory-page .entity-select-label {
+    flex-basis: 165px;
+  }
+  .app-shell .directory-page .entity-table td {
+    padding: 18px 13px;
+  }
+  .app-shell .directory-page .entity-table th {
+    padding-inline: 13px;
+  }
+}
+@media (max-width: 900px) {
+  .app-shell .directory-page .directory-results {
+    padding: 7px 18px 12px;
+    overflow: visible;
+  }
+  .app-shell .directory-page .entity-table,
+  .app-shell .directory-page .entity-table tbody {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+  .app-shell .directory-page .entity-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    clip-path: inset(50%);
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .app-shell .directory-page .entity-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 18px 20px;
+    position: relative;
+    margin-bottom: 12px;
+    padding: 21px;
+    border: 1px solid #2c436a;
+    border-radius: 17px;
+    background: linear-gradient(145deg, #10243f99, #071121cc);
+  }
+  .app-shell .directory-page .entity-table tbody tr:is(:hover, :focus-within) {
+    border-color: #638acd;
+    background: linear-gradient(145deg, #163264ab, #0a1730cc);
+  }
+  .app-shell .directory-page .entity-table tbody td,
+  .app-shell .directory-page .entity-table tbody tr:last-child td {
+    display: block;
+    min-width: 0;
+    max-width: none;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    line-height: 1.7;
+  }
+  .app-shell
+    .directory-page
+    .entity-table
+    tbody
+    tr:is(:hover, :focus-within)
+    td,
+  .app-shell
+    .directory-page
+    .entity-table
+    tbody
+    tr:is(:hover, :focus-within)
+    td:first-child {
+    background: transparent;
+    box-shadow: none;
+  }
+  .app-shell .directory-page .entity-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font: 9px var(--font-mono, monospace);
+    color: #8ba5cc;
+    margin-bottom: 8px;
+  }
+  .app-shell .directory-page .entity-table td:first-child {
+    grid-column: 1 / -1;
+    padding-bottom: 17px;
+    border-bottom: 1px solid #3a52783d;
+  }
+  .app-shell .directory-page .entity-table td:first-child::before {
+    display: none;
+  }
+  .app-shell .directory-page .entity-table .directory-action-cell {
+    grid-column: 1 / -1;
+  }
+  .app-shell .directory-page .entity-row-open {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    min-height: 44px;
+    padding: 9px 12px;
+  }
+  .app-shell .directory-page .directory-open-label {
+    display: inline;
+    font-size: 11px;
+  }
+  .app-shell .directory-page .directory-date {
+    white-space: normal;
+  }
+  .app-shell .directory-page .entity-contract-table td:nth-child(2) {
+    grid-column: 1 / -1;
+  }
+  .app-shell .directory-page .entity-contract-table .entity-money {
+    text-align: left;
+  }
+  .app-shell .directory-page .entity-contract-title details {
+    margin-left: 55px;
+  }
+  .app-shell .directory-page .entity-contract-title details[open] {
+    margin-left: 0;
+  }
+}
+@media (max-width: 640px) {
+  .app-shell .directory-page .entity-section-head {
+    padding: 22px 18px;
+  }
+  .app-shell .directory-page .entity-section-head h2 {
+    font-size: 21px;
+  }
+  .app-shell .directory-page .entity-toolbar {
+    padding: 18px;
+    gap: 12px;
+  }
+  .app-shell .directory-page .entity-search {
+    flex-basis: 100%;
+  }
+  .app-shell .directory-page .entity-select-label {
+    flex: 1 1 calc(50% - 12px);
+  }
+  .app-shell .directory-page .entity-select-label select {
+    min-height: 48px;
+    padding-inline: 10px;
+    font-size: 11px;
+  }
+  .app-shell .directory-page .entity-clear {
+    margin-bottom: 0;
+  }
+  .app-shell .directory-page .directory-results {
+    padding-inline: 12px;
+  }
+  .app-shell .directory-page .entity-table tbody tr {
+    padding: 18px;
+    gap: 17px 15px;
+  }
+  .app-shell .directory-page .entity-name-link {
+    gap: 12px;
+  }
+  .app-shell .directory-page .entity-name-link strong {
+    font-size: 13px;
+  }
+  .app-shell .directory-page .entity-pagination {
+    padding: 18px;
+    gap: 15px;
+  }
+  .app-shell .directory-page .entity-pagination > div {
+    gap: 8px;
+  }
+  .app-shell .directory-page .entity-contract-filters {
+    padding: 16px 18px 18px;
+  }
+  .app-shell .directory-page .entity-contract-filters label {
+    flex-basis: calc(50% - 14px);
+  }
+  .app-shell .directory-page .entity-filter-note {
+    padding: 13px 18px;
+  }
+  .app-shell .directory-page .entity-skeleton-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .app-shell .directory-page .entity-skeleton-row span:first-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 380px) {
+  .app-shell .directory-page .entity-table tbody tr {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .app-shell .directory-page .entity-table td:first-child,
+  .app-shell .directory-page .entity-table .directory-action-cell,
+  .app-shell .directory-page .entity-contract-table td:nth-child(2) {
+    grid-column: auto;
+  }
+  .app-shell .directory-page .entity-select-label {
+    flex-basis: 100%;
+  }
+  .app-shell .directory-page .entity-contract-filters label {
+    flex-basis: 100%;
+  }
+}
+.app-shell
+  .directory-page[data-decorative-active="false"]
+  .entity-table
+  :is(tr, td),
+.app-shell .directory-page[data-decorative-active="false"] .entity-table svg,
+:root[data-motion="off"] .app-shell .directory-page .entity-table :is(tr, td),
+:root[data-motion="off"] .app-shell .directory-page .entity-table svg {
+  animation: none;
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .directory-page .entity-table :is(tr, td),
+  .app-shell .directory-page .entity-table svg {
+    animation: none;
+    transition: none;
+  }
+}

@@ -1,4 +1,4 @@
-"""Same-origin session bootstrap/login/logout for the later React client."""
+"""Same-origin session bootstrap/login/logout for the React client."""
 from django.contrib.auth import authenticate, login, logout
 from django.middleware.csrf import get_token, rotate_token
 from drf_spectacular.utils import extend_schema
@@ -14,6 +14,7 @@ from .common import ApiError, ApiView, StrictSerializer
 class SessionUserSerializer(serializers.Serializer):
     id = serializers.IntegerField(allow_null=True)
     username = serializers.CharField(allow_null=True)
+    email = serializers.CharField(allow_null=True, allow_blank=True)
     role = serializers.ChoiceField(choices=['anonymous', 'user', 'staff'])
 
 
@@ -38,6 +39,7 @@ def session_result(request):
     authenticated = user.is_authenticated
     return {'user': {'id': user.pk if authenticated else None,
         'username': user.get_username() if authenticated else None,
+        'email': user.email if authenticated else None,
         'role': 'staff' if authenticated and user.is_staff else 'user' if authenticated else 'anonymous'},
         'csrf_token': get_token(request._request),
         'capabilities': {'can_save_views': bool(authenticated),
@@ -64,7 +66,7 @@ class LoginView(ApiView):
     throttle_scope = 'api_login'
 
     @extend_schema(request=LoginSerializer, responses=SessionSerializer, description='CSRF-protected '
-        'Django session login. Bootstrap CSRF with GET /api/v1/session/ first. No registration endpoint.')
+        'Django session login. Bootstrap CSRF with GET /api/v1/session/ first.')
     def post(self, request):
         data = LoginSerializer(data=request.data)
         data.is_valid(raise_exception=True)

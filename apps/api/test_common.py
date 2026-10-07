@@ -33,7 +33,7 @@ class ApiSessionTests(TestCase):
         token = self.bootstrap()
         self.assertTrue(token)
         body = self.client.get('/api/v1/session/').json()
-        self.assertEqual(body['user'], {'id': None, 'username': None, 'role': 'anonymous'})
+        self.assertEqual(body['user'], {'id': None, 'username': None, 'email': None, 'role': 'anonymous'})
         self.assertFalse(body['capabilities']['can_start_jobs'])
         response = self.client.get('/api/v1/session/?provider=external')
         self.assertEqual(response.status_code, 400)

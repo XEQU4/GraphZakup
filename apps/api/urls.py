@@ -2,6 +2,8 @@ from django.urls import path, re_path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework.exceptions import NotFound
 
+from .accounts import RegisterView, ProfileView, PasswordView, AccountGraphViewList
+from .overview import OverviewView
 from .auth import SessionView, LoginView, LogoutView
 from .common import ApiView
 from .entities import (CompanyListView, CompanyDetailView, PersonListView, PersonDetailView,
@@ -25,9 +27,14 @@ class UnknownApiView(ApiView):
 
 
 urlpatterns = [
+    path('overview/', OverviewView.as_view(), name='overview'),
     path('session/', SessionView.as_view(), name='session'),
     path('session/login/', LoginView.as_view(), name='session-login'),
     path('session/logout/', LogoutView.as_view(), name='session-logout'),
+    path('session/register/', RegisterView.as_view(), name='session-register'),
+    path('account/profile/', ProfileView.as_view(), name='account-profile'),
+    path('account/password/', PasswordView.as_view(), name='account-password'),
+    path('account/views/', AccountGraphViewList.as_view(), name='account-views'),
     path('schema/', SpectacularAPIView.as_view(), name='schema'),
     path('docs/', SpectacularSwaggerView.as_view(url_name='api:schema'), name='docs'),
     path('companies/', CompanyListView.as_view(), name='company-list'),

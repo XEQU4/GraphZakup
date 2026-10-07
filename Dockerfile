@@ -1,3 +1,11 @@
+FROM node:24.21.0-bookworm-slim AS frontend-build
+
+WORKDIR /build/frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --include=dev --no-audit --no-fund
+COPY frontend/ ./
+RUN npm run build
+
 FROM python:3.13-slim-bookworm
 
 # Pin uv; project dependency versions come exclusively from uv.lock.
@@ -16,6 +24,8 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 COPY . .
 RUN uv sync --frozen --no-dev --no-editable
+# Vite outputs browser assets only; Node and npm dependencies stay in the build stage.
+COPY --from=frontend-build /build/static/frontend /app/static/frontend
 # Build-only nonproduction key: no ENV/ARG secret persists in the image.
 RUN GPG_DISABLE_LOGGING_INIT=true SECRET_KEY=build-only-static-collection-key python manage.py collectstatic --noinput
 RUN useradd --create-home --uid 10001 app && mkdir -p logs && chown app:app logs
