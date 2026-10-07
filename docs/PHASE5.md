@@ -294,6 +294,15 @@ report named in [RECOVERY.md](RECOVERY.md). Working data stayed unchanged.
 
 Primary references checked on 6-7 October 2026:
 
+Follow-up, 7 October 2026: user-applied AI migrations were confirmed read-only.
+Reusable Windows startup and synthetic probe scripts were added. Four further
+real local cases passed (weak contacts 2/100, known shared-director intervals
+27/100, twenty-company contact group 2/100, separate experimental estimate).
+Requests took approximately 7-12 seconds; repeat requests reused completed jobs.
+Public brand/package changed to IZ2/iz2 after verification, preserving all 50
+working tables and dependency versions. `--serve-saved` reopens the synthetic
+demo without inference. Current user actions are supplied directly in chat.
+
 - [Qwen3:4b weights and licence](https://ollama.com/library/qwen3:4b)
 - [Ollama local execution and context](https://docs.ollama.com/faq)
 - [Ollama structured outputs](https://docs.ollama.com/capabilities/structured-outputs)

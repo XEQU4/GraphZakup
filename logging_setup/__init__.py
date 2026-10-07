@@ -11,7 +11,7 @@ from logging_setup.filters import filter_maker, max_level_filter, handle_excepti
 
 def init_logging(log_dir: str = "logs", to_files: bool = True):
     """
-    Initialise logging for GrafZakup.
+    Initialise logging for IZ2.
 
     Called once through Apps.ready() during Django setup
     or directly from manage.py.

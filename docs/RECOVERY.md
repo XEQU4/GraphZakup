@@ -149,3 +149,26 @@ after any intervening writes. `analyse_clusters` explicitly prepares saved
 graphs without source/model requests; `build_clusters` now atomically prepares
 affected analyses/templates too. Local inference verification uses an unrelated
 synthetic SQLite database retained under ignored `artifacts/phase5/`.
+
+## IZ2 rename and repeated local AI check, 7 October 2026
+
+After the user applied Phase 5 migrations/analysis, a new backup was created and
+independently restored before rebranding. All 50 public tables and migration
+history matched. Report: `artifacts/iz2/database_20261007T072136Z_ae5159b9.json`;
+dump SHA-256: `f7e8d6070c02c681e7dfce7119d19d2bca20b5ae1aea892b7cf2a6f93e279c10`.
+The owned restore database was dropped. A subsequent read-only comparison matched
+all 50 working tables; no working migration, graph refresh or model job was run.
+
+Project metadata changed to iz2 while dependencies/resolution remained identical.
+The user's `.env` and `test.py` hashes matched the pre-rename copies. Existing
+database/volume identifiers and graph-view keys were preserved; Compose default
+volume naming was explicitly checked against a legacy environment without a
+project-name setting. New installations may use the iz2 namespace.
+
+The reusable local AI probe passed four synthetic cases through real Qwen3:4b,
+saved publication, repeat reuse and graph/JSON reads. The branded demo served all
+four saved results and styles. The full offline suite passed 238 tests with three
+PostgreSQL-only skips; both Node suites, migration drift and frozen offline uv
+installation passed. A 211-file credential scan found no credential values.
+Reports are in ignored `artifacts/iz2/` and `artifacts/local-ai/`. Model quality
+superiority and local-ai container execution remain unverified.

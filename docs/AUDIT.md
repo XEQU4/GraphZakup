@@ -1,4 +1,4 @@
-# GovernmentProcurementGraph audit
+# IZ2 audit
 
 Date: **2026-10-05**, Asia/Qyzylorda. Evidence describes the original audit; later fixes have separate status sections. See [ROADMAP.md](ROADMAP.md), [PHASE1.md](PHASE1.md), and [PHASE2.md](PHASE2.md). Goal: prepare a thesis/pilot while preserving accumulated data and explaining every link.
 

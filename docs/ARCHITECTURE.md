@@ -1,8 +1,16 @@
-# GovernmentProcurementGraph architecture
+# IZ2 architecture
 
 Recorded on 5 October 2026; analysis status updated on 7 October 2026. This document distinguishes implemented behaviour from the target thesis architecture. Ingestion, provenance, identity and KGD checks are implemented; registration and complete zero arrears are verified for one company. Indexed evidence, immutable graph snapshots/lineage, personal views and explicit background recalculation are implemented. Phase 5 adds immutable analysis/explanations, deterministic review priority and optional validated local model presentations. The accepted graph prototype awaits further design in Phase 7. Broader KGD coverage, calibrated prediction, DRF and React remain future work.
 
 Collect procurement/company information, show verifiable links, and explain observed patterns. A link does not establish wrongdoing; group contract volume is not damage. Conclusions require sources, temporal context, and confidence.
+
+Product brand: IZ2; Python package/repository: `iz2`; intended domain: `iz2.kz`.
+The original scope includes verified company/person history from additional open
+registers. Court/blacklist/bankruptcy adapters and owner-specific findings remain
+future source work, with exact subject identity and dated evidence required.
+The rename preserves database/volume identifiers and personal-view keys; Compose
+pins the existing default namespace to avoid selecting fresh volumes after a
+directory rename. It does not register or deploy the intended domain.
 
 Related: [audit](AUDIT.md), [baseline](BASELINE.md), [recovery](RECOVERY.md), [roadmap](ROADMAP.md), [repository rules](../AGENTS.md).
 

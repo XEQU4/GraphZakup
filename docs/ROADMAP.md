@@ -1,4 +1,4 @@
-# GovernmentProcurementGraph roadmap
+# IZ2 roadmap
 
 Plan date: 5 October 2026. The user authorises phases individually and runs Git commands. Changes follow preservation of the baseline.
 
@@ -19,6 +19,23 @@ Based on the [audit](AUDIT.md), [baseline](BASELINE.md), [recovery record](RECOV
 | 8 | Prepare thesis demonstration and operations | Planned |
 
 Phases 0-2 were completed on 5 October 2026. Phase 2 consolidated parsers/the service pipeline, added provenance, resumable runs, and safe person identity. All 128 tests passed on PostgreSQL; a new backup was restored and migrated separately with existing values preserved. The source database and user files remained unchanged. See [BASELINE.md](BASELINE.md), [PHASE1.md](PHASE1.md), and [PHASE2.md](PHASE2.md) for protocols and limits. Audience, schedule, and spending limits remain open.
+
+## Product name and restored scope, 7 October 2026
+
+The user renamed the product IZ2, with package/repository `iz2` and intended domain
+`iz2.kz`. The original goal combines company relationships, verified company/person
+history and plain-language explanations for further review. Current KGD covers
+company registration/aggregate arrears within the documented scope. Court records,
+restricted-participant lists, bankruptcy and owner-specific history need separately
+authorised source work; existing legacy flags are not accepted evidence. Tender
+allocation patterns need bidding inputs. These requirements remain product goals,
+not new parsers or behavioural findings implemented by the rename.
+
+Public branding/package metadata changed; dependencies and data identifiers remain
+stable. Compose preserves its legacy default volume namespace across a folder
+rename. Local AI can be started/tested through reusable scripts without working
+data, Redis or paid generation. GitHub rename and the optional local folder rename
+are user actions; no Git operation or domain deployment was performed.
 
 ## Project language
 

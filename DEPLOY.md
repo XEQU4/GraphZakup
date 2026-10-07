@@ -1,6 +1,12 @@
-# Run GrafZakup with Docker Compose
+# Run IZ2 with Docker Compose
 
 The stack combines PostgreSQL 17, Redis, one-time migrations, Django/Gunicorn, a Celery worker and one beat scheduler. Automatic data collection is disabled by default. Real API tokens are not required to start an empty database and check the interface.
+
+The product/package name is IZ2/iz2. Existing Compose installations preserve their
+`COMPOSE_PROJECT_NAME`; the default is pinned to the legacy namespace so a local
+directory rename does not replace database/Redis volumes. `.env.example` selects
+`iz2` for a new installation. Database/user names and GPG environment settings are
+compatibility identifiers and do not need a destructive rename.
 
 ## Preparation
 

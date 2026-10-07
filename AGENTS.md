@@ -1,6 +1,21 @@
-# Instructions for working on GrafZakup
+# Instructions for working on IZ2
 
 This project is a thesis system for analysing relationships between participants in Kazakhstan's public procurement, with a possible later pilot. Requirements and workflow are in [docs/ROADMAP.md](docs/ROADMAP.md), the target architecture is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and the original findings are in [docs/AUDIT.md](docs/AUDIT.md).
+
+Brand: IZ2; package and GitHub repository: iz2; intended future domain: iz2.kz.
+The user supplied the original scope: relationship evidence combined with verified
+company/person history and plain-language explanations. Court, bankruptcy and
+restricted-participant integrations remain planned; legacy flags do not establish
+verified findings. Do not start those sources or Phase 6 automatically.
+Keep existing database/volume identifiers, GPG compatibility settings and the
+graph-view storage key when rebranding. Compose pins its legacy default namespace
+so renaming the local directory does not select empty replacement volumes.
+The follow-up local AI check passed four real synthetic cases; the model/demo
+servers were stopped afterwards. `scripts/local_ai.ps1` starts/stops an owned
+native server, and `scripts/check_local_ai.py --serve` checks real inference on
+synthetic data. `--serve-saved` opens cached demo results. Neither probe loads
+working credentials/data or requires Redis. Main application settings remain
+unchanged and default to templates until the user explicitly enables a model.
 
 ## Workflow and language
 

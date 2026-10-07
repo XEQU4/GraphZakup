@@ -10,7 +10,7 @@ Use English for all project deliverables, including earlier phase records. Devel
 
 - README, deployment instructions, repository rules, architecture, audit, roadmap, recovery, baseline, and Phase 1-2 records use English. The article context is translated with an explicit historical checkpoint; its earlier test counts/data observations are not presented as a new audit.
 - Navigation, pages, search states, graph labels/tooltips, CLI help/errors, logging messages, comments, and docstrings use English.
-- HTML declares `lang="en"`; Django explicitly uses `LANGUAGE_CODE="en-us"`. Project display spelling is GrafZakup; repository and external links are preserved.
+- HTML declares `lang="en"`; Django explicitly uses `LANGUAGE_CODE="en-us"`. The display name at this historical checkpoint was GrafZakup; the current brand is IZ2, adopted on 7 October 2026.
 - The deterministic explanation template and inactive OpenRouter prompt produce/request English. No LLM was enabled or called.
 - Runtime ingestion status/candidate labels and the customer-link label use English. `graph.0004_english_display_labels` and `ingestion.0005_english_display_labels` record these label changes without changing stored codes. Existing migrations are untouched.
 

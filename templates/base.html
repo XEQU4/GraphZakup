@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>
-        {% block title %}GrafZakup{% endblock %}
+        {% block title %}IZ2{% endblock %}
     </title>
     {% load static %}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
@@ -25,8 +25,8 @@
     <div class="container">
         <a class="navbar-brand fw-bold text-info d-flex align-items-center gap-2"
            href="{% url 'dashboard:index' %}">
-            <span class="navbar-brand glitch-text" data-text="GrafZakup">
-                <i class="bi bi-shield-check"></i> GrafZakup
+            <span class="navbar-brand glitch-text" data-text="IZ2">
+                <i class="bi bi-shield-check"></i> IZ2
             </span>
         </a>
 
@@ -46,7 +46,7 @@
 
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'graph:cluster_list' %}">
-                        Suspicious groups
+                        Relationship groups
                     </a>
                 </li>
 
@@ -76,13 +76,12 @@
         <div class="row gy-4">
             <div class="col-md-3">
                 <h6>
-                    <i class="bi bi-shield-check"></i> GrafZakup
+                    <i class="bi bi-shield-check"></i> IZ2
                 </h6>
 
                 <p class="mb-0">
-                    A system for analysing supplier connections in public procurement
-                    in the Republic of Kazakhstan. Developed for the competition
-                    of the Financial Monitoring Agency of Kazakhstan.
+                    An evidence-based workspace for reviewing company relationships
+                    in Kazakhstan public procurement. Thesis prototype.
                 </p>
             </div>
 
@@ -194,7 +193,7 @@
 
                     <li class="mb-1">
                         <i class="bi bi-github"></i>
-                        <a href="https://github.com/XEQU4/GraphZakup" target="_blank">
+                        <a href="https://github.com/XEQU4/iz2" target="_blank" rel="noopener noreferrer">
                             GitHub
                         </a>
                     </li>
@@ -213,7 +212,7 @@
 
         <div class="d-flex flex-wrap justify-content-between gap-2">
             <span>
-                &copy; {% now "Y" %} GrafZakup. Educational project.
+                &copy; {% now "Y" %} IZ2. Educational project.
             </span>
 
             <span>

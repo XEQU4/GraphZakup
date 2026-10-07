@@ -1,3 +1,7 @@
+# Preserve the existing volume namespace after a directory rename.
+# New installations can set COMPOSE_PROJECT_NAME=iz2 in their private environment.
+name: ${COMPOSE_PROJECT_NAME:-governmentprocurementgraph}
+
 x-backend: &backend
   image: ${COMPOSE_PROJECT_NAME:-governmentprocurementgraph}-backend:local
   # Only migrate builds this tag; the other services reuse its local image.

@@ -1,4 +1,4 @@
-# GrafZakup project context for a research article
+# IZ2 project context for a research article
 
 Analysis date: **5 October 2026**, Asia/Qyzylorda.
 
@@ -14,7 +14,7 @@ Basis: source/configuration reads, Phase 0-1 documents/local reports, repeated o
 
 The user's thesis topic: "Development of an intelligent system for identifying potentially coordinated behaviour among public procurement participants using dynamic graph analysis, OSINT, and machine learning."
 
-GrafZakup / GovernmentProcurementGraph is an unfinished thesis prototype for analysing relationships between Kazakhstan public procurement suppliers. It combines contracts/company records and shows shared contacts or director records. It helps analysts select and verify linked companies, then investigate whether those links relate to procurement behaviour.
+IZ2 is an unfinished thesis prototype for analysing relationships between Kazakhstan public procurement suppliers. It combines contracts/company records and shows shared contacts or director records. It helps analysts select and verify linked companies, then investigate whether those links relate to procurement behaviour.
 
 The assumed audience is an analyst, auditor, or researcher. The legacy LLM prompt mentions financial intelligence, but this is not a confirmed user requirement. Organisation, roles, and pilot format remain unapproved.
 
@@ -277,7 +277,7 @@ An abstract must ultimately state actual inputs/rules/results. Until then use a 
 
 These links were checked during the original assessment. This is a starting list, not a systematic review. Research metadata/abstracts were read; study full texts before detailed method descriptions.
 
-1. Johannes Wachs, Mihály Fazekas, János Kertész. **Corruption Risk in Contracting Markets: A Network Science Perspective**. 2019 preprint, [arXiv:1909.08664](https://arxiv.org/abs/1909.08664). Bipartite customer/recipient networks differ from this supplier-contact graph; their findings are not GrafZakup results.
+1. Johannes Wachs, Mihály Fazekas, János Kertész. **Corruption Risk in Contracting Markets: A Network Science Perspective**. 2019 preprint, [arXiv:1909.08664](https://arxiv.org/abs/1909.08664). Bipartite customer/recipient networks differ from this supplier-contact graph; their findings are not IZ2 results.
 2. David Imhof, Hannes Wallimann. **Detecting bid-rigging coalitions in different countries and auction formats**. 2021 preprint, [arXiv:2105.00337](https://arxiv.org/abs/2105.00337). Coalition screening/ML uses bid prices; without bids, methods/metrics cannot be transferred to current contacts/contracts.
 3. OECD. **OECD Guidelines for Fighting Bid Rigging in Public Procurement (2025 Update)**. [Official document](https://www.oecd.org/content/dam/oecd/en/publications/reports/2025/09/oecd-guidelines-for-fighting-bid-rigging-in-public-procurement-2025-update_127880ea/cbe05a56-en.pdf), DOI `10.1787/cbe05a56-en`, section 3.6. Distinguishes indicators from collusion proof; methodological context, not labels/legal conclusions for this sample.
 

@@ -1,10 +1,65 @@
-# GrafZakup
+# IZ2
 
-GrafZakup is a thesis project for analysing company relationships in Kazakhstan's public procurement. It collects contract and company information, shows matching attributes, and explains the grounds for further review by an analyst.
+**Evidence-based analysis of Kazakhstan public procurement relationships.**
 
-The current version uses Django, PostgreSQL, Celery, Redis, HTML templates and D3.js. KGD checks are verified for one company's registration and zero-arrears scenario. Indexed evidence, stable groups, graph history and personal layouts are implemented. Phase 5 adds versioned findings, an evidence-bound review-priority index, saved English explanations and optional local model assistance. DRF and React follow in Phases 6-7; further visual design awaits user references. Relationships and scores do not establish a violation.
+IZ2 helps analysts find companies connected through recorded owners, directors,
+addresses and contacts, inspect the evidence in an interactive graph, and decide
+what needs further verification. Each group has saved graph/analysis versions and
+an English explanation tied to the same facts.
+
+The product name is **IZ2**, the package/repository name is **iz2**, and the intended
+future domain is **iz2.kz**. Domain registration and public hosting are not part of
+the current implementation. The project is developed as a thesis prototype with
+a possible later pilot.
+
+## Product scope
+
+| Capability | Current status |
+| --- | --- |
+| Contract/company collection | Unified registry, Adata and KGD adapters; resumable ingestion and provenance |
+| Company relationships | Saved contact and identifier-confirmed role evidence; names alone do not merge people |
+| Graph dashboards | Interactive D3 graph, evidence inspection, history and personal layouts |
+| Company tax information | Identity-gated KGD registration and aggregate arrears, live-verified for one authorised company |
+| Review priority | Versioned, capped rules with separate link strength, financial indicators and unknown coverage |
+| Explanations | Saved English templates; optional free local Qwen3:4b selects supported wording/order, with fallback and reuse |
+| Court records, bankruptcy and restricted-participant lists | Planned source-verified indicators; legacy person flags are not verified findings |
+| Owner-specific history | Planned exact-person evidence; company debt is not automatically owner debt |
+| Coordinated tender behaviour | Not assessable yet without bidders, bids, lots and outcomes |
+| DRF / React | Phases 6 / 7; final interface design awaits user references |
+
+The original product goal is to combine relationship evidence with relevant,
+verified company/person history and explain review priorities in plain language.
+Those additional sources require separately authorised integration and verified
+access. A shared address, an ordinary court case or a legacy flag alone cannot
+establish dishonest tender allocation. Current scores are uncalibrated review
+indices, not probabilities of wrongdoing.
+
+The current stack is Django, PostgreSQL, Celery, Redis, HTML templates and D3.js.
 
 English is the primary language for project documentation, code comments, interfaces and generated explanations. Russian website localisation will be added later, after the English version is complete. Source data and the labels used to parse official websites retain their original language.
+
+## Try the free local AI
+
+On this development computer, the portable Ollama runtime and Qwen weights are
+already cached under ignored `artifacts/phase5/`. Windows startup reuses them:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local_ai.ps1
+uv run python scripts/check_local_ai.py --serve
+```
+
+The second command creates an isolated SQLite database with synthetic companies,
+runs real local inference, checks saved publication and unchanged-request reuse,
+then serves the demo at http://127.0.0.1:8766/clusters/ . It does not load `.env`,
+connect to working PostgreSQL, collect source data or require Redis. The model
+estimation case is stored separately from the public rules. Output is limited to
+prepared claims; independent scoring/readability superiority is unverified.
+
+`--serve-saved` opens the last synthetic demo without new generation. Press Ctrl+C
+in the demo terminal to stop it; `scripts/local_ai.ps1 -Stop` stops only a server
+owned by that helper and retains its cache. A clean clone needs a local Ollama
+installation first; the helper downloads missing Qwen weights. Runtime/weights
+are not distributed in Git or application images.
 
 ## Project documentation
 
