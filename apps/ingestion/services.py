@@ -11,7 +11,7 @@ from django.utils import timezone
 from apps.companies.models import Supplier
 from apps.contracts.models import Contract
 from apps.core.models import SystemSetting
-from apps.graph.services import rebuild_clusters
+from apps.ai.services import refresh_graph_analysis as rebuild_clusters
 from .dto import ResultStatus, SourceResult
 from .errors import SourceError
 from .leases import RunLease, LeaseLost
@@ -363,6 +363,8 @@ def run_pipeline(*, mode='update', total=500, start_page=None, force=False, days
             with transaction.atomic():
                 lease.ensure_owned()
                 report = (cluster_builder or rebuild_clusters)()
+                # Graphs and derived templates must share the final lease fence.
+                lease.ensure_owned()
                 run.counters = {**run.counters, 'clusters': json_values(report)}
                 run.stage = 'complete'
                 run.save(update_fields=['stage', 'counters', 'updated_at'])

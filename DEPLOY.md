@@ -57,6 +57,14 @@ An empty database contains no companies or graphs. Compose does not fill it thro
 | INGESTION_LEASE_SECONDS | Pipeline lease with heartbeat and fencing; default 900 seconds, minimum 60 |
 | GPG_LOG_TO_FILES | true for local Python; Compose forces false and writes stdout/stderr |
 | OPENROUTER_API_KEY, OPENROUTER_MODEL, GOSZAKUP_TOKEN | External integrations; keys may be empty for infrastructure checks |
+| AI_PROVIDER | template (default), ollama, openai or openrouter; generation requires an explicit job |
+| AI_MODEL, AI_MODEL_REVISION | Model and manual immutable version/digest label for result reuse |
+| AI_BASE_URL, AI_OLLAMA_BASE_URL | Optional provider override and native Ollama default; Compose uses internal ollama:11434 |
+| AI_API_KEY, AI_ALLOW_PAID | Private remote-provider key; paid use requires explicit true opt-in |
+| AI_EXPERIMENTAL_SCORING | false by default; separate staff-only model estimate, never the published review priority |
+| AI_TIMEOUT_SECONDS, AI_MAX_OUTPUT_TOKENS | Bounded inference; defaults 90 seconds and 1024 output tokens |
+| AI_MAX_INPUT_CHARS, AI_MAX_FINDINGS, AI_CONTEXT_TOKENS | Defaults 8000 characters, 12 model-assisted findings and 4096 local context tokens |
+| OLLAMA_MODEL | local-ai profile download tag, default qwen3:4b; keep aligned with AI_MODEL |
 
 The database uses the new postgres17_data volume; Redis uses redis_data and AOF. The old PostgreSQL 16 postgres_data volume is not attached to 17. Transfer data through a verified dump/restore into a separate database. This configuration does not change or delete the old volume.
 
@@ -102,5 +110,47 @@ After Phase 2, the task reads a window of 500 contracts from the beginning of th
 KGD settings from `.env.docker` are passed to application services. Checks default off (`ENABLE_KGD_CHECKS=false`) and have no automatic schedule. The manual task `apps.core.tasks.check_kgd` shares the ingestion lease and saved-run retry mechanism. Apply migrations through the migration service and restart services after changing credentials. Do not place portal/account tokens in CLI/Celery arguments or Compose configuration output. One registration/zero-arrears scenario is accepted; broader coverage remains unverified. See [docs/PHASE3.md](docs/PHASE3.md).
 
 Phase 4 adds schema-only graph migration `graph.0005`. It does not invent historical evidence or calculate graphs during migration. After a current verified backup and migration, explicitly run `docker compose exec web python manage.py build_clusters` to publish graphs from saved facts; no source request or paid generation occurs. Existing UUIDs/texts are preserved. Staff-requested graph jobs use the existing worker, share the ingestion lease and have no automatic beat schedule. Restart/rebuild services so the worker discovers `apps.graph.tasks`. Layouts belong to signed-in users; stale snapshot/revision saves return 409. See [docs/PHASE4.md](docs/PHASE4.md).
+
+## Phase 5 analysis and optional local model
+
+Schema-only migrations `ai.0001_initial` and `ai.0002_analysistarget` create analysis/text histories and job/current-result state. They do not backfill analyses or replace legacy text. Rebuild application services so Celery discovers `apps.ai.tasks`. After backup/migration, explicitly prepare existing saved graphs with:
+
+```powershell
+docker compose exec web python manage.py analyse_clusters
+```
+
+`build_clusters` and the ingestion cluster stage now atomically save affected analyses/templates with graph results. Neither path calls a model. Automatic collection remains disabled by default; there is no AI beat schedule. Unchanged graphs/facts reuse results.
+
+For free local model assistance, edit the private Compose environment:
+
+```dotenv
+AI_PROVIDER=ollama
+AI_MODEL=qwen3:4b
+AI_BASE_URL=
+OLLAMA_MODEL=qwen3:4b
+AI_ALLOW_PAID=false
+AI_EXPERIMENTAL_SCORING=false
+```
+
+Start the complete stack including the optional model service:
+
+```powershell
+docker compose --env-file .env.docker --profile local-ai up --build -d
+docker compose --env-file .env.docker --profile local-ai logs --tail=50 ollama-init worker
+```
+
+Initialisation downloads approximately 2.5 GB of weights to persistent `ollama_models`; application images contain no weights. The worker waits for the initialisation service. `OLLAMA_NO_CLOUD=1` restricts the container server to local operation; there is no exposed Ollama host port. Default startup omits this profile. Compose configuration has been validated; actual profile startup, model-download recovery and container GPU performance remain unverified. CPU inference may exceed the application timeout; GPU access needs a separately verified Docker/WSL2 configuration.
+
+For native Windows Ollama and a container application, set `AI_BASE_URL=http://host.docker.internal:11434` and use the normal Compose profile. Local Python uses `http://127.0.0.1:11434`. Preserve host bind restrictions and verify the required container route before use. The portable runtime/weights retained under ignored `artifacts/phase5/` are a verification installation, not a global system installation; local setup instructions are in [docs/PHASE5.md](docs/PHASE5.md).
+
+Staff can request a model presentation on the graph page, or explicitly enqueue:
+
+```powershell
+docker compose exec web python manage.py analyse_clusters --cluster YOUR_CLUSTER_UUID --use-model
+```
+
+The model selects supported findings/wording, and failure retains a saved template. A completed unchanged request reuses the same text. To retry a saved model failure add `--retry-model`. Review priority remains deterministic; experimental model scores are separate and unvalidated on real labels.
+
+Optional future OpenAI/OpenRouter connection uses `AI_PROVIDER`, `AI_MODEL`, `AI_BASE_URL` and private `AI_API_KEY`. Paid providers additionally require `AI_ALLOW_PAID=true`; keys/subscriptions alone do not bypass that gate. Only models supporting the strict output contract are compatible. Restart web and worker after configuration changes; there is no automatic paid fallback. Update `AI_MODEL_REVISION` when changing a floating model alias. No paid inference was used in Phase 5 verification.
 
 Official references: [uv in Docker](https://docs.astral.sh/uv/guides/integration/docker/), [Compose startup order](https://docs.docker.com/compose/how-tos/startup-order/), [Django deployment checklist](https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/).

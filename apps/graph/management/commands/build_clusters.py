@@ -5,8 +5,9 @@ from django.core.management.base import BaseCommand
 # Kept as imports for existing callers while implementation lives in a service.
 from apps.graph.services import (
     build_director_map, calculate_risk, find_connected_groups, generate_cluster_name,
-    get_connection_types, get_risk_weights, is_connected, rebuild_clusters,
+    get_connection_types, get_risk_weights, is_connected,
 )
+from apps.ai.services import refresh_graph_analysis as rebuild_clusters
 
 
 class Command(BaseCommand):

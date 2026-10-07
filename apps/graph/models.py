@@ -87,6 +87,13 @@ class RiskCluster(models.Model):
 
 
 class ImmutableQuerySet(models.QuerySet):
+    def bulk_create(self, objs, batch_size=None, ignore_conflicts=False, update_conflicts=False,
+                    update_fields=None, unique_fields=None):
+        if update_conflicts:
+            raise ValidationError('Published history cannot be overwritten.')
+        return super().bulk_create(objs, batch_size=batch_size, ignore_conflicts=ignore_conflicts,
+                                   update_conflicts=False, update_fields=update_fields, unique_fields=unique_fields)
+
     def update(self, **kwargs):
         raise ValidationError('Published graph history is immutable.')
 

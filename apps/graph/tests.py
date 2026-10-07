@@ -317,7 +317,8 @@ class ClusterStateMigrationTests(TransactionTestCase):
     def test_additive_migration_keeps_legacy_uuid_text_and_membership(self):
         executor = MigrationExecutor(connection)
         executor.migrate([("graph", "0002_alter_connection_connection_type")])
-        old_targets = [node for node in executor.loader.graph.leaf_nodes() if node[0] != "graph"]
+        # New AI migrations depend on graph.0005; omit that future state here.
+        old_targets = [node for node in executor.loader.graph.leaf_nodes() if node[0] not in {"graph", "ai"}]
         old_targets.append(("graph", "0002_alter_connection_connection_type"))
         old_apps = executor.loader.project_state(old_targets).apps
         try:

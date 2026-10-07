@@ -9,7 +9,7 @@ from apps.companies.models import Supplier
 from apps.ingestion.leases import RunLease, IngestionBusy
 from .evidence import digest, ALGORITHM_VERSION
 from .models import GraphRebuildJob
-from .services import rebuild_clusters
+from apps.ai.services import refresh_graph_analysis as rebuild_clusters
 
 
 @transaction.atomic

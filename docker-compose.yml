@@ -29,6 +29,19 @@ x-backend: &backend
     INGESTION_REQUEST_INTERVAL: ${INGESTION_REQUEST_INTERVAL:-1.5}
     OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
     OPENROUTER_MODEL: ${OPENROUTER_MODEL:-qwen/qwen3-8b:free}
+    AI_PROVIDER: ${AI_PROVIDER:-template}
+    AI_MODEL: ${AI_MODEL:-}
+    AI_MODEL_REVISION: ${AI_MODEL_REVISION:-}
+    AI_BASE_URL: ${AI_BASE_URL:-}
+    AI_OLLAMA_BASE_URL: http://ollama:11434
+    AI_API_KEY: ${AI_API_KEY:-}
+    AI_ALLOW_PAID: ${AI_ALLOW_PAID:-false}
+    AI_EXPERIMENTAL_SCORING: ${AI_EXPERIMENTAL_SCORING:-false}
+    AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-90}
+    AI_MAX_OUTPUT_TOKENS: ${AI_MAX_OUTPUT_TOKENS:-1024}
+    AI_MAX_INPUT_CHARS: ${AI_MAX_INPUT_CHARS:-8000}
+    AI_MAX_FINDINGS: ${AI_MAX_FINDINGS:-12}
+    AI_CONTEXT_TOKENS: ${AI_CONTEXT_TOKENS:-4096}
     GOSZAKUP_TOKEN: ${GOSZAKUP_TOKEN:-}
     ENABLE_KGD_CHECKS: ${ENABLE_KGD_CHECKS:-false}
     KGD_PORTAL_TOKEN: ${KGD_PORTAL_TOKEN:-}
@@ -103,6 +116,9 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
+        required: false
     healthcheck:
       test: ["CMD-SHELL", "celery -A config inspect ping --destination=worker@$$HOSTNAME --timeout=5"]
       interval: 30s
@@ -122,6 +138,36 @@ services:
       worker:
         condition: service_healthy
 
+  # Explicit profile: downloads a free model; no cloud AI or source collection.
+  ollama:
+    image: ollama/ollama:0.40.0
+    profiles: [local-ai]
+    restart: unless-stopped
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_NO_CLOUD: "1"
+    volumes:
+      - ollama_models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      start_period: 15s
+      retries: 20
+
+  ollama-init:
+    image: ollama/ollama:0.40.0
+    profiles: [local-ai]
+    restart: "no"
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_NO_CLOUD: "1"
+    command: ["pull", "${OLLAMA_MODEL:-qwen3:4b}"]
+    depends_on:
+      ollama:
+        condition: service_healthy
+
 volumes:
   postgres17_data:
   redis_data:
+  ollama_models:

@@ -13,7 +13,7 @@ Based on the [audit](AUDIT.md), [baseline](BASELINE.md), [recovery record](RECOV
 | 2 | Consolidate ingestion and correct the fact model | Complete |
 | 3 | Integrate available KGD information | Complete: taxpayer and zero-arrears checks verified for one authorised company |
 | 4 | Persist graph versions and substantially improve graph interaction | Complete: 191 PostgreSQL tests; revised graph prototype accepted by the user |
-| 5 | Introduce verifiable analysis and versioned explanations | Planned |
+| 5 | Introduce verifiable analysis and versioned explanations | Complete: 238 PostgreSQL tests and five local-model synthetic cases passed |
 | 6 | Provide a DRF API | Planned |
 | 7 | Build a React interface using user references | Planned |
 | 8 | Prepare thesis demonstration and operations | Planned |
@@ -134,9 +134,12 @@ Acceptance: stable links, explained group transitions, readable evidence, correc
 
 Dependency: Phase 4 versions/evidence; behavioural rules depend on available procurement inputs.
 
-[PHASE5.md](PHASE5.md) records the user's free local model requirement and proposed
-environment-based provider switching. Implementation awaits their report that
-the Phase 4 Git commands are complete; the phase remains planned.
+[PHASE5.md](PHASE5.md) records the implemented free local model option and
+environment-based provider switching. On 7 October 2026 the user instructed the
+agent to proceed at its discretion and consider model scoring if it improves
+on the baseline. Model scores remain separate experimental estimates until
+independent evaluation demonstrates benefit. Public scores remain checkable,
+uncalibrated review-priority indices.
 
 - Version rules, evidence, temporal conditions, and limitations.
 - Separate identity confidence, link strength, behavioural risk; assess false scoring conclusions.
@@ -149,6 +152,15 @@ the Phase 4 Git commands are complete; the phase remains planned.
 Verification: unchanged inputs, changed rules/facts, repeats, LLM failure, invented output identifiers, late old-version jobs.
 
 Acceptance: significant claims have evidence; identical inputs reuse text; significant changes create versions; useful without LLM; many weak matches alone do not force maximum risk.
+
+Outcome: complete on 7 October 2026. Versioned rules, immutable analyses/texts,
+saved template/model presentations and deduplicated fenced jobs are implemented.
+Authorised graph refresh atomically prepares affected templates. All 238 tests
+passed on isolated PostgreSQL; restored-copy migration preserved 44 original
+tables and working data stayed unchanged. Five synthetic cases passed with free
+local Qwen3:4b, including reuse and a separate blinded model estimate. Independent
+prediction/readability benefit, paid inference and local-ai container startup
+remain unverified; see [PHASE5.md](PHASE5.md). Phase 6 needs separate authorisation.
 
 ## Phase 6 DRF API
 
@@ -209,6 +221,6 @@ Set thresholds after baseline measurement/sample selection. Algorithm-tailored e
 
 ## Open decisions
 
-KGD broader-company entitlement, quotas and unverified source variants (one taxpayer and complete zero-arrears response verified); sample size/bidding data; references/UI/graph library; audience/roles/publication (procurement analyst is unconfirmed); measured LLM benefit and final local model choice (free local candidate and configurable paid providers proposed in Phase 5); thesis deadline/API costs; phase calendar after scope confirmation without invented estimates.
+KGD broader-company entitlement, quotas and unverified source variants (one taxpayer and complete zero-arrears response verified); sample size/bidding data; references/UI/graph library; audience/roles/publication (procurement analyst is unconfirmed); independent model benefit/calibration labels (local Qwen3:4b and configurable API adapters implemented in Phase 5); thesis deadline/API costs; phase calendar after scope confirmation without invented estimates.
 
-Phase 4 is complete within its authorised scope; implementation, 191 PostgreSQL tests, preservation protocol and visual-verification limits are in [PHASE4.md](PHASE4.md). The user accepted the revised coloured graph prototype and deferred further design/animation work to Phase 7. Final site styling awaits references. Next ordered step is Phase 5 after a separate instruction. Do not repeat accepted KGD checks merely to read saved results. Future broader KGD validation remains bounded and explicitly authorised.
+The user accepted the revised graph prototype and deferred further design/animation work to Phase 7. Final site styling awaits references. Phase 5 is complete within its implemented scope; measurements and limitations are in [PHASE5.md](PHASE5.md). Phase 6 requires a separate instruction. Do not repeat accepted KGD checks merely to read saved results. Broader KGD validation remains bounded and explicitly authorised.

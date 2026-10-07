@@ -2,7 +2,8 @@ from collections import defaultdict
 import json
 import re
 
-from django.db.models import prefetch_related_objects, Prefetch
+from django.db.models import prefetch_related_objects, Prefetch, Case, When, F, Value, IntegerField
+from django.db.models.functions import Cast, Coalesce
 from django.http import HttpResponseBadRequest, JsonResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
@@ -80,25 +81,31 @@ class ClusterListView(ClampedPaginationMixin, ListView):
         try:
             self.minimum_risk = max(0, min(100, int(raw))) if raw else None
         except ValueError:
-            return HttpResponseBadRequest("Risk threshold must be an integer between 0 and 100.")
+            return HttpResponseBadRequest("Score threshold must be an integer between 0 and 100.")
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
         qs = (
             RiskCluster.objects
             .filter(is_active=True)
-            .select_related('current_snapshot').prefetch_related('suppliers')
-            .order_by("-risk_score")
+            .select_related('current_snapshot', 'analysis_state__analysis').prefetch_related('suppliers')
+            .annotate(saved_review_priority=Case(
+                When(analysis_state__analysis__graph_snapshot_id=F('current_snapshot_id'),
+                     then=Cast('analysis_state__analysis__metrics__review_priority', IntegerField())),
+                default=Value(None), output_field=IntegerField()))
+            .alias(display_score=Coalesce('saved_review_priority', 'risk_score', output_field=IntegerField()))
+            .order_by(F('saved_review_priority').desc(nulls_last=True), '-risk_score')
         )
         min_risk = getattr(self, "minimum_risk", None)
         if min_risk is not None:
-            qs = qs.filter(risk_score__gte=min_risk)
+            qs = qs.filter(display_score__gte=min_risk)
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         for cluster in context["clusters"]:
             cluster.connection_types = {edge['type'] for edge in cluster.current_snapshot.payload['links']} if cluster.current_snapshot else set()
+            cluster.saved_review_analysis = cluster.analysis_state.analysis if cluster.saved_review_priority is not None else None
         return context
 
 
@@ -140,6 +147,14 @@ class ClusterDetailView(DetailView):
         text = snapshot.legacy_explanation if historical else cluster.ai_explanation
         context['explanation_stale'] = context['explanation_stale'] or bool(historical)
         context["ai_explanation_html"] = self._linkify_explanation(text or "Explanation has not been prepared yet.", suppliers)
+        from apps.ai.services import saved_analysis
+        analysis, explanation, stale = saved_analysis(cluster, snapshot)
+        context['analysis'], context['saved_explanation'] = analysis, explanation
+        context['analysis_stale'] = stale
+        if analysis and explanation:
+            context['ai_explanation_html'] = self._linkify_explanation(explanation.text, suppliers)
+            context['explanation_stale'] = stale
+            context['analysis_versions'] = list(snapshot.analyses.values('version', 'created_at'))
         return context
 
     @staticmethod

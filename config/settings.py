@@ -156,6 +156,27 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "qwen/qwen3-8b:free")
 GOSZAKUP_TOKEN = os.getenv("GOSZAKUP_TOKEN", "")
 
+# Explicit background generation only. Existing credentials never enable paid AI.
+AI_PROVIDER = os.getenv('AI_PROVIDER', 'template').strip().lower()
+AI_MODEL = os.getenv('AI_MODEL', '').strip()
+AI_MODEL_REVISION = os.getenv('AI_MODEL_REVISION', '').strip()
+AI_BASE_URL = os.getenv('AI_BASE_URL', '').strip()
+AI_OLLAMA_BASE_URL = os.getenv('AI_OLLAMA_BASE_URL', 'http://127.0.0.1:11434').strip()
+AI_API_KEY = os.getenv('AI_API_KEY', '').strip()
+AI_ALLOW_PAID = env_bool('AI_ALLOW_PAID')
+AI_EXPERIMENTAL_SCORING = env_bool('AI_EXPERIMENTAL_SCORING')
+AI_TIMEOUT_SECONDS = int(os.getenv('AI_TIMEOUT_SECONDS', '90'))
+AI_MAX_OUTPUT_TOKENS = int(os.getenv('AI_MAX_OUTPUT_TOKENS', '1024'))
+AI_MAX_INPUT_CHARS = int(os.getenv('AI_MAX_INPUT_CHARS', '8000'))
+AI_MAX_FINDINGS = int(os.getenv('AI_MAX_FINDINGS', '12'))
+AI_CONTEXT_TOKENS = int(os.getenv('AI_CONTEXT_TOKENS', '4096'))
+if (AI_PROVIDER not in {'template', 'ollama', 'openai', 'openrouter'}
+        or len(AI_MODEL_REVISION) > 120
+        or not 5 <= AI_TIMEOUT_SECONDS <= 180 or not 128 <= AI_MAX_OUTPUT_TOKENS <= 4096
+        or not 3000 <= AI_MAX_INPUT_CHARS <= 32000 or not 1 <= AI_MAX_FINDINGS <= 30
+        or not 2048 <= AI_CONTEXT_TOKENS <= 32768):
+    raise ImproperlyConfigured('Invalid AI provider or request limits.')
+
 # Explicit opt-in; credentials are never stored in ingestion parameters/results.
 ENABLE_KGD_CHECKS = env_bool("ENABLE_KGD_CHECKS")
 KGD_PORTAL_TOKEN = os.getenv("KGD_PORTAL_TOKEN", "")

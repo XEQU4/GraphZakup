@@ -232,3 +232,32 @@ claimed as passed. Full implementation scope, application-level immutability,
 compatibility helper, benchmark limits and verification are in
 [PHASE4.md](PHASE4.md). Earlier finding evidence describes the audited baseline;
 these updates do not establish that all analysis/UI defects are resolved.
+
+## Phase 5 finding updates, 7 October 2026
+
+Saved graph evidence now feeds immutable analysis inputs/findings/metrics/texts.
+The current group review-priority index has no company-count bonus and credits
+each category once, with capped weak contacts. Link strength, company financial
+indicators, unknown coverage and unassessable bidding risk remain separate. KGD
+identity/amount/date validation preserves dated successes and failed latest
+attempts; unavailable checks do not imply absence. Contract volume is labelled
+without claiming damage. Legacy company/dashboard indices remain explicitly
+labelled compatibility values, without backfilled historical interpretation.
+
+Generation is an explicit deduplicated staff/CLI job with saved templates,
+bounded provider transport, closed-schema validation and stale/latest-request
+publication fences. Historical views retain the published explanation instead
+of selecting superseded output. Graph refresh prepares affected templates in the
+same transaction. Default template operation needs no model; free local Ollama
+and configurable opt-in API adapters are implemented. Model assistance selects
+finding order and fixed wording variants, not arbitrary narrative. Blinded model
+scores remain separate experiments, never public rule replacements.
+
+All 238 PostgreSQL tests passed, including concurrency checks; restored-copy
+migration preserved original values in 44 tables, and all 45 working tables
+matched the fresh backup. Five real local Qwen3:4b synthetic cases passed output
+validation, publication and reuse. This verifies mechanics, not independent
+prediction accuracy or readability superiority. Paid inference, broader KGD
+coverage, local-ai container startup/GPU use and prior browser/dense/responsive
+visual checks remain unverified. See [PHASE5.md](PHASE5.md) for measurements,
+implemented scope and the retained limitations.

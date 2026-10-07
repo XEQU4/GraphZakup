@@ -27,7 +27,7 @@
     {% if avg_risk_score > 0 %}
         <span class="badge bg-{{ risk_color }} fs-5 px-3 py-2 fw-bold align-self-center"
               style="animation: pulse-badge 2.5s ease-in-out infinite;">
-            {{ avg_risk_score }}/100
+            Legacy {{ avg_risk_score }}/100
         </span>
     {% else %}
         <span class="badge bg-secondary fs-5 px-3 py-2 fw-bold align-self-center">
@@ -317,11 +317,11 @@
                     <div class="w-100 mt-2">
                         <div class="d-flex justify-content-between mb-1">
                             <small style="color:#8b9ab0;">
-                                Risk index
+                                Legacy matching index
                             </small>
 
                             <span class="badge bg-{{ risk_color }}">
-                                {{ avg_risk_score }}/100
+                                Legacy {{ avg_risk_score }}/100
                             </span>
                         </div>
 
