@@ -183,3 +183,23 @@ retain their original UUIDs/texts. `test.py`, the dependency files and `.env`
 are not part of the phase edits. Git commands remain the user's responsibility.
 The user accepted the current graph prototype; start Phase 5 only after a separate
 instruction. Continue final graph/interface design and animation work in Phase 7.
+
+## Browser follow-up, 7 October 2026
+
+The user connected Playwright MCP in VS Code. Isolated Chrome opened the cached
+synthetic demo on 127.0.0.1:8766; no inference, parsing, domain jobs or working
+database access was started. Two- and twenty-company pages were checked at
+1440x1000 and 390x844. Search, node selection/neighbour highlighting, address
+filtering, director evidence, anonymous Save view across reload, Reset/Restore
+and mobile navigation passed. Saved coordinates, zoom, filters and frozen state
+matched after reload. The pages had no horizontal overflow; screenshots were
+inspected. The only application console error was a missing favicon (404).
+
+Phase 7 follow-ups: adapt a desktop-saved viewport to narrow screens, improve
+dense overview label readability, fix singular counters and the unnamed mobile
+menu button, label the JSON export clearly, and reduce generic/repeated summary
+wording. Fit currently recovers the small graph after a viewport change. Drag
+automation timed out, so drag completion/persistence remains unverified. These
+checks do not cover authenticated view storage, physical touch devices, large
+graph performance or independent model usefulness. Final styling still awaits
+user references. Private report/screenshots/logs: artifacts/browser-check/.

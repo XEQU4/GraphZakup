@@ -56,9 +56,23 @@ last demo. Final visual design remains Phase 7 work.
 ## Interface and verification
 
 - Phase 4 must substantially improve graph presentation and interaction: readable labels, neighbour highlighting, relationship filters, evidence inspection, convenient navigation and saved layouts.
-- Phase 4 was completed on 6 October 2026: indexed evidence, immutable snapshots/lineage, personal views and explicit background recalculation. All 191 PostgreSQL tests passed; copy migration preserved original values and working data stayed unchanged. The user accepted the revised coloured graph prototype and explicitly deferred further graph/interface design and animation work to Phase 7. Its palette is provisional. Automated browser/dense/responsive visual checks remain unverified; see [docs/PHASE4.md](docs/PHASE4.md). Working data was not migrated or rebuilt during implementation. Read stored snapshots on GET. Do not start Phase 5 automatically.
+- Phase 4 was completed on 6 October 2026: indexed evidence, immutable snapshots/lineage, personal views and explicit background recalculation. All 191 PostgreSQL tests passed; copy migration preserved original values and working data stayed unchanged. The user accepted the revised coloured graph prototype and explicitly deferred further graph/interface design and animation work to Phase 7. Its palette is provisional. Automated browser/dense/responsive visual checks were unverified at phase completion; the bounded 7 October follow-up is recorded in [docs/PHASE4.md](docs/PHASE4.md). Working data was not migrated or rebuilt during implementation. Read stored snapshots on GET. Do not start Phase 5 automatically.
 - The user will provide overall UI/UX references. Do not finalise the site's visual style, palette or Bootstrap replacement before receiving them.
 - Phase 5 was completed on 7 October 2026: immutable analysis/text histories, capped review-priority rules, atomic graph/template refresh, explicit deduplicated model jobs and latest-request fencing. All 238 PostgreSQL tests and five real local Qwen3:4b synthetic cases passed; original values in 44 restored-copy tables were preserved and the 45 working tables stayed unchanged. The default is template-only; Ollama is the free local option, with configurable paid APIs gated off. Model output selects finding order/wording variants, not arbitrary prose. Optional blinded estimates never replace public scores; independent prediction/readability benefit and local-ai container startup/GPU use remain unverified. The owned temporary model server was stopped; portable runtime/cache remain under ignored artifacts. Read [docs/PHASE5.md](docs/PHASE5.md) for setup, measured latency and limits. Working data was not migrated or recalculated. Do not start Phase 6 automatically.
 - Verify changed behaviour in every phase. Imports, migrations, identity, graph versions and AI require meaningful tests; syntax checks are not a substitute.
 - Do not report checks as successful without running them. Distinguish static analysis, offline tests and live-source checks.
 - Report changed behaviour, completed checks and remaining limitations. For environment restrictions, first distinguish a sandbox error from a defect in the project.
+
+## Browser verification follow-up
+
+On 7 October 2026, user-configured Playwright MCP checked cached synthetic two-
+and twenty-company pages in isolated Chrome at desktop and narrow viewports.
+Search, filters, evidence, anonymous layout save/reload/restore and mobile menu
+passed; no application JavaScript exception was observed (favicon 404 only). Desktop-saved
+zoom needs Fit after narrowing the viewport, dense mobile labels are small,
+singular counters are incorrect and the mobile menu toggle is unnamed. Summary
+copy remains generic; the saved-analysis link opens JSON. Track these for Phase 7
+without treating the current prototype as final design. Drag automation timed
+out; authenticated storage, physical touch and larger browser performance are
+unverified. Report and screenshots stay in ignored artifacts/browser-check/.
+No application code, working data or saved explanations changed in this check.
