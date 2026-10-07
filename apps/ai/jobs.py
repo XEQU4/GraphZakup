@@ -10,7 +10,7 @@ from apps.graph.models import RiskCluster
 from apps.ingestion.leases import RunLease, IngestionBusy
 from .models import AnalysisJob, AnalysisState, AnalysisTarget, Explanation
 from .providers import configuration, reuse_key, generate, ProviderError, PROMPT_VERSION
-from .services import (collect_inputs, input_hash, prepare_analysis, render_explanation,
+from .services import (collect_inputs, input_hash, prepare_analysis, explanation_content,
                        template_for, publish_explanation)
 
 
@@ -122,13 +122,13 @@ def analyse_cluster_task(self, pk):
                 explanation = Explanation.objects.get_or_create(reuse_key=key, defaults={
                     'analysis': analysis, 'provider': config.provider, 'model': config.model,
                     'prompt_version': PROMPT_VERSION, 'status': 'ready',
-                    'text': render_explanation(analysis, plan), 'presentation': plan, 'usage': usage,
+                    **explanation_content(analysis, plan), 'usage': usage,
                     'experimental_score': plan['risk_estimate'], 'experimental_evidence': plan['risk_evidence']})[0]
     except ProviderError as error:
         explanation = Explanation.objects.create(analysis=analysis,
             reuse_key=digest({'fallback_job': str(job.uuid)}), provider=job.options['provider'],
             model=job.options['model'], prompt_version=PROMPT_VERSION, status='fallback',
-            text=render_explanation(analysis), error_code=str(error))
+            **explanation_content(analysis), error_code=str(error))
     except Exception:
         AnalysisJob.objects.filter(pk=pk, status='running').update(
             status='failed', error_code='generation_failed', finished_at=timezone.now())

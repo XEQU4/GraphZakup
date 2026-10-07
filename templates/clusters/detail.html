@@ -50,20 +50,27 @@
 <div class="row">
   <div class="col-lg-4"><div class="card mb-4"><div class="card-body">
     {% if analysis %}<h3 class="h6">Review priority: {{ analysis.metrics.review_priority }}/100</h3>
-    <p class="small">Relationship strength: {{ analysis.metrics.link_strength }}/100<br>Behavioural risk: not assessable<br>Fresh arrears checks: {{ analysis.metrics.fresh_arrears_checks }}/{{ analysis.metrics.company_count }}</p>
-    <p class="small text-muted">An uncalibrated index for manual review. It is not a probability of wrongdoing.</p>
+    {% if explanation_document %}
+    <ul class="small ps-3">{% for item in explanation_document.score.items %}<li>{{ item.label }}: +{{ item.points }} points</li>{% empty %}<li>No credited findings</li>{% endfor %}</ul>
+    <p class="small text-muted">{{ explanation_document.score.meaning }}</p>
+    {% else %}<p class="small text-muted">An index for manual review, not a probability of wrongdoing.</p>{% endif %}
     {% if analysis_stale %}<p class="small text-warning">Saved analysis needs updating because its inputs have changed.</p>{% endif %}
-    <div class="small">Analysis v{{ analysis.version }} · Rules {{ analysis.rules_version }}<br>Analysis hash: <code>{{ analysis.analysis_hash|slice:":12" }}</code></div>
-    <ul class="small">{% for item in analysis_versions %}<li><a href="{% url 'ai:data' object.uuid %}?version={{ snapshot.version }}&amp;analysis_version={{ item.version }}">Saved analysis v{{ item.version }}</a></li>{% endfor %}</ul>
     {% else %}<h3 class="h6">Legacy matching score: {{ object.risk_score }}/100</h3><p class="small text-muted">Versioned review analysis has not been prepared. This legacy score is not a finding of wrongdoing.</p>{% endif %}
-    <h3 class="h6">{% if snapshot %}Companies in v{{ snapshot.version }} ({{ snapshot.member_ids|length }}){% else %}Companies{% endif %}</h3>
+    <h3 class="h6">Companies{% if snapshot %} ({{ snapshot.member_ids|length }}){% endif %}</h3>
     <ul id="graph-company-list">{% if not snapshot %}{% for supplier in object.suppliers.all %}<li><a href="{% url 'companies:detail' supplier.pk %}">{{ supplier.name }}</a></li>{% endfor %}{% endif %}</ul>
-    {% if snapshot %}<div class="small">Evaluated: {{ snapshot.as_of|date:"Y-m-d" }}<br>Added companies: {{ snapshot.changes.added_members|length }} · Removed companies: {{ snapshot.changes.removed_members|length }}<br>Graph hash: <code>{{ snapshot.graph_hash|slice:":12" }}</code></div>{% endif %}
+    {% if snapshot %}<p class="small text-muted mb-2">Evidence date: {{ snapshot.as_of|date:"Y-m-d" }}</p>{% endif %}
+    <details class="small mt-3"><summary>Method and version history</summary>
+    {% if analysis %}<div class="mt-2">Relationship strength index: {{ analysis.metrics.link_strength }}/100 (evidence strength, not wrongdoing)<br>Behavioural risk: not assessable<br>Fresh arrears checks: {{ analysis.metrics.fresh_arrears_checks }}/{{ analysis.metrics.company_count }}<br>Analysis v{{ analysis.version }} · Rules {{ analysis.rules_version }}<br>Analysis hash: <code>{{ analysis.analysis_hash|slice:":12" }}</code></div>
+    <ul class="mt-2">{% for item in analysis_versions %}<li><a href="{% url 'ai:data' object.uuid %}?version={{ snapshot.version }}&amp;analysis_version={{ item.version }}">Saved analysis v{{ item.version }}</a></li>{% endfor %}</ul>{% endif %}
+    {% if snapshot %}<div>Graph v{{ snapshot.version }}<br>Added companies: {{ snapshot.changes.added_members|length }} · Removed companies: {{ snapshot.changes.removed_members|length }}<br>Graph hash: <code>{{ snapshot.graph_hash|slice:":12" }}</code></div>{% endif %}
+    {% if saved_explanation %}<div class="mt-2">Text provider: {{ saved_explanation.provider }} · {{ saved_explanation.status }}<br>Text version: {{ saved_explanation.prompt_version }}</div>{% endif %}
+    </details>
   </div></div></div>
-  <div class="col-lg-8"><div class="card mb-4"><div class="card-body"><h3 class="h6">Saved explanation</h3>
+  <div class="col-lg-8"><div class="card mb-4"><div class="card-body"><h3 class="h5">Review summary</h3>
     {% if explanation_stale and object.ai_explanation or analysis_stale %}<p class="small text-warning">Data has changed or the explanation version is unconfirmed. The saved explanation needs updating.</p>{% endif %}
-    <p class="mb-0" style="white-space: pre-line">{{ ai_explanation_html }}</p>
-    {% if saved_explanation %}<p class="small text-muted mt-3 mb-0">Analysis v{{ analysis.version }} · Graph v{{ snapshot.version }} · {{ saved_explanation.provider }} · {{ saved_explanation.status }}</p>{% else %}<p class="small text-muted mt-3 mb-0">Saved text can predate this graph. Compare its claims with the evidence in the selected version.</p>{% endif %}
+    {% if explanation_document %}{% include 'ai/explanation_document.html' %}{% else %}<p class="mb-0" style="white-space: pre-line">{{ ai_explanation_html }}</p>{% endif %}
+    {% if saved_explanation.status == 'fallback' %}<p class="small text-muted mt-3 mb-0">AI was unavailable. This saved summary uses the evidence-based template.</p>{% endif %}
+    {% if not saved_explanation %}<p class="small text-muted mt-3 mb-0">Saved text can predate this graph. Compare its claims with the evidence in the selected version.</p>{% endif %}
     <a href="{% url 'ai:data' object.uuid %}{% if snapshot %}?version={{ snapshot.version }}{% endif %}" class="btn btn-sm btn-outline-light mt-3">Saved analysis and evidence</a>
     {% if request.user.is_staff and snapshot.state == 'active' and not graph_options.historical %}
     <form method="post" action="{% url 'ai:start' object.uuid %}" class="mt-3 d-flex flex-wrap gap-2">{% csrf_token %}

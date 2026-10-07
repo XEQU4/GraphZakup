@@ -64,6 +64,7 @@
 .graph-dimmed { opacity:.12 !important; }
 .graph-results { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.6rem; max-height:160px; overflow:auto; }
 .graph-tooltip { position:absolute; pointer-events:none; padding:.6rem .8rem; border:1px solid #496085; border-radius:10px; background:#13223aee; color:#ddebff; box-shadow:0 8px 24px #0005; max-width:360px; font-size:.78rem; overflow-wrap:anywhere; z-index:2; }
+.explanation-document, #graph-company-list { overflow-wrap:anywhere; }
 #graph-status { color:#9fbedf; border-left:2px solid #60a5fa; padding-left:.6rem; min-height:1.2rem; }
 @keyframes graph-flow { to { stroke-dashoffset:-24; } }
 @media(prefers-reduced-motion:reduce) { .graph-workspace * { animation:none !important; transition:none !important; } }

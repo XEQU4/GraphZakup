@@ -8,6 +8,28 @@ scoring if it improves the baseline. Phase 6 has not started.
 
 ## Implemented behaviour
 
+Explanation follow-up, 7 October 2026: `readable-explanation-5.1` is saved in
+`Explanation.presentation` alongside matching plain text. It separates a brief
+summary, facts and their meaning, credited points, follow-up checks and aggregated
+coverage. Company labels come from the exact saved inputs; internal database IDs
+stay in evidence references. Unknown checks are no longer repeated per company.
+Six visible findings bound the summary; all findings remain in saved analysis.
+Technical metadata/history is collapsed. Prompt/template versions are 5.1; scores,
+rules, analysis hashes, schema and graph design are unchanged. The model still
+selects closed wording variants/order; credited findings stay first. Existing
+texts are never rewritten or reconstructed on GET. An explicit generation job
+publishes the updated format for unchanged analysis; a fresh demo uses it too.
+
+The final follow-up passed 248 PostgreSQL tests, both Node suites and schema drift
+checks. Four real Qwen cases passed in approximately 7-13 seconds, including
+publication, HTML/JSON reads and repeat reuse; a separate stopped-provider probe
+exercised saved fallbacks. All 50 working tables, `.env`, `test.py` and dependency
+resolution stayed unchanged. Browser visual verification was unavailable because
+no browser was connected. Independent readability/prediction benefit remains
+unmeasured. Private reports: `artifacts/explanations/` and
+`artifacts/local-ai/explanation-probe.json`; the user's last demo report was
+preserved. Phase 6 and final Phase 7 design have not started.
+
 The published score is a versioned **review-priority index**, not a probability
 of wrongdoing. Identity, relationship strength, company financial indicators,
 behavioural risk and data coverage have separate meanings. The default rules are

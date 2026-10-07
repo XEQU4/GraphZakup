@@ -15,8 +15,9 @@ from apps.ingestion.models import CompanyKgdState
 from apps.ingestion.parsers.kgd import DEBT_SOURCE, AMOUNT_FIELDS, validate_facts
 from .models import AnalysisSnapshot, AnalysisState, AnalysisTarget, Explanation
 from .rules import evaluate, RULES_VERSION
+from .presentation import build_document, document_text
 
-TEMPLATE_VERSION = 'explanation-template-5.0'
+TEMPLATE_VERSION = 'explanation-template-5.1'
 
 
 def plain(value):
@@ -74,30 +75,12 @@ def input_hash(inputs):
 
 
 def render_explanation(analysis, plan=None):
-    plan = plan or {}
-    choices = {item['finding_id']: item['variant'] for item in plan.get('sections', [])}
-    order = [item['finding_id'] for item in plan.get('sections', [])]
-    by_id = {finding['id']: finding for finding in analysis.findings}
-    ordered = order + [finding['id'] for finding in analysis.findings if finding['id'] not in choices]
-    metrics = analysis.metrics
-    header = (f'Saved analysis v{analysis.version}, graph v{analysis.graph_snapshot.version}: '
-              f"{metrics['company_count']} companies. Review priority: {metrics['review_priority']}/100. "
-              f"Relationship strength index: {metrics['link_strength']}/100. Behavioural risk is not assessable.")
-    lines = [header]
-    companies = {node['company_id']: node for node in analysis.inputs['graph']['nodes'] if node['kind'] == 'company'}
-    for identifier in ordered[:50]:
-        finding = by_id[identifier]
-        lines.append(finding['statements'][choices.get(identifier, 0)])
-        labels = [f'«{companies[pk]["name"]}» (BIN {companies[pk]["bin"]})'
-                  for pk in finding['company_ids'][:4] if pk in companies]
-        if labels:
-            suffix = f'; {len(finding["company_ids"]) - 4} additional companies' if len(finding['company_ids']) > 4 else ''
-            lines.append('Affected company records: ' + ', '.join(labels) + suffix + '.')
-        lines.extend(finding['limitations'])
-    if len(ordered) > 50:
-        lines.append(f'{len(ordered) - 50} additional findings are available in the saved analysis.')
-    lines.extend(analysis.limitations)
-    return '\n\n'.join(dict.fromkeys(lines))
+    return document_text(build_document(analysis, plan))
+
+
+def explanation_content(analysis, plan=None):
+    document = build_document(analysis, plan)
+    return {'text': document_text(document), 'presentation': {**(plan or {}), 'document': document}}
 
 
 def template_for(analysis):
@@ -105,7 +88,7 @@ def template_for(analysis):
                   'template': TEMPLATE_VERSION, 'provider': 'template'})
     return Explanation.objects.get_or_create(reuse_key=key, defaults={
         'analysis': analysis, 'provider': 'template', 'prompt_version': TEMPLATE_VERSION,
-        'status': 'ready', 'text': render_explanation(analysis)})[0]
+        'status': 'ready', **explanation_content(analysis)})[0]
 
 
 @transaction.atomic

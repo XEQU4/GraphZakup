@@ -153,6 +153,11 @@ class ClusterDetailView(DetailView):
         context['analysis_stale'] = stale
         if analysis and explanation:
             context['ai_explanation_html'] = self._linkify_explanation(explanation.text, suppliers)
+            # Render the stored document, never reconstruct historical text on GET.
+            from apps.ai.presentation import DOCUMENT_VERSION
+            document = explanation.presentation.get('document')
+            if document and document.get('version') == DOCUMENT_VERSION:
+                context['explanation_document'] = document
             context['explanation_stale'] = stale
             context['analysis_versions'] = list(snapshot.analyses.values('version', 'created_at'))
         return context

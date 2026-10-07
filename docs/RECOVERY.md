@@ -172,3 +172,19 @@ PostgreSQL-only skips; both Node suites, migration drift and frozen offline uv
 installation passed. A 211-file credential scan found no credential values.
 Reports are in ignored `artifacts/iz2/` and `artifacts/local-ai/`. Model quality
 superiority and local-ai container execution remain unverified.
+
+## Explanation presentation follow-up, 7 October 2026
+
+Before changing saved text generation, a fresh PostgreSQL backup was restored
+independently and all 50 tables/migration history matched. Report:
+`artifacts/explanations/database_20261007T080814Z_f0b328d1.json`; dump SHA-256:
+`ef9c34fdaa53a90527187f67f63bf5a3b1ff8d29f263b809d231c8bf3b518374`.
+The owned restoration database was dropped.
+
+Another isolated restore preserved all 49 tables outside migration history; no
+schema changes were needed. All 248 PostgreSQL tests passed in a separate test
+database. Both generated databases were dropped, and all 50 source tables still
+matched. Existing explanations were not rewritten; new presentation versions
+were checked only on synthetic data. `.env`, learning exercises and dependency
+resolution were preserved. Reports: `artifacts/explanations/postgresql-verification.json`
+and `repository-verification.json`. The last user demo/report was untouched.

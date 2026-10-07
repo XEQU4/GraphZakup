@@ -55,6 +55,11 @@ connect to working PostgreSQL, collect source data or require Redis. The model
 estimation case is stored separately from the public rules. Output is limited to
 prepared claims; independent scoring/readability superiority is unverified.
 
+New saved explanations show a brief summary, key connections and their meaning,
+the review-point breakdown, suggested checks and missing-data coverage. Technical
+metadata is expandable. Existing texts stay in history: reopening a cached older
+demo does not regenerate its explanation; a fresh probe uses the updated format.
+
 `--serve-saved` opens the last synthetic demo without new generation. Press Ctrl+C
 in the demo terminal to stop it; `scripts/local_ai.ps1 -Stop` stops only a server
 owned by that helper and retains its cache. A clean clone needs a local Ollama

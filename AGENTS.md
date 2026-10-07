@@ -16,6 +16,13 @@ native server, and `scripts/check_local_ai.py --serve` checks real inference on
 synthetic data. `--serve-saved` opens cached demo results. Neither probe loads
 working credentials/data or requires Redis. Main application settings remain
 unchanged and default to templates until the user explicitly enables a model.
+The explanation follow-up uses saved `readable-explanation-5.1` documents with a
+short summary, evidence meaning, credited points, follow-up checks and aggregated
+coverage. Prompt/template versions are 5.1; rules and analysis hashes remain 5.0.
+Preserve old immutable texts: GET never rebuilds a document, and updating the
+presentation requires an explicit job or a fresh synthetic demo. Technical
+metadata is collapsed. `--report-name` isolates probe reports from the user's
+last demo. Final visual design remains Phase 7 work.
 
 ## Workflow and language
 

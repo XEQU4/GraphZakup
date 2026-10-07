@@ -76,5 +76,6 @@ def analysis_data(request, uuid):
         'metrics': analysis.metrics if analysis else {}, 'findings': analysis.findings if analysis else [],
         'limitations': analysis.limitations if analysis else [],
         'explanation': {'id': explanation.pk, 'text': explanation.text, 'language': explanation.language,
+                        'document': explanation.presentation.get('document'),
                         'provider': explanation.provider, 'model': explanation.model,
                         'status': explanation.status} if explanation else None})

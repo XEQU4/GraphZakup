@@ -20,14 +20,17 @@ def main():
     parser.add_argument('--serve', action='store_true', help='Serve synthetic saved results on localhost after the probe.')
     parser.add_argument('--serve-saved', action='store_true', help='Open the last synthetic demo without new model requests.')
     parser.add_argument('--port', type=int, default=8766)
+    parser.add_argument('--report-name', default='latest-probe', help='Separate named synthetic report; defaults to the last demo.')
     options = parser.parse_args()
     if not 1024 <= options.port <= 65535:
         parser.error('Port must be between 1024 and 65535.')
+    if not options.report_name or any(char not in 'abcdefghijklmnopqrstuvwxyz0123456789-' for char in options.report_name):
+        parser.error('Report name must contain only lowercase letters, digits and hyphens.')
     sys.path.insert(0, str(ROOT))
     folder = ROOT / 'artifacts/local-ai'
     folder.mkdir(parents=True, exist_ok=True)
     if options.serve_saved:
-        saved = json.loads((folder / 'latest-probe.json').read_text(encoding='utf-8'))
+        saved = json.loads((folder / (options.report_name + '.json')).read_text(encoding='utf-8'))
         saved_name = Path(saved['database']).name
         try:
             uuid.UUID(saved_name.removeprefix('demo_').removesuffix('.sqlite3'))
@@ -73,13 +76,19 @@ def main():
     call_command('migrate', interactive=False, verbosity=0)
     results = []
     client = Client()
+    case_names = {
+        'weak_contacts': ('Cedar Supplies', 'Harbour Works'),
+        'confirmed_director': ('Riverstone Services', 'Steppe Logistics'),
+        'experimental_score': ('Birch Trade', 'Eastline Products'),
+    }
     for case, count in (('weak_contacts', 2), ('confirmed_director', 2), ('dense_contacts', 20), ('experimental_score', 2)):
         settings.AI_EXPERIMENTAL_SCORING = case == 'experimental_score'
         offset = Supplier.objects.count() + 100
-        companies = [Supplier.objects.create(bin=f'{offset+i:012}', name=f'Synthetic {case} company {i+1}',
-                     address=f'Synthetic {case} office') for i in range(count)]
+        names = case_names.get(case, tuple(f'Office Company {i+1:02}' for i in range(count)))
+        companies = [Supplier.objects.create(bin=f'{offset+i:012}', name=f'Synthetic {names[i]}',
+                     address=f'Synthetic business centre {case.replace("_", " ")}') for i in range(count)]
         if case == 'confirmed_director':
-            director = Director.objects.create(full_name='Synthetic identifier-confirmed director')
+            director = Director.objects.create(full_name='Synthetic Alex Morgan')
             person = PersonIdentity.objects.create(scope_key='synthetic-demo-director', full_name=director.full_name,
                 director=director, iin='000000000099', is_verified=True)
             run = IngestionRun.objects.create(mode='enrich', status='succeeded')
@@ -106,6 +115,10 @@ def main():
         data = client.get(f'/analysis/{cluster.uuid}/').json()
         assert data['explanation']['id'] == job.explanation_id
         assert data['metrics']['review_priority'] == job.analysis.metrics['review_priority']
+        document = data['explanation']['document']
+        assert document and document['checks'] and document['coverage']
+        assert sum(item['points'] for item in document['score']['items']) == data['metrics']['review_priority']
+        assert 'Affected company records' not in data['explanation']['text']
         assert AnalysisState.objects.get(cluster=cluster).explanation_id == job.explanation_id
         assert client.get(f'/clusters/{cluster.uuid}/').status_code == 200
         item = {'case': case, 'companies': count, 'status': job.status, 'error_code': job.error_code,
@@ -119,7 +132,7 @@ def main():
     report = {'status': 'passed' if passed else 'fallback_observed', 'synthetic_only': True,
               'database': str(database.relative_to(ROOT)), 'results': results,
               'independent_prediction_quality': 'unverified'}
-    (folder / 'latest-probe.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
+    (folder / (options.report_name + '.json')).write_text(json.dumps(report, indent=2), encoding='utf-8')
     print('Local AI probe passed.' if passed else 'Model failure observed; saved template fallback is available.', flush=True)
     if options.serve:
         print(f'Synthetic demo: http://127.0.0.1:{options.port}/clusters/ . Press Ctrl+C to stop.', flush=True)

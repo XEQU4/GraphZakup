@@ -8,8 +8,9 @@ import requests
 from django.conf import settings
 
 from apps.graph.evidence import digest
+from .presentation import wording_variants
 
-PROMPT_VERSION = 'evidence-presentation-5.0'
+PROMPT_VERSION = 'evidence-presentation-5.1'
 
 
 class ProviderError(Exception):
@@ -79,7 +80,7 @@ def reuse_key(analysis, config):
 def prepared_request(analysis, config):
     allowed = []
     for finding in analysis.findings[:config.max_findings]:
-        candidate = {'finding_id': finding['id'], 'variants': finding['statements'],
+        candidate = {'finding_id': finding['id'], 'variants': wording_variants(analysis, finding),
                      'limitations': finding['limitations']}
         if len(json.dumps(allowed + [candidate])) > config.input_chars - 2000:
             break
