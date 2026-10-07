@@ -56,8 +56,9 @@ cookies and X-CSRFToken for login and writes; only staff can launch jobs. An
 explanation job defaults to template preparation; use_model=true is explicit and
 uses server configuration/paid gates. GET never regenerates domain results.
 
-No new .env settings or domain migrations are needed for the API. Restart the
-server after installing locked dependencies; legacy pages/admin remain available
+No new .env settings or domain migrations are needed for the API. Run
+`uv run python manage.py collectstatic --noinput` after installing or updating
+dependencies, then restart the server; legacy pages/admin remain available
 until the React interface is ready. API introduction does not start collection
 or enable a model. Russian localisation follows the completed English frontend.
 
@@ -136,8 +137,11 @@ The project requires Python 3.13 or later. Dependencies are defined in `pyprojec
 ```powershell
 uv sync --frozen
 uv run python manage.py migrate
+uv run python manage.py collectstatic --noinput
 uv run python manage.py runserver
 ```
+
+Native file logs use `logs/app-YYYY-MM-DD.log` and `logs/error-YYYY-MM-DD.log`, with process locks and 7/14 UTC calendar days of retention. Existing `app.log` and `error.log` are preserved. Restart Django and any running Celery processes after updating logging.
 
 Offline tests use in-memory SQLite and mocked HTTP. They do not load `.env` or connect to the working database, Redis or websites. JavaScript checks use only Node.js standard modules:
 
@@ -148,7 +152,7 @@ node tests/graph_interactions.cjs
 .\.venv\Scripts\python.exe -B manage.py makemigrations --check --dry-run --settings=config.test_settings
 ```
 
-`test.py` contains the user's learning exercises, not application tests. The current 320-test suite passed on isolated PostgreSQL in Phase 6; SQLite skips four PostgreSQL-only checks, including concurrency and full-precision money. Five real free-local-model synthetic cases also passed. API/recovery verification is in [PHASE6.md](docs/PHASE6.md); AI measurements and quality/operational limits are in [PHASE5.md](docs/PHASE5.md). Earlier phase documents retain their historical results.
+`test.py` contains the user's learning exercises, not application tests. The 320-test phase-completion suite passed on isolated PostgreSQL in Phase 6. The working-data/static/logging follow-up ran 328 offline tests, passing with four PostgreSQL-only skips for concurrency and full-precision money. Five real free-local-model synthetic cases also passed. API/recovery verification is in [PHASE6.md](docs/PHASE6.md); AI measurements and quality/operational limits are in [PHASE5.md](docs/PHASE5.md). Earlier phase documents retain their historical results.
 
 To capture source files and check the current environment from PowerShell:
 

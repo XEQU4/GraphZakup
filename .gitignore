@@ -18,6 +18,7 @@ env/
 staticfiles/
 media/
 *.log
+/logs/
 db.sqlite3
 
 # Celery

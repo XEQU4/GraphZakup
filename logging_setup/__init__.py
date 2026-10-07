@@ -5,7 +5,7 @@ import os
 from colorama import init
 
 from logging_setup.cleanup_old_logs import cleanup_old_logs_by_filename
-from logging_setup.formats import ColorFormatter, file_fmt, date_fmt, DatedTimedRotatingFileHandler
+from logging_setup.formats import ColorFormatter, file_fmt, date_fmt, DailyFileHandler
 from logging_setup.filters import filter_maker, max_level_filter, handle_exception
 
 
@@ -20,8 +20,8 @@ def init_logging(log_dir: str = "logs", to_files: bool = True):
       - Console (coloured output through colorama):
           DEBUG..WARNING → stdout
           ERROR..CRITICAL → stderr
-      - logs/app.log (DEBUG..WARNING, daily rotation, 7-day retention)
-      - logs/error.log (ERROR+, daily rotation, 14-day retention)
+      - logs/app-YYYY-MM-DD.log (DEBUG..WARNING, 7 UTC calendar days)
+      - logs/error-YYYY-MM-DD.log (ERROR+, 14 UTC calendar days)
     """
     init(autoreset=True)
     if to_files:
@@ -43,10 +43,10 @@ def init_logging(log_dir: str = "logs", to_files: bool = True):
 
     handlers = [stdout_handler, stderr_handler]
     if to_files:
-        for name, level, backups in (('app', logging.DEBUG, 7), ('error', logging.ERROR, 14)):
-            handler = DatedTimedRotatingFileHandler(
-                filename=os.path.join(log_dir, name + '.log'), when='midnight',
-                interval=1, backupCount=backups, encoding='utf-8', utc=True,
+        for name, level, retention_days in (('app', logging.DEBUG, 7), ('error', logging.ERROR, 14)):
+            handler = DailyFileHandler(
+                filename=os.path.join(log_dir, name + '.log'),
+                retention_days=retention_days, encoding='utf-8',
             )
             handler.setLevel(level)
             handler.setFormatter(file_formatter)
@@ -59,7 +59,7 @@ def init_logging(log_dir: str = "logs", to_files: bool = True):
         handlers=handlers,
     )
 
-    # Capture unhandled exceptions in error.log
+    # Capture unhandled exceptions in the dated error log
     sys.excepthook = handle_exception
 
     logging.getLogger(__name__).info("Logging initialized (log_dir=%s)", log_dir)

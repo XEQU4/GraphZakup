@@ -95,3 +95,23 @@ ignored artifacts/phase6/. Login throttle is process-local and ignores untrusted
 forwarding headers; production/shared throttling and public release policy remain
 later operational work. Phase 7 requires separate authorisation and user UI/UX
 references; do not start it automatically or finalise the design now.
+
+## Working-data and local startup follow-up
+
+On 7 October 2026, the existing configured PostgreSQL was inspected read-only:
+777 companies, 500 contracts, four active clusters/11 member companies, eight
+snapshots and four saved analyses/explanations; all 68 migrations applied. All
+50 table hashes stayed equal across 19 domain API GETs. Use the existing working
+API for the frontend; the AI probe on 8766 is synthetic and separate. Legacy
+provenance is not freshly verified; no working KGD results or verified shared
+person roles exist. Existing template 5.0 texts stay immutable until an explicit
+presentation job; do not regenerate them on GET.
+
+Native local startup requires collectstatic after dependency/static updates and
+a server restart; default strict manifest storage stays enabled. The actual
+manifest and normal-settings Swagger were checked on an owned read-only server,
+now stopped. Windows logging uses native process locks and dated file appends
+without shared-output rename. The 328-test offline follow-up passed with four
+PostgreSQL-only skips; actual Windows startup/concurrent logging and strict static
+regressions passed. POSIX/network-share locking remains unverified. Details:
+docs/PHASE6.md; private reports: artifacts/data-followup/.

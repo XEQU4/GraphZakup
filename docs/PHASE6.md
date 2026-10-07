@@ -111,3 +111,34 @@ Primary references: [DRF authentication/CSRF](https://www.django-rest-framework.
 [DRF pagination](https://www.django-rest-framework.org/api-guide/pagination/),
 [DRF release compatibility](https://www.django-rest-framework.org/community/release-notes/),
 [drf-spectacular schema and local UI assets](https://drf-spectacular.readthedocs.io/en/stable/readme.html).
+
+## Working-data and native startup follow-up, 7 October 2026
+
+The existing PostgreSQL contains 777 companies, 500 contracts and four active
+clusters covering 11 companies, with eight snapshots and four saved analyses/
+explanations. All 68 migrations are applied. Nineteen bounded domain API GETs
+returned 200 under PostgreSQL READ ONLY; all 50 table fingerprints stayed equal.
+The normal API uses this dataset; the 8766 AI probe remains a separate synthetic
+demo. No import, migration, source request, model job or graph refresh was run.
+
+Legacy migration observations do not independently verify original parser
+provenance. Current links are contact-based; no identifier-confirmed common
+director/owner or working KGD result is present. Existing template 5.0 texts remain
+immutable; a 5.1 presentation refresh requires an explicit job. The inventory is
+private at artifacts/data-followup/inventory.json.
+
+Swagger failed with DEBUG=false because local static collection lacked the new
+sidecar entries. collectstatic rebuilt the actual manifest; a fresh owned server
+using normal settings/read-only working PostgreSQL served Swagger, hashed assets
+and real entity lists with 200 and no Swagger JavaScript errors. The largest saved
+graph rendered six nodes; its unrelated favicon request returned 404. The owned
+8769 server was stopped. Restart existing servers after collecting static assets.
+
+Windows file logging now appends to dated app/error files under native process
+locks instead of renaming shared open files. Ten logging tests include real Django
+startup and complete concurrent Windows records across simulated midnight; two
+Swagger regressions use strict manifest storage and collected assets. The full
+offline suite ran 328 tests, passing with four PostgreSQL-only checks skipped.
+Migration drift reported no changes. POSIX locking/network filesystems were not
+verified in this Windows follow-up. Generated logs are ignored; old active logs,
+.env, test.py and the Celery schedule file are preserved.
