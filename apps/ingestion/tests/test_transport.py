@@ -77,3 +77,20 @@ class TransportTests(SimpleTestCase):
         client = self.transport([response(503), response()], heartbeat=heartbeat)
         client.get('https://goszakup.gov.kz/')
         self.assertEqual(heartbeat.call_count, 2)
+
+    def test_official_legacy_registry_host_is_allowed_without_following_redirects(self):
+        client = self.transport([response(), response(301, headers={'Location': 'https://untrusted.invalid/'})], retries=0)
+        client.get('https://old.goszakup.gov.kz/ru/registry/supplierreg')
+        self.assertFalse(self.session.get.call_args.kwargs['allow_redirects'])
+        with self.assertRaisesMessage(SourceError, 'source_http_301'):
+            client.get('https://old.goszakup.gov.kz/ru/registry/contract')
+        self.assertEqual(self.session.get.call_count, 2)
+
+    def test_legacy_registry_does_not_receive_kgd_credentials(self):
+        client = self.transport([])
+        with self.assertRaisesMessage(SourceError, 'source_url_not_allowed'):
+            client.get('https://old.goszakup.gov.kz/', headers={'X-Portal-Token': 'synthetic-token'})
+        for host in ('old.goszakup.gov.kz.untrusted.invalid', 'untrusted-old.goszakup.gov.kz'):
+            with self.assertRaisesMessage(SourceError, 'source_url_not_allowed'):
+                client.get('https://' + host + '/')
+        self.assertEqual(self.session.get.call_count, 0)

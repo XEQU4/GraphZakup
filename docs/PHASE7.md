@@ -361,3 +361,97 @@ existing Python dependency versions. The 357-file scan found no configured
 credentials. The owned preview/browser were stopped and port 8774 had no
 remaining listener. Reports: `final-verification.json` and `cleanup.json` in the
 same private directory. User visual acceptance remains pending.
+
+
+## Saved AI explanations and aligned review panels, 8 October 2026
+
+The user explicitly authorised AI explanation rewriting and regeneration. The
+right card now presents saved model-written paragraphs, cited fact disclosures
+and practical checks. The left card explains the deterministic review-priority
+index and its credited points. Both cards share one status row and align at the
+top on desktop; narrow layouts stack without page overflow. Original contact
+values are available in the evidence disclosure. A rejected model response is
+visibly labelled as a saved template fallback.
+
+Free local Qwen3:4b generated new prompt-5.3 explanations for all four working
+clusters through explicit durable jobs. Their repeated requests reused the same
+results. Three jobs took 8.4–9.6 seconds; the email case passed after one repair
+in 18.1 seconds. Original texts, analyses, scores and graphs were preserved.
+A fresh backup was restored and verified before these writes. All 44 non-AI
+domain tables remain unchanged; only AI job/text pointers/history and the
+released orchestration lease changed. No migration or source collection ran.
+
+All 391 isolated PostgreSQL tests passed without skips, as did 95 React tests,
+production build, formatting, strict OpenAPI validation and collectstatic.
+Chromium checked all four published results against saved API documents,
+citations, exact contact details and stable reloads. Layouts fit actual client
+widths at 320/390/768/1024/1440/1920px; desktop panel top differences were zero.
+The 1440px and 320px screenshots were inspected. No JavaScript exception, failed
+request, external request or non-GET request was observed in this browser pass.
+All 50 current source-table hashes matched across final PostgreSQL tests.
+
+The final six-case synthetic provider check accepted four responses and rejected
+two after bounded repair: an invented director tender-authority claim and raw
+finding IDs in a twenty-company explanation. These remain honest fallback
+cases, not successful prose generation. Some procedural/repetitive wording
+remains; validators do not prove semantic correctness or editorial quality.
+Private reports are under artifacts/phase7/ai-narrative/. Main .env settings stay
+unchanged: these saved results are readable without a running model, while
+future model jobs require explicit configured generation. User visual/readability
+acceptance remains pending; no Git, parsing, localisation or Phase 8 work ran.
+
+Final post-generation/browser comparison preserved all 50 current table hashes.
+Protected .env/test.py/celerybeat files and existing dependency versions matched;
+362 scanned project files contained no configured credentials. Owned preview
+8778 and local model 11435 were stopped; no listeners remained on those ports.
+The user server was not controlled. See final-verification.json and cleanup.json.
+
+
+User review, 8 October 2026: the user accepted the revised AI explanation and
+aligned review panels. The agreed remaining sequence is relationship-group
+page refinement, parser/data-quality work, and company/person detail pages.
+This acceptance does not authorise source collection or start Phase 8.
+
+
+## Relationship-group directory follow-up, 8 October 2026
+
+The user authorised clearer group titles, cards, search and filters. New typed
+API directory projections read current frozen graph members and matching saved
+analysis. Display titles describe evidenced shared contacts/verified roles;
+mixed ownership/director roles are distinct. Persisted names, UUIDs, histories,
+public scores and model explanations are unchanged. Company previews and name/BIN
+search use frozen member records; original group names remain searchable.
+Relationship/coverage filters execute before SQL pagination with bounded query
+counts. Coverage means usable KGD arrears checks at the saved analysis date,
+not overall source completeness or current clearance. Missing/mismatched/malformed
+metrics stay unknown. The unmaintained legacy explanation_stale flag is not
+authoritative; directory status describes graph/analysis correspondence.
+
+The React directory has responsive evidence cards, static scores, dated coverage,
+URL-backed filters, removable chips and distinct empty/error/loading states.
+Current detail titles agree with cards; historical versions avoid current-link
+claims. Back to results preserves filters through graph/analysis version changes
+and reload. Decorative glow stays within tablet page width without clipping text
+or keyboard outlines. Controls retain 44px targets and reduced motion support.
+
+413 isolated PostgreSQL tests passed without skips, as did 108 React tests, build,
+formatting, strict OpenAPI and collectstatic. Thirty-eight real GET checks covered
+all four working groups, search, relationship/coverage/score/state filters, SQL
+pagination and unchanged saved model versions. Chromium checked keyboard opening,
+filtered return/history/reload, chips/reset/back navigation, empty results and a
+simulated HTTP503 with successful retry. Layouts fit actual clientWidth at
+320/390/768/1024/1440/1920px; screenshots were inspected. No JavaScript exception
+or external/non-GET request occurred; the deliberately simulated503 was expected.
+All50 source hashes and protected/locked files remained equal across final tests;
+the isolated database was dropped. No source collection, generation, migration,
+Git operation, localisation or next phase ran.
+
+SQLite retains its built-in Unicode case-folding limitation; Cyrillic case-insensitive
+search passed on PostgreSQL. Very large catalogue/filter performance and physical
+touch remain unmeasured. User visual acceptance of this directory is pending.
+Private reports: artifacts/phase7/cluster-directory/.
+
+Final post-browser comparison preserved all 50 source tables, protected files and
+25 next-app source files. The owned browser/preview stopped; port 8780 has no
+remaining listener. User servers were untouched. See source-compare-latest.json
+and cleanup.json in the private directory.

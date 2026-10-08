@@ -1,12 +1,15 @@
 <div class="explanation-document">
-  <p class="explanation-summary">{{ explanation_document.summary }}</p>
+  {% if explanation_document.narrative %}
+    {% for paragraph in explanation_document.narrative.paragraphs %}<p class="explanation-summary">{{ paragraph.text }}</p>{% endfor %}
+  {% else %}<p class="explanation-summary">{{ explanation_document.summary }}</p>{% endif %}
   <h4 class="h6 mt-4">What connects these companies</h4>
   {% for finding in explanation_document.findings %}
   <section class="border-top pt-3 mt-3">
     <h5 class="h6">{{ finding.title }}</h5>
     <p class="mb-2">{{ finding.fact }}</p>
     {% if finding.companies %}<p class="small mb-2">{% for company in finding.companies %}<a href="{% url 'companies:detail' company.id %}">{{ company.name }}</a> (BIN {{ company.bin }}){% if not forloop.last %}; {% endif %}{% endfor %}{% if finding.additional_companies %}; {{ finding.additional_companies }} additional compan{{ finding.additional_companies|pluralize:"y,ies" }}{% endif %}.</p>{% endif %}
-    <p class="small text-muted mb-0">{{ finding.meaning }}</p>
+    {% for detail in finding.details %}<p class="small mb-2">{{ detail }}</p>{% endfor %}
+    {% if not explanation_document.narrative %}<p class="small text-muted mb-0">{{ finding.meaning }}</p>{% endif %}
     {% if finding.notes %}<details class="small mt-2"><summary>Evidence limits</summary><ul class="mt-2 mb-0">{% for note in finding.notes %}<li>{{ note }}</li>{% endfor %}</ul></details>{% endif %}
   </section>
   {% endfor %}

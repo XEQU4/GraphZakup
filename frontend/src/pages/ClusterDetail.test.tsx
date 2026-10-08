@@ -401,3 +401,128 @@ describe("immutable cluster reads", () => {
     expect(fetcher).toHaveBeenCalledTimes(count);
   });
 });
+
+describe("directory context in saved group details", () => {
+  function addCurrentDirectory() {
+    const existing = fetcher.getMockImplementation() as (
+      href: string,
+      options: unknown,
+    ) => Promise<Response>;
+    fetcher.mockImplementation((href: string, options: unknown) => {
+      if (
+        new URL(href, "http://localhost").pathname ===
+        `/api/v1/clusters/${uuid}/`
+      ) {
+        return Promise.resolve(
+          json({
+            ...cluster,
+            directory: {
+              title: "Shared phone · 1 company",
+              companies: [
+                { id: 1, name: "Synthetic Company", bin: "000000000001" },
+              ],
+              additional_companies: 0,
+              reasons: [],
+              primary_reason: null,
+              analysis_status: "ready",
+              analysis_as_of: "2026-10-07",
+              review_priority: 2,
+              coverage: {
+                status: "no_checks",
+                checked: 0,
+                total: 1,
+                as_of: "2026-10-07",
+              },
+            },
+          }),
+        );
+      }
+      return existing(href, options);
+    });
+  }
+
+  it("uses the directory title and returns to the original filters", async () => {
+    addCurrentDirectory();
+    render(
+      <MemoryRouter
+        initialEntries={[
+          {
+            pathname: `/clusters/${uuid}`,
+            state: {
+              directorySearch: "relationship=phone&coverage=no_checks&page=2",
+            },
+          },
+        ]}
+      >
+        <Routes>
+          <Route path="/clusters/:uuid" element={<ClusterDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await screen.findByRole("heading", {
+      level: 1,
+      name: "Shared phone · 1 company",
+    });
+    expect(
+      screen.getByRole("link", { name: "Back to results" }),
+    ).toHaveAttribute(
+      "href",
+      "/clusters?relationship=phone&coverage=no_checks&page=2",
+    );
+    await screen.findByText("Current saved explanation.");
+    fireEvent.change(screen.getByLabelText("Graph version"), {
+      target: { value: "1" },
+    });
+    await screen.findByRole("heading", {
+      level: 1,
+      name: "Historical group · 1 company",
+    });
+    expect(
+      screen.getByRole("link", { name: "Back to results" }),
+    ).toHaveAttribute(
+      "href",
+      "/clusters?relationship=phone&coverage=no_checks&page=2",
+    );
+    fireEvent.change(screen.getByLabelText("Analysis version"), {
+      target: { value: "1" },
+    });
+    expect(
+      screen.getByRole("link", { name: "Back to results" }),
+    ).toHaveAttribute(
+      "href",
+      "/clusters?relationship=phone&coverage=no_checks&page=2",
+    );
+    expect(fetcher.mock.calls.every((call) => call[1].method === "GET")).toBe(
+      true,
+    );
+  });
+
+  it("does not assign the current connection title to a historical graph", async () => {
+    addCurrentDirectory();
+    render(
+      <MemoryRouter initialEntries={[`/clusters/${uuid}?version=1`]}>
+        <Routes>
+          <Route path="/clusters/:uuid" element={<ClusterDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await screen.findByRole("heading", {
+      level: 1,
+      name: "Historical group · 1 company",
+    });
+    expect(
+      screen.queryByRole("heading", { name: "Shared phone · 1 company" }),
+    ).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Graph version"), {
+      target: { value: "" },
+    });
+    await screen.findByRole("heading", {
+      level: 1,
+      name: "Shared phone · 1 company",
+    });
+    await screen.findByText("Current saved explanation.");
+    expect(fetcher.mock.calls.every((call) => call[1].method === "GET")).toBe(
+      true,
+    );
+  });
+});

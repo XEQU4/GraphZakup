@@ -17,7 +17,7 @@ from .models import AnalysisSnapshot, AnalysisState, AnalysisTarget, Explanation
 from .rules import evaluate, RULES_VERSION
 from .presentation import build_document, document_text
 
-TEMPLATE_VERSION = 'explanation-template-5.1'
+TEMPLATE_VERSION = 'explanation-template-5.2'
 
 
 def plain(value):

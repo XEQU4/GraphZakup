@@ -77,6 +77,26 @@ def validate_facts(source, values, bin_number):
 
 
 def parse_taxpayer(payload, bin_number):
+    if isinstance(payload, dict) and 'errorResponse' in payload:
+        # The official service can answer HTTP 200 with a failed lookup plus
+        # unrelated payment/detail envelopes. Those details do not verify a
+        # legal-entity registration and must never be extracted as a success.
+        failure = payload['errorResponse']
+        if not isinstance(failure, dict):
+            raise SourceError('kgd_taxpayer_response_invalid')
+        try:
+            matches = normalize_bin(failure.get('code')) == bin_number
+        except ValueError:
+            matches = False
+        if not matches:
+            raise SourceError('kgd_identity_mismatch')
+        if failure.get('taxpayerType') not in LEGAL_TYPES:
+            raise SourceError('kgd_subject_not_legal_entity')
+        message = failure.get('errorMessage')
+        if (failure.get('messageResult') != 'FAILED' or not isinstance(message, str)
+                or not message.strip() or len(message) > 4096):
+            raise SourceError('kgd_taxpayer_response_invalid')
+        raise SourceError('kgd_taxpayer_result_unconfirmed')
     if not isinstance(payload, dict) or not isinstance(payload.get('taxpayerPortalSearchResponses'), list):
         raise ValueError('kgd_taxpayer_response_invalid')
     entries = payload['taxpayerPortalSearchResponses']
@@ -124,7 +144,7 @@ def parse_tax_debt(payload, bin_number):
 
 
 class KgdParser:
-    VERSION = '3.1'
+    VERSION = '3.2'
     API_URLS = {
         TAXPAYER_SOURCE: 'https://portal.kgd.gov.kz/services/isnaportalsync/public/taxpayer-data',
         DEBT_SOURCE: 'https://portal.kgd.gov.kz/services/isnaportalsync/public/tax-debt-info',
@@ -190,7 +210,8 @@ class KgdParser:
             if error.code in ('source_http_401', 'source_http_403', 'source_http_404'):
                 return result(ResultStatus.UNAVAILABLE, code='kgd_access_denied')
             invalid = error.code in ('source_http_400', 'source_json_invalid', 'source_json_content_type_invalid',
-                                      'source_response_too_large')
+                                      'source_response_too_large', 'kgd_taxpayer_response_invalid',
+                                      'kgd_identity_mismatch', 'kgd_subject_not_legal_entity')
             return result(ResultStatus.INVALID if invalid else ResultStatus.UNAVAILABLE, code=error.code)
         except (ValueError, TypeError, KeyError):
             return result(ResultStatus.INVALID, code='kgd_response_invalid')

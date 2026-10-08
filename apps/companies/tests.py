@@ -278,7 +278,7 @@ class SupplierEnrichmentIntegrityTests(TestCase):
         providers = FakeProviders(results={('adata', supplier.bin): {'name': 'Updated'},
                                            ('goszakup_supplier', supplier.bin): SourceError('offline')})
         with self.assertRaises(IngestionFailure):
-            run_pipeline(mode='enrich', providers=providers)
+            run_pipeline(mode='enrich', providers=providers, force=True)
         supplier.refresh_from_db()
         self.assertEqual(supplier.name, "Updated")
         self.assertIsNone(supplier.adata_updated_at)

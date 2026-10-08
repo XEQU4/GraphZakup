@@ -246,7 +246,7 @@ Set thresholds after baseline measurement/sample selection. Algorithm-tailored e
 
 ## Open decisions
 
-KGD broader-company entitlement, quotas and unverified source variants (one taxpayer and complete zero-arrears response verified); sample size/bidding data; references/UI/graph library; audience/roles/publication (procurement analyst is unconfirmed); independent model benefit/calibration labels (local Qwen3:4b and configurable API adapters implemented in Phase 5); thesis deadline/API costs; phase calendar after scope confirmation without invented estimates.
+KGD broader-company entitlement, quotas and unverified source variants (three taxpayer/complete zero-arrears pairs verified in the bounded follow-up); sample size/bidding data; references/UI/graph library; audience/roles/publication (procurement analyst is unconfirmed); independent model benefit/calibration labels (local Qwen3:4b and configurable API adapters implemented in Phase 5); thesis deadline/API costs; phase calendar after scope confirmation without invented estimates.
 
 The user accepted the revised graph prototype and deferred further design/animation work to Phase 7. Final site styling awaits references. Phase 5 is complete within its implemented scope; measurements and limitations are in [PHASE5.md](PHASE5.md). Phase 6 is complete; Phase 7 requires a separate instruction and references. Do not repeat accepted KGD checks merely to read saved results. Broader KGD validation remains bounded and explicitly authorised.
 
@@ -264,3 +264,29 @@ The latest user-directed Phase 7 refinement adds About Us, the full project foot
 React Bits Particles and Border Glow. Technical checks are recorded in PHASE7.md;
 visual acceptance remains pending. Authentication, parsing, API-page and saved
 explanation redesign remain separate follow-up tasks.
+
+
+Latest follow-up, 8 October 2026: the user accepted the revised saved AI panels
+and authorised the relationship-group directory refinement. Connection-based
+display titles, dated saved KGD coverage, server-side filters/frozen search and
+filtered return navigation are implemented and verified (see PHASE7.md). Earlier
+follow-up deferrals above are historical; current directory visual acceptance
+is pending. Parser/data-quality work and entity-detail redesign are next proposed
+tasks, not started automatically.
+
+
+The user accepted the directory and explicitly authorised parser/data-quality
+work on 8 October 2026. The read-only audit found that existing facts are legacy
+and need external refresh; targeted parser, cache, import identity and role-history
+corrections are recorded in PHASE2.md. Working data was preserved. Bounded live
+validation is a separate explicit operation; no source expansion, entity-page
+redesign, localisation or Phase 8 started from this follow-up.
+
+
+The authorised parser/data-quality follow-up now includes a real 12-company
+refresh after isolated validation and restore rehearsal: 29 accepted observations,
+three KGD taxpayer/arrears pairs, preserved immutable history and one corrected
+weak-contact group membership. All 495 PostgreSQL tests passed. Per-source bounded
+refresh and parser 2.2 fixes are implemented; full-catalogue freshness, ambiguous
+registry cards, wider KGD variants and source quotas remain open. See PHASE2/3
+and RECOVERY for evidence and actual publication. No subsequent phase started.

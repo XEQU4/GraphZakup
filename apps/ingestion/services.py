@@ -5,7 +5,8 @@ import uuid
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import OuterRef, Q, Subquery, Value
+from django.db.models.functions import Concat
 from django.utils import timezone
 
 from apps.companies.models import Supplier
@@ -15,7 +16,7 @@ from apps.ai.services import refresh_graph_analysis as rebuild_clusters
 from .dto import ResultStatus, SourceResult
 from .errors import SourceError
 from .leases import RunLease, LeaseLost
-from .models import IngestionRun, SourceCheckpoint, IngestionIssue, SelectedFact
+from .models import IngestionRun, SourceCheckpoint, IngestionIssue, SelectedFact, SourceObservation
 from .normalizers import normalize_amount, normalize_bin, normalize_date
 from .observations import (
     CONTRACT_FIELDS, apply_company_facts, cached_company_result, fingerprint,
@@ -23,6 +24,7 @@ from .observations import (
 )
 from .providers import SourceProviders
 from .kgd import normalize_kgd_result, record_kgd_result
+from .parsers.contracts import ContractRegistryParser
 from .parsers.kgd import KgdParser, TAXPAYER_SOURCE, DEBT_SOURCE
 from django.conf import settings
 
@@ -59,6 +61,8 @@ def save_contract(run, item):
         raise ValueError('contract_supplier_identity_changed')
     if previous and previous.contract_gos_id and previous.contract_gos_id != identifier:
         raise ValueError('contract_external_identity_changed')
+    if Contract.objects.filter(contract_gos_id=identifier).exclude(contract_number=number).exists():
+        raise ValueError('contract_external_id_conflict')
     supplier, _ = Supplier.objects.get_or_create(
         bin=supplier_bin, defaults={'name': item.get('supplier_name') or supplier_bin, 'is_supplier': True},
     )
@@ -86,25 +90,73 @@ def save_contract(run, item):
     result = SourceResult(
         'goszakup_contracts', f'contract:{identifier}', ResultStatus.SUCCESS,
         data=data, raw=item.get('_raw') or data,
-        source_url=f'https://goszakup.gov.kz/ru/egzcontract/cpublic/show/{identifier}',
+        parser_version=SourceProviders.VERSION,
+        source_url=f'{ContractRegistryParser.BASE_URL}/ru/egzcontract/cpublic/show/{identifier}',
     )
     record_observation(run, result, supplier, contract)
     for company, label in ((supplier, 'supplier_name'), (customer, 'customer_name')):
         company_result = SourceResult('goszakup_contracts', f'company:{company.bin}', ResultStatus.SUCCESS,
                                       data={'bin': company.bin, 'name': item.get(label) or company.bin},
                                       raw={'bin': company.bin, 'name': (item.get('_raw') or item).get(label)},
+                                      parser_version=SourceProviders.VERSION,
                                       source_url=result.source_url, observed_at=result.observed_at)
         obs = record_observation(run, company_result, company, contract)
         SelectedFact.objects.get_or_create(supplier=company, field='name', defaults={'observation': obs})
     return contract
 
 
-def _new_run(mode, total, start_page, force, days, company_bin=None, kgd_service=None):
+def enrichment_selection(total, force, days, company_bin, sources, version):
+    """Freeze an eligible catalogue slice; one source's success cannot freshen another."""
+    companies = Supplier.objects.order_by('pk')
+    if company_bin is not None:
+        companies = companies.filter(bin=normalize_bin(company_bin))
+        if not companies.exists():
+            raise ValueError('enrichment_company_not_found')
+    if not force:
+        cutoff = timezone.now() - timedelta(days=days)
+        eligible = Q()
+        for source in sources:
+            latest = SourceObservation.objects.filter(
+                supplier_id=OuterRef('pk'), source=source,
+                subject_key=Concat(Value('company:'), OuterRef('bin')),
+            ).order_by('-observed_at', '-pk')
+            status_key, time_key, version_key = (f'_enrich_{source}_{field}' for field in ('status', 'time', 'version'))
+            companies = companies.annotate(**{
+                status_key: Subquery(latest.values('status')[:1]),
+                time_key: Subquery(latest.values('observed_at')[:1]),
+                version_key: Subquery(latest.values('parser_version')[:1]),
+            })
+            eligible |= (Q(**{status_key + '__isnull': True})
+                         | ~Q(**{status_key + '__in': ['success', 'not_found']})
+                         | Q(**{time_key + '__lt': cutoff})
+                         | ~Q(**{version_key: version}))
+        companies = companies.filter(eligible)
+    return list(companies.values_list('pk', flat=True)[:total])
+
+
+def _new_run(mode, total, start_page, force, days, company_bin=None, kgd_service=None,
+             company_sources=None, provider_version=None):
     mode = {'new': 'initial'}.get(mode, mode)
     if mode not in ('initial', 'update', 'full', 'enrich', 'kgd'):
         raise ValueError('invalid_ingestion_mode')
     if total <= 0 or (start_page is not None and start_page < 1) or days <= 0:
         raise ValueError('invalid_ingestion_options')
+    if company_sources is not None and mode != 'enrich':
+        raise ValueError('company_sources_require_enrich_mode')
+    if mode == 'enrich':
+        if total > 1000 or start_page is not None or kgd_service is not None:
+            raise ValueError('invalid_enrichment_options')
+        sources = SourceProviders.COMPANY_SOURCES if company_sources is None else company_sources
+        if (not isinstance(sources, (tuple, list)) or not sources or
+                any(source not in SourceProviders.COMPANY_SOURCES for source in sources) or
+                len(set(sources)) != len(sources)):
+            raise ValueError('invalid_company_sources')
+        version = provider_version or SourceProviders.VERSION
+        ids = enrichment_selection(total, force, days, company_bin, sources, version)
+        return IngestionRun.objects.create(mode=mode, stage='enrichment' if ids else 'complete', options={
+            'total': total, 'force': force, 'days': days, 'company_ids': ids,
+            'company_sources': list(sources), 'selection_parser_version': version,
+        })
     if mode == 'kgd':
         if total > 500 or start_page is not None or kgd_service not in (None, 'taxpayer', 'tax_debt'):
             raise ValueError('invalid_kgd_options')
@@ -157,10 +209,15 @@ def _contracts_stage(run, lease, providers):
                     raise SourceError('contract_eof_invalid')
                 with transaction.atomic():
                     lease.ensure_owned()
-                    record_observation(run, SourceResult('goszakup_contracts', f'page:{number}', ResultStatus.NOT_FOUND))
+                    record_observation(run, SourceResult('goszakup_contracts', f'page:{number}', ResultStatus.NOT_FOUND,
+                                                       parser_version=providers.VERSION))
                     IngestionIssue.objects.filter(run=run, stage='contracts', page=number).update(resolved=True)
                 break
             page_hash = fingerprint(page.records)
+            previous_page = run.counters.get('last_complete_contract_page', {})
+            if (not run.offset and previous_page.get('number') != number
+                    and previous_page.get('fingerprint') == page_hash):
+                raise SourceError('contract_page_repeated')
             offset = run.offset if run.page_fingerprint == page_hash else 0
             selected = page.records[offset:offset + limit - saved]
             if not selected:
@@ -179,6 +236,8 @@ def _contracts_stage(run, lease, providers):
                 run.next_page, run.offset = next_page, next_offset
                 run.page_fingerprint = page_hash if next_offset else ''
                 run.counters = {**run.counters, 'contracts': saved}
+                if not next_offset:
+                    run.counters['last_complete_contract_page'] = {'number': number, 'fingerprint': page_hash}
                 run.save(update_fields=['next_page', 'offset', 'page_fingerprint', 'counters', 'updated_at'])
                 # Read-only compatibility consumers; ingestion's checkpoint is authoritative.
                 key = {'initial': 'last_import_page', 'full': 'full_import_page', 'update': 'last_update_page'}[run.mode]
@@ -196,6 +255,7 @@ def _contracts_stage(run, lease, providers):
                 issue(run, 'goszakup_contracts', f'page:{number}', 'contracts', code, page=number)
                 record_observation(run, SourceResult('goszakup_contracts', f'page:{number}',
                                                      ResultStatus.INVALID if code == 'invalid_import_data' else ResultStatus.UNAVAILABLE,
+                                                     parser_version=providers.VERSION,
                                                      error_code=code))
             raise IngestionFailure(run, code) from None
     with transaction.atomic():
@@ -207,14 +267,19 @@ def _contracts_stage(run, lease, providers):
 def _enrichment_stage(run, lease, providers):
     failed_ids = run.issues.filter(stage='enrichment', resolved=False).values_list('supplier_id', flat=True)
     suppliers = Supplier.objects.order_by('pk').filter(Q(pk__gt=run.enrichment_cursor) | Q(pk__in=failed_ids))
-    if not run.options['force']:
+    if run.mode == 'enrich':
+        suppliers = suppliers.filter(pk__in=run.options['company_ids'])
+        sources = run.options['company_sources']
+    else:
+        sources = providers.COMPANY_SOURCES
+    if run.mode != 'enrich' and not run.options['force']:
         cutoff = timezone.now() - timedelta(days=run.options['days'])
         suppliers = suppliers.filter(Q(adata_updated_at__isnull=True) | Q(adata_updated_at__lt=cutoff) | Q(pk__in=failed_ids))
     checked = 0
     for supplier in suppliers.iterator(chunk_size=100):
         lease.heartbeat()
         results = []
-        for source in providers.COMPANY_SOURCES:
+        for source in sources:
             cached = None if run.options['force'] else cached_company_result(source, supplier, providers.VERSION)
             try:
                 result = cached or providers.company(source, supplier.bin)
@@ -225,7 +290,8 @@ def _enrichment_stage(run, lease, providers):
                 raise
             except Exception as error:
                 result = SourceResult(source, f'company:{supplier.bin}', ResultStatus.INVALID if isinstance(
-                    error, (ValueError, ValidationError)) else ResultStatus.UNAVAILABLE, error_code='source_result_invalid')
+                    error, (ValueError, ValidationError)) else ResultStatus.UNAVAILABLE,
+                    parser_version=providers.VERSION, error_code='source_result_invalid')
             results.append(result)
         try:
             with transaction.atomic():
@@ -239,7 +305,8 @@ def _enrichment_stage(run, lease, providers):
                         run.issues.filter(source=result.source, subject_key=result.subject_key, stage='enrichment').update(resolved=True)
                 changed = int(apply_company_facts(supplier))
                 run.issues.filter(source='persistence', subject_key=f'company:{supplier.bin}', stage='enrichment').update(resolved=True)
-                if any(result.status == ResultStatus.SUCCESS for result in results) and all(
+                all_sources = run.mode != 'enrich' or set(sources) == set(SourceProviders.COMPANY_SOURCES)
+                if all_sources and any(result.status == ResultStatus.SUCCESS for result in results) and all(
                         result.status in (ResultStatus.SUCCESS, ResultStatus.NOT_FOUND) for result in results):
                     successful = [result.observed_at for result in results if result.status == ResultStatus.SUCCESS]
                     supplier.adata_updated_at = min(successful)
@@ -330,13 +397,15 @@ def _kgd_stage(run, lease, providers):
 
 
 def run_pipeline(*, mode='update', total=500, start_page=None, force=False, days=7,
-                 resume=None, providers=None, cluster_builder=None, company_bin=None, kgd_service=None):
+                 resume=None, providers=None, cluster_builder=None, company_bin=None, kgd_service=None, company_sources=None):
     if resume is not None:
         run = IngestionRun.objects.get(uuid=uuid.UUID(str(resume)))
         if run.mode == 'legacy':
             raise ValueError('legacy_run_cannot_resume')
         if run.status == 'succeeded':
             return run
+        if run.mode == 'enrich' and ('company_ids' not in run.options or 'company_sources' not in run.options):
+            raise ValueError('unbounded_enrichment_run_requires_new_run')
     else:
         run = None
     lease = RunLease.acquire()
@@ -345,7 +414,8 @@ def run_pipeline(*, mode='update', total=500, start_page=None, force=False, days
         with transaction.atomic():
             lease.ensure_owned()
             if run is None:
-                run = _new_run(mode, total, start_page, force, days, company_bin, kgd_service)
+                run = _new_run(mode, total, start_page, force, days, company_bin, kgd_service,
+                    company_sources, getattr(providers, 'VERSION', SourceProviders.VERSION))
             else:
                 run.refresh_from_db()
                 run.status, run.error_code, run.finished_at = 'running', '', None

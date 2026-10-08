@@ -332,3 +332,42 @@ demo without inference. Current user actions are supplied directly in chat.
 - [GPT-4o API pricing and tiers](https://developers.openai.com/api/docs/models/gpt-4o)
 - [OpenAI structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs)
 - [OpenRouter request limits](https://openrouter.ai/docs/api_reference/limits)
+
+
+## User-authorised prose generation follow-up, 8 October 2026
+
+Prompt `evidence-presentation-5.3` replaces model selection of wording variants
+with short English paragraphs and follow-up checks, each citing saved findings.
+The application saves them in `readable-explanation-5.2` documents; template
+version is 5.2 and analysis/rules remain 5.0. Company aliases are expanded from
+the frozen graph after generation. Names, identifiers and contact values stay
+out of the provider prompt; the fact panel renders original saved contact values.
+
+The model cannot modify graph identities, relationships or public scores. Output
+checks cover schema, references, aliases, numeric values, plaintext and selected
+contradictions. Exact Decimal comparison accepts equivalent money formatting,
+including omitted trailing zeros, without floating-point rounding. These checks
+do not establish semantic correctness or independently measured readability.
+Only redundant, already-cited reference annotations are removed from prose.
+
+GET still reads saved documents. Explicit jobs retain reuse/version fences and
+immutable histories; rejected output saves a visibly labelled template fallback.
+Public API documents include typed optional narrative references. No migration
+or rule-score change is needed. Free local Qwen3:4b is used for this follow-up;
+paid inference and source collection remain outside scope.
+
+Ollama may make one bounded correction attempt after a prose-validation failure,
+within the original timeout and input/output limits. The correction receives the
+same saved facts and a safe error code; the application does not write a substitute
+model paragraph. Attempts and token usage are recorded. Hosted providers do not
+retry automatically. Unsupported tender decision authority is rejected even when
+a shared director is verified.
+
+All four working clusters received actual local model explanations in explicit
+jobs (8.4–18.1 seconds), and unchanged requests reused them. Earlier rejected
+attempts and immutable template/model texts remain in history. Final verification:
+391 PostgreSQL tests passed without skips; the six-case live synthetic provider
+check accepted four and safely rejected two after repair (unverified director
+authority and raw finding IDs in a dense group). This is not a guarantee of
+natural wording or arbitrary-cluster success. See the bounded Phase 7 follow-up
+for interface checks; private reports are in artifacts/phase7/ai-narrative/.

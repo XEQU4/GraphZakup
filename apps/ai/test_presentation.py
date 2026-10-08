@@ -125,7 +125,7 @@ class PresentationTests(AnalysisFixtures, TestCase):
             analyse_cluster_task.run(job.pk)
         current = AnalysisState.objects.get(cluster=cluster).explanation
         self.assertNotEqual(current.pk, old.pk)
-        self.assertEqual(current.prompt_version, 'explanation-template-5.1')
+        self.assertEqual(current.prompt_version, 'explanation-template-5.2')
         self.assertEqual(AnalysisSnapshot.objects.count(), 1)
         self.assertEqual(Explanation.objects.get(pk=old.pk).text, old.text)
         self.assertEqual(self.request(cluster, use_model=False).pk, job.pk)
@@ -158,3 +158,44 @@ class PresentationTests(AnalysisFixtures, TestCase):
         page = self.client.get(reverse('graph:cluster_detail', args=[cluster.uuid]))
         self.assertContains(page, old.text)
         self.assertNotContains(page, 'What to check next')
+
+
+    def test_model_paragraphs_survive_api_and_download_with_frozen_escaped_labels(self):
+        cluster, companies = self.group()
+        companies[0].name = '<img src=x onerror=alert(1)>'
+        companies[0].save(update_fields=['name'])
+        rebuild_clusters()
+        analysis, _ = prepare_analysis(cluster.pk)
+        old = AnalysisState.objects.get(cluster=cluster).explanation
+        finding = next(item for item in analysis.findings if item['code'] == 'shared_address')
+        plan = {
+            'sections': [{'finding_id': finding['id'], 'variant': 0}],
+            'narrative': {
+                'paragraphs': [
+                    {'text': '{{C1}} and {{C2}} share a recorded address.', 'finding_ids': [finding['id']]},
+                    {'text': 'An office service could explain this match.', 'finding_ids': [finding['id']]},
+                ],
+                'checks': [{'text': 'Confirm who uses the recorded office.', 'finding_ids': [finding['id']]}],
+            },
+            'risk_estimate': None, 'risk_evidence': [],
+        }
+        from .services import explanation_content, publish_explanation
+        explanation = Explanation.objects.create(
+            analysis=analysis, reuse_key='synthetic-narrative', provider='ollama', model='synthetic-test',
+            prompt_version='evidence-presentation-5.2', **explanation_content(analysis, plan))
+        self.assertTrue(publish_explanation(analysis, explanation))
+        self.assertIn('An office service could explain this match.', explanation.text)
+        self.assertNotIn('{{C1}}', explanation.text)
+        self.assertIn('Synthetic shared office', explanation.text)
+        companies[0].name = 'Changed after model generation'
+        companies[0].save(update_fields=['name'])
+        with patch('apps.ai.services.build_document', side_effect=AssertionError('GET rebuilt prose')):
+            response = self.client.get(f'/api/v1/clusters/{cluster.uuid}/analysis/').json()
+            page = self.client.get(reverse('graph:cluster_detail', args=[cluster.uuid]))
+        self.assertEqual(response['explanation']['document'], explanation.presentation['document'])
+        self.assertContains(page, 'An office service could explain this match.')
+        self.assertContains(page, '&lt;img src=x onerror=alert(1)&gt;')
+        self.assertNotContains(page, '<img src=x onerror=alert(1)>')
+        self.assertNotContains(page, companies[0].name)
+        self.assertEqual(Explanation.objects.get(pk=old.pk).text, old.text)
+        self.assertEqual(response['analysis']['metrics']['review_priority'], 2)

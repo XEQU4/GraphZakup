@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   ArrowLeftIcon,
@@ -26,120 +31,15 @@ import type {
 } from "../lib/types";
 import { formatCount, formatDate, formatDateTime } from "../lib/utils";
 import { Badge, PageState, Pagination } from "../components/ui";
+import { clusterDisplayTitle } from "../lib/clusterDirectory";
+import "./ClusterDetailHeader.css";
 import { useSession } from "../components/Session";
 import { GraphExplorer, safeGraphLink } from "../components/GraphExplorer";
 import { TechHeading } from "../components/motion/TechHeading";
-
-function SavedExplanation({
-  explanation,
-}: {
-  explanation: Explanation | null;
-}) {
-  if (!explanation)
-    return (
-      <div className="empty-state">
-        <h3>No saved explanation</h3>
-        <p>No explanation is published for this analysis version.</p>
-      </div>
-    );
-  const document = explanation.document;
-  return (
-    <article className="panel cluster-explanation">
-      <div className="cluster-section-heading">
-        <span className="eyebrow">Saved explanation</span>
-        <Badge tone="blue">{explanation.language.toUpperCase()}</Badge>
-      </div>
-      {document ? (
-        <>
-          <h2>Review summary</h2>
-          <p className="explanation-summary">{document.summary}</p>
-          <h3>What connects these companies</h3>
-          {document.findings.map((finding) => (
-            <section className="explanation-finding" key={finding.finding_id}>
-              <h4>{finding.title}</h4>
-              <p>{finding.fact}</p>
-              {finding.meaning && <p className="muted">{finding.meaning}</p>}
-              {finding.companies.length > 0 && (
-                <div className="explanation-companies">
-                  {finding.companies.map((company) => (
-                    <Link key={company.id} to={`/companies/${company.id}`}>
-                      {company.name}
-                    </Link>
-                  ))}
-                  {finding.additional_companies > 0 && (
-                    <span>and {finding.additional_companies} more</span>
-                  )}
-                </div>
-              )}
-              {finding.notes.length > 0 && (
-                <details>
-                  <summary>Evidence limits</summary>
-                  {finding.notes.map((note, index) => (
-                    <p key={index}>{note}</p>
-                  ))}
-                </details>
-              )}
-            </section>
-          ))}
-          {document.additional_findings > 0 && (
-            <p>
-              {document.additional_findings} additional findings are included in
-              the saved evidence.
-            </p>
-          )}
-          <h3>What to check next</h3>
-          <ol>
-            {document.checks.map((text, index) => (
-              <li key={index}>{text}</li>
-            ))}
-          </ol>
-          <details>
-            <summary>Data coverage and missing checks</summary>
-            <ul>
-              {document.coverage.map((text, index) => (
-                <li key={index}>{text}</li>
-              ))}
-            </ul>
-          </details>
-          <p className="muted">{document.conclusion}</p>
-        </>
-      ) : (
-        <>
-          <h2>Saved explanation</h2>
-          <div className="legacy-explanation">
-            {explanation.text.split(/\n{2,}/).map((paragraph, index) => (
-              <p key={index}>{paragraph}</p>
-            ))}
-          </div>
-        </>
-      )}
-      <details className="cluster-technical">
-        <summary>Explanation metadata</summary>
-        <dl>
-          <div>
-            <dt>Provider</dt>
-            <dd>
-              {explanation.provider}
-              {explanation.model ? ` · ${explanation.model}` : ""}
-            </dd>
-          </div>
-          <div>
-            <dt>Status</dt>
-            <dd>{explanation.status}</dd>
-          </div>
-          <div>
-            <dt>Prompt version</dt>
-            <dd>{explanation.prompt_version}</dd>
-          </div>
-          <div>
-            <dt>Saved</dt>
-            <dd>{formatDateTime(explanation.created_at)}</dd>
-          </div>
-        </dl>
-      </details>
-    </article>
-  );
-}
+import {
+  SavedExplanation,
+  ReviewPriority,
+} from "../components/ClusterAnalysis";
 
 function StaffActions({
   uuid,
@@ -538,6 +438,7 @@ function EvidenceRecords({ snapshot }: { snapshot: number }) {
 }
 
 export function ClusterDetail() {
+  const location = useLocation();
   const route = useParams<{ uuid?: string; id?: string }>(),
     uuid = route.uuid ?? route.id ?? "";
   const [params, setParams] = useSearchParams();
@@ -602,10 +503,10 @@ export function ClusterDetail() {
       next.delete("explanation");
       setExplanationPage(1);
     }
-    setParams(next);
+    setParams(next, { state: location.state });
   };
   const refresh = () => {
-    setParams({});
+    setParams({}, { state: location.state });
     cluster.reload();
     graph.reload();
     history.reload();
@@ -624,20 +525,66 @@ export function ClusterDetail() {
     ) ?? [];
   const companies =
     graph.data?.graph.nodes.filter((node) => node.kind === "company") ?? [];
+  const currentTitleApplies =
+    !version || Number(version) === cluster.data?.current_snapshot?.version;
+  const displayTitle = cluster.data?.directory
+    ? currentTitleApplies
+      ? clusterDisplayTitle(cluster.data)
+      : graph.data
+        ? `Historical group · ${formatCount(companies.length)} ${companies.length === 1 ? "company" : "companies"}`
+        : "Historical relationship group"
+    : cluster.data?.name || "Relationship group";
+  const headingCompanies = graph.data
+    ? companies.slice(0, 3).map((company) => ({
+        id: company.company_id,
+        name: company.name,
+      }))
+    : currentTitleApplies
+      ? (cluster.data?.directory?.companies ?? [])
+      : [];
+  const originSearch =
+    typeof location.state?.directorySearch === "string" &&
+    location.state.directorySearch.length <= 2000
+      ? new URLSearchParams(location.state.directorySearch).toString()
+      : "";
   return (
     <div className="cluster-detail-page">
-      <Link className="back-link" to="/clusters">
+      <Link
+        className="back-link"
+        to={originSearch ? `/clusters?${originSearch}` : "/clusters"}
+      >
         <ArrowLeftIcon />
-        All relationship groups
+        {originSearch ? "Back to results" : "All relationship groups"}
       </Link>
       <header className="page-head">
         <div>
           <span className="eyebrow">Saved relationship group</span>
           <TechHeading
-            key={cluster.data?.name || uuid}
+            key={`${uuid}:${displayTitle}`}
             as="h1"
-            text={cluster.data?.name || "Relationship group"}
+            text={displayTitle}
           />
+          {headingCompanies.length > 0 && (
+            <div
+              className="cluster-heading-companies"
+              aria-label="Companies in this saved group"
+            >
+              {headingCompanies.map((company, index) =>
+                company.id ? (
+                  <Link key={company.id} to={`/companies/${company.id}`}>
+                    {company.name}
+                  </Link>
+                ) : (
+                  <span key={index}>{company.name}</span>
+                ),
+              )}
+              {companies.length > 3 && (
+                <span className="cluster-heading-more">
+                  +{companies.length - 3} more
+                </span>
+              )}
+            </div>
+          )}
           <p>
             Inspect saved relationships and their evidence. Group membership
             does not establish a violation.
@@ -704,90 +651,42 @@ export function ClusterDetail() {
             key={`${uuid}:${graph.data.snapshot_id}`}
             graph={graph.data}
           />
-          <div className="cluster-analysis-layout">
-            <aside className="panel cluster-analysis-summary">
-              <span className="eyebrow">Saved analysis</span>
-              <h2>
-                {currentAnalysis ? (
-                  <>
-                    Review priority{" "}
-                    <strong>
-                      {currentAnalysis.metrics.review_priority}
-                      <small>/100</small>
-                    </strong>
-                  </>
-                ) : (
-                  "Not calculated"
-                )}
-              </h2>
+          <div className="cluster-analysis-layout cluster-review-layout">
+            <div className="cluster-analysis-status" role="status">
+              <Badge
+                tone={
+                  analysis.error || selectedExplanation.error
+                    ? "amber"
+                    : analysis.data?.status === "stale"
+                      ? "amber"
+                      : "blue"
+                }
+              >
+                {analysis.loading || selectedExplanation.loading
+                  ? "Loading saved analysis"
+                  : analysis.error || selectedExplanation.error
+                    ? "Saved analysis unavailable"
+                    : analysis.data?.status === "stale"
+                      ? "Saved analysis needs refresh"
+                      : analysis.data?.status === "ready"
+                        ? "Analysis v" + currentAnalysis?.version
+                        : "No saved analysis"}
+              </Badge>
+              {analysis.data?.historical && <Badge>Historical analysis</Badge>}
               {currentAnalysis && (
-                <>
-                  <div className="priority-track">
-                    <span
-                      style={{
-                        width: `${currentAnalysis.metrics.review_priority}%`,
-                      }}
-                    />
-                  </div>
-                  {explanation?.document ? (
-                    <>
-                      <ul>
-                        {explanation.document.score.items.map((item) => (
-                          <li key={item.finding_id}>
-                            {item.label}: +{item.points} points
-                          </li>
-                        ))}
-                      </ul>
-                      <p className="muted">
-                        {explanation.document.score.meaning}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="muted">
-                      Uncalibrated index for manual review. It is not a
-                      probability of wrongdoing.
-                    </p>
-                  )}
-                  <dl className="analysis-metrics">
-                    <div>
-                      <dt>Relationship strength</dt>
-                      <dd>{currentAnalysis.metrics.link_strength}/100</dd>
-                    </div>
-                    <div>
-                      <dt>Behavioural risk</dt>
-                      <dd>
-                        {currentAnalysis.metrics.behavioural_risk === null
-                          ? "Not assessable"
-                          : `${currentAnalysis.metrics.behavioural_risk}/100`}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Fresh arrears checks</dt>
-                      <dd>
-                        {currentAnalysis.metrics.fresh_arrears_checks}/
-                        {currentAnalysis.metrics.company_count}
-                      </dd>
-                    </div>
-                  </dl>
-                  <p className="muted">
-                    Evidence date: {formatDate(currentAnalysis.as_of)}
-                  </p>
-                </>
+                <span className="cluster-review-status-note">
+                  Graph v{currentAnalysis.graph_version} · evidence{" "}
+                  {formatDate(currentAnalysis.as_of)}
+                </span>
               )}
-              <h3>Companies ({companies.length})</h3>
-              <ul className="analysis-company-list">
-                {companies.map((company) => (
-                  <li key={company.id}>
-                    {company.company_id ? (
-                      <Link to={`/companies/${company.company_id}`}>
-                        {company.name}
-                      </Link>
-                    ) : (
-                      company.name
-                    )}
-                  </li>
-                ))}
-              </ul>
+            </div>
+            <ReviewPriority
+              analysis={currentAnalysis}
+              explanation={explanation}
+              companies={companies}
+              loading={analysis.loading}
+              unavailable={Boolean(analysis.error)}
+            >
               <details className="cluster-technical">
                 <summary>Method and version history</summary>
                 {currentAnalysis && (
@@ -929,8 +828,8 @@ export function ClusterDetail() {
                     </p>
                   ))}
               </details>
-            </aside>
-            <div>
+            </ReviewPriority>
+            <div className="cluster-review-main">
               <PageState
                 loading={analysis.loading || selectedExplanation.loading}
                 error={analysis.error || selectedExplanation.error}
@@ -943,25 +842,7 @@ export function ClusterDetail() {
                 !analysis.error &&
                 !selectedExplanation.loading &&
                 !selectedExplanation.error && (
-                  <>
-                    <div className="cluster-analysis-status">
-                      <Badge
-                        tone={
-                          analysis.data?.status === "stale" ? "amber" : "blue"
-                        }
-                      >
-                        {analysis.data?.status === "stale"
-                          ? "Saved analysis needs refresh"
-                          : analysis.data?.status === "ready"
-                            ? `Analysis v${currentAnalysis?.version}`
-                            : "No saved analysis"}
-                      </Badge>
-                      {analysis.data?.historical && (
-                        <Badge>Historical analysis</Badge>
-                      )}
-                    </div>
-                    <SavedExplanation explanation={explanation} />
-                  </>
+                  <SavedExplanation explanation={explanation} />
                 )}
             </div>
           </div>

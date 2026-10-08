@@ -1,8 +1,9 @@
 """Readable, evidence-bound documents saved alongside immutable explanation text."""
 from collections import Counter
+import re
 
 
-DOCUMENT_VERSION = 'readable-explanation-5.1'
+DOCUMENT_VERSION = 'readable-explanation-5.2'
 TITLES = {
     'shared_director': 'Shared director', 'shared_owner': 'Shared owner',
     'mixed_person_roles': 'Ownership and management connection',
@@ -77,6 +78,11 @@ def build_document(analysis, plan=None):
     }
     items = []
     for finding in findings[:6]:
+        edge_ids = {item['id'] for item in finding['evidence'] if item['kind'] == 'graph_edge'}
+        contact_ids = {edge['target'] for edge in analysis.inputs['graph']['links']
+                       if edge['id'] in edge_ids and edge['type'] in {'address', 'phone', 'email'}}
+        details = sorted({node['name'] for node in analysis.inputs['graph']['nodes']
+                          if node['id'] in contact_ids and node['kind'] == 'contact'})
         labels = []
         if set(finding['company_ids']) != set(companies) or finding['dimension'] == 'company_financial':
             labels = [{'id': pk, 'name': companies[pk]['name'], 'bin': companies[pk]['bin']}
@@ -85,7 +91,7 @@ def build_document(analysis, plan=None):
                       'fact': wording_variants(analysis, finding)[choices.get(finding['id'], 0)],
                       'meaning': meanings.get(finding['code'], ''), 'companies': labels,
                       'additional_companies': max(0, len(finding['company_ids']) - 3) if labels else 0,
-                      'notes': finding['limitations']})
+                      'notes': finding['limitations'], 'details': details})
     checks = []
     if roles:
         checks.append('Confirm the recorded ownership or management roles, their dates and the authority to make tender decisions.')
@@ -113,11 +119,25 @@ def build_document(analysis, plan=None):
                  'Verified court, bankruptcy and restricted-participant checks are not included in this analysis.']
     score_items = [{'finding_id': item['id'], 'label': TITLES.get(item['code'], 'Saved finding'), 'points': item['contribution']}
                    for item in analysis.findings if item['contribution']]
-    return {'version': DOCUMENT_VERSION, 'summary': summary, 'findings': items,
+    document = {'version': DOCUMENT_VERSION, 'summary': summary, 'findings': items,
             'additional_findings': max(0, len(findings) - 6), 'checks': checks, 'coverage': coverage,
             'score': {'value': metrics['review_priority'], 'items': score_items,
                       'meaning': 'Points prioritise manual review; they are not a percentage chance of wrongdoing.'},
             'conclusion': 'The saved evidence identifies connections and follow-up questions. It does not establish collusion or a violation.'}
+    if plan.get('narrative'):
+        from .narrative import company_tokens
+        tokens = company_tokens(analysis)
+
+        def expand(text):
+            # Source labels enter only after model validation and remain escaped by the UI.
+            return re.sub(r'\{\{(C\d+)\}\}', lambda match: tokens[match[1]]['name'], text)
+
+        document['narrative'] = {key: [
+            {'text': expand(item['text']), 'finding_ids': list(item['finding_ids'])}
+            for item in plan['narrative'][key]] for key in ('paragraphs', 'checks')}
+        document['summary'] = document['narrative']['paragraphs'][0]['text']
+        document['checks'] = [item['text'] for item in document['narrative']['checks']]
+    return document
 
 
 def company_count_label(count):
@@ -126,10 +146,13 @@ def company_count_label(count):
 
 def document_text(document):
     """The downloadable text and HTML use the same saved document."""
-    lines = [document['summary'], 'Key findings']
+    narrative = document.get('narrative')
+    lines = ([item['text'] for item in narrative['paragraphs']] if narrative else [document['summary']])
+    lines.append('Saved evidence')
     for item in document['findings']:
         labels = '; '.join(f"{company['name']} (BIN {company['bin']})" for company in item['companies'])
-        lines.append(item['title'] + ': ' + item['fact'] + (' ' + labels + '.' if labels else '') + ' ' + item['meaning'])
+        lines.append(item['title'] + ': ' + item['fact'] + (' ' + labels + '.' if labels else '') + ('' if narrative else ' ' + item['meaning']))
+        lines.extend(item.get('details', []))
         lines.extend(item['notes'])
     if document['additional_findings']:
         lines.append(f"{document['additional_findings']} more findings are available in the saved evidence.")

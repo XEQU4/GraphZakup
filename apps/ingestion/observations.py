@@ -6,7 +6,6 @@ import re
 from urllib.parse import urlsplit, parse_qs
 
 from django.conf import settings
-from django.db.models import Q
 from django.utils import timezone
 
 from apps.companies.models import Supplier
@@ -88,7 +87,7 @@ def record_observation(run, result, supplier=None, contract=None):
     if source_url:
         parsed = urlsplit(source_url)
         kgd = result.source in FIELDS_BY_SOURCE
-        allowed_hosts = ('portal.kgd.gov.kz',) if kgd else ('goszakup.gov.kz', 'pk.adata.kz')
+        allowed_hosts = ('portal.kgd.gov.kz',) if kgd else ('goszakup.gov.kz', 'old.goszakup.gov.kz', 'pk.adata.kz')
         if (parsed.scheme != 'https' or parsed.hostname not in allowed_hosts
                 or parsed.username or parsed.password or parsed.port not in (None, 443) or parsed.fragment
                 or (kgd and source_url != KgdParser.SOURCE_URLS[result.source])
@@ -114,14 +113,14 @@ def cached_company_result(source, supplier, version='2.0', *, seconds=None):
     if seconds <= 0:
         return None
     observation = SourceObservation.objects.filter(
-        source=source, subject_key=f'company:{supplier.bin}', status='success', parser_version=version,
-        observed_at__gte=timezone.now() - timedelta(seconds=seconds),
+        source=source, subject_key=f'company:{supplier.bin}',
     ).order_by('-observed_at', '-pk').first()
-    # A newer failure invalidates cache use; retry must contact the failed source.
-    if not observation or SourceObservation.objects.filter(
-        source=source, subject_key=observation.subject_key,
-    ).filter(Q(observed_at__gt=observation.observed_at) |
-             Q(observed_at=observation.observed_at, pk__gt=observation.pk)).exclude(status='success').exists():
+    # Only the latest attempt can be reused. An older matching parser version
+    # must not hide a later success produced by a different parser or identity.
+    if (not observation or observation.supplier_id != supplier.pk
+            or observation.status != ResultStatus.SUCCESS
+            or observation.parser_version != version
+            or observation.observed_at < timezone.now() - timedelta(seconds=seconds)):
         return None
     data = dict(observation.normalized_values)
     return SourceResult(source, observation.subject_key, ResultStatus.SUCCESS, data=data,

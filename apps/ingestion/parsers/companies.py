@@ -2,13 +2,13 @@ import re
 
 from bs4 import BeautifulSoup
 
-from ..normalizers import normalize_bin, normalize_date, normalize_email, normalize_phone
+from ..normalizers import normalize_bin, normalize_date, normalize_email, normalize_phone, normalize_website
 from ..errors import SourceError
 from ..transport import HttpTransport
 
 
 class SupplierRegistryParser:
-    BASE_URL = "https://goszakup.gov.kz"
+    BASE_URL = "https://old.goszakup.gov.kz"
 
     def __init__(self, transport=None):
         self.transport = transport or HttpTransport()
@@ -91,23 +91,39 @@ class SupplierRegistryParser:
         )
 
         links = soup.select('a[href*="/ru/registry/show_supplier/"]')
+        matching_ids = set()
         for link in links:
             row = link.find_parent("tr")
             text = row.get_text(" ", strip=True) if row else link.get_text(" ", strip=True)
             if re.search(r"(?<![0-9])" + re.escape(bin_number) + r"(?![0-9])", text):
                 match = re.search(r"/ru/registry/show_supplier/([0-9]+)(?:/|$|\?)", link["href"])
-                if not match:
+                if not match or int(match.group(1)) <= 0:
                     raise SourceError("supplier_link_invalid")
-                return int(match.group(1))
+                matching_ids.add(int(match.group(1)))
+        if len(matching_ids) > 1:
+            raise SourceError("supplier_search_identity_invalid")
+        if matching_ids:
+            return matching_ids.pop()
         if links:
             raise SourceError("supplier_search_identity_mismatch")
-        text = soup.get_text(" ", strip=True).lower()
-        if any(marker in text for marker in ("нет данных", "ничего не найдено", "записи не найдены")):
-            return None
-        empty_table = any(table.find("tbody") is not None and not table.find("tbody").find("td")
-                          for table in soup.find_all("table"))
-        if empty_table:
-            return None
+        # Only the recognisable registry results table can establish an empty result.
+        # Unrelated layout tables and maintenance messages do not prove absence.
+        for table in soup.find_all("table"):
+            if table.find_parent(["header", "footer", "nav"]):
+                continue
+            headings = " ".join(th.get_text(" ", strip=True) for th in table.find_all("th"))
+            if not re.search(r"(?<![А-Я])(БИН|ИИН)(?![А-Я])", headings.upper()):
+                continue
+            body = table.find("tbody")
+            if body is None:
+                continue
+            text = body.get_text(" ", strip=True).lower()
+            if not body.find("td") and not text:
+                return None
+            cells = body.find_all("td")
+            if len(cells) == 1 and any(marker in text for marker in (
+                    "нет данных", "ничего не найдено", "записи не найдены")):
+                return None
         raise SourceError("supplier_search_structure_invalid")
 
     def get_supplier_html(
@@ -120,6 +136,17 @@ class SupplierRegistryParser:
         )
 
         return self._get(url).text
+
+    @staticmethod
+    def _is_director_table(table):
+        # A section applies only to its next table, never to subsequent contact tables.
+        caption = table.find("caption", recursive=False)
+        heading = caption or table.find_previous(["h1", "h2", "h3", "h4", "h5", "h6", "table"])
+        if heading is None or heading.name == "table":
+            return False
+        label = heading.get_text(" ", strip=True).casefold().rstrip(":")
+        return label in {"руководитель", "первый руководитель",
+                         "сведения о руководителе", "информация о руководителе"}
 
     def parse_supplier_page(
             self,
@@ -153,7 +180,11 @@ class SupplierRegistryParser:
         if h1:
             result["name"] = h1.get_text(strip=True)
 
+        participant_ids = set()
         for table in soup.find_all("table"):
+            if table.find_parent(["header", "footer", "nav"]):
+                continue
+            director_section = self._is_director_table(table)
             for row in table.find_all("tr"):
                 th = row.find("th")
                 td = row.find("td")
@@ -172,13 +203,25 @@ class SupplierRegistryParser:
                 )
 
                 if "БИН участника" in key or "ИИН участника" in key:
+                    # Individual participants can have an IIN and an empty BIN cell.
+                    if not value:
+                        continue
+                    try:
+                        participant_ids.add(normalize_bin(value))
+                    except ValueError as error:
+                        raise SourceError("supplier_fields_invalid") from error
+                    if len(participant_ids) > 1:
+                        raise SourceError("supplier_card_identity_invalid")
                     result["bin"] = value
 
                 elif key == "КАТО":
                     result["kato"] = value
 
-                elif key == "ФИО":
-                    result["director"] = value
+                elif key in {"ФИО руководителя", "Руководитель", "Первый руководитель"} or (
+                        key == "ФИО" and director_section):
+                    if result["director"] not in (None, "", value):
+                        raise SourceError("supplier_director_fields_invalid")
+                    result["director"] = value or None
 
                 elif "E-Mail" in key:
                     result["email"] = value
@@ -260,6 +303,7 @@ class SupplierRegistryParser:
             raise SourceError("supplier_fields_invalid") from error
         result["email"] = normalize_email(result["email"])
         result["phone"] = normalize_phone(result["phone"])
+        result["website"] = normalize_website(result["website"])
         return result
 
     def get_supplier_data(

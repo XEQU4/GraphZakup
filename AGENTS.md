@@ -238,3 +238,102 @@ versions matched; 357 scanned files contained no configured credentials. Owned
 preview/browser stopped with no 8774 listener. User visual acceptance remains pending.
 No React, next-app, parser,
 explanation, localisation or Phase 8 work is authorised by this update.
+
+
+Current user-authorised AI follow-up (8 October 2026) supersedes the explanation
+deferral. Prompt evidence-presentation-5.3 generates short evidence-cited prose
+and checks; readable-explanation-5.2/template-5.2 retain rules/analysis 5.0.
+Aliases expand from frozen graph labels; original contacts appear in saved facts.
+Bounded schema/reference/number/contradiction guards allow one local Ollama
+repair within the same timeout; hosted providers do not retry. Guards are not
+semantic proof. Four working clusters now have real Qwen3:4b explanations from
+explicit jobs, unchanged requests reuse them, and all older immutable texts,
+scores and graphs remain. GET must never regenerate these documents. Default
+.env configuration remains template-only; one-time generation used process-local
+settings. The aligned review/explanation cards explain points, show model prose
+and expose supporting facts; fallback is labelled honestly. 391 PostgreSQL tests
+(no skips), 95 React tests, build, format, OpenAPI and collectstatic passed.
+Final browser checks covered all four saved results, citation disclosures/reload
+and 320–1920px layouts. Four of six final synthetic provider cases were accepted;
+director-authority invention and dense-group raw finding IDs were rejected after
+repair. Some repetitive wording remains. All original immutable rows and 44
+non-AI domain tables were preserved; final tests kept all 50 current hashes equal.
+Backup/reports: ignored artifacts/phase7/ai-narrative/. User readability/visual
+acceptance remains pending. No Git, source parsing, localisation or Phase 8 work
+is authorised by this update. Preserve next-app and learning/environment files.
+
+
+User review, 8 October 2026: the user accepted the revised AI explanation and
+aligned review panels. The agreed remaining sequence is relationship-group
+page refinement, parser/data-quality work, and company/person detail pages.
+This acceptance does not authorise source collection or start Phase 8.
+
+
+Current user-authorised directory follow-up (8 October 2026): cluster list/detail
+API projections provide frozen member previews, connection-based display titles,
+source-backed shared contact/verified role reasons, matching saved review scores
+and specifically dated KGD arrears coverage. Persisted names/UUIDs/history/AI
+texts remain unchanged. SQL search/filtering precedes pagination; names/BINs use
+frozen member nodes. mixed_roles is a directory reason only, not a new graph edge
+type. Ignore legacy explanation_stale as it is not maintained by analysis services;
+directory status only describes saved graph/analysis correspondence. React cards,
+URL filters/chips/reset, historical title scope and filtered return navigation
+(including version changes/reload) are implemented. 413 PostgreSQL tests (no skips),
+108 React tests, build/format/OpenAPI and38 working GETs passed. Chromium verified
+320–1920px, keyboard/reducedmotion and simulated outage recovery. Working data and
+protected files remain unchanged; no collection/inference/migration/Git ran.
+Reports: ignored artifacts/phase7/cluster-directory/. Directory visual acceptance
+is pending. SQLite Unicodecasefold and large-catalogue performance limitations
+are recorded in PHASE7.md. Parser/dataquality/entitydetails/localisation/Phase8
+require separate tasks; preserve next-app and the user's learning/environment files.
+
+
+Current user-authorised parser/data-quality follow-up (8 October 2026): readonly
+working audit found 777 companies/500 contracts without duplicate BINs/registry
+IDs, but all 1,661 observations and 4,311 selected facts are legacy/unconfirmed.
+The 384 enrichment timestamps are from June; migration dates are not source
+freshness. All 768 identities are unverified; 384 repeated-name groups are within
+individual companies' historical/current records, with no cross-company groups.
+No working KGD checks or ownerships exist. Do not merge or refresh these by name.
+Strict parser identity/field/amount checks, repeat-page/external-ID guards,
+atomic chronological role refresh and latest-attempt caches are corrected;
+company/contract provenance is 2.1 and KGD is 3.2. The read-only aggregate
+`audit_data_quality` command includes saved coverage and safe configuration counts.
+All 458 PostgreSQL tests (45 new) passed without skips; fresh backup restoration
+and all 50 source/protected fingerprints matched. Owned test databases were
+dropped. See PHASE2.md and ignored artifacts/parser-quality/. No schema change,
+working cleanup/collection, graph/text regeneration or Git command was run.
+Bounded live validation is proposed, not executed: one already configured company,
+at most five HTTP attempts across registry search/card, Adata and KGD lookup/debt,
+zero automatic retries, isolated evidence database, no working writes. It still
+requires explicit user instruction. The private proposal is
+artifacts/parser-quality/proposed-live-validation.json. Do not reuse its single
+account credential for other companies or start broader collection automatically.
+
+
+Latest parser/data-quality result, 8 October 2026, supersedes the proposed-only
+live-check restriction above: the user authorised use of existing identifiers.
+A bounded 12-company sample (all 11 original group members plus one KGD control)
+used 72 HTTP attempts. Parser 2.2 handles the verified old.goszakup.gov.kz host,
+blank alternative identity cells, safe optional URLs and identity-bound Adata
+JSON-LD. Explicit enrichment now freezes bounded company/source selections and
+uses per-source freshness; resume preserves its selection. KGD 3.2 separates
+HTTP-200 failed lookups from identity-confirmed success; unknown debt stays unknown.
+All 495 PostgreSQL tests passed without skips. After verified restore/replay,
+29 accepted observations were published for 12 working companies atomically,
+with a single final refresh and zero new HTTP/model calls. Three graph/analysis/
+template versions were added; all original immutable texts, group UUIDs, accounts,
+views, contracts and 765 unrelated companies remain. One phone group changed
+from five to four members because both fresh sources agree on a different phone;
+its old snapshot remains. Three complete KGD taxpayer/debt pairs are saved,
+with explicit zero amounts; wider entitlement/nonzero and entrepreneur variants
+remain unverified. One registry search is genuinely ambiguous; failed attempts
+remain in isolated evidence rather than accepted working facts. Eleven refreshed
+directors remain unverified, with 22 same-company candidates and no name merges.
+26 working API reads passed with all 50 table hashes unchanged during reads.
+.env, dependency versions, test.py and next-app remain unchanged. Automatic
+collection stays disabled. Old Qwen explanations remain historical where evidence
+changed; new current explanations are saved templates, without model inference.
+Private evidence/replay/publication reports: artifacts/parser-live/. Read the
+latest RECOVERY.md entry before another data-changing algorithm. No Git, entity
+page redesign, new source integration, localisation or Phase 8 was started.

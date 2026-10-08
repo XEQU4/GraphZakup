@@ -64,11 +64,55 @@ class KgdParserTests(SimpleTestCase):
         payload['taxpayerPortalSearchResponses'] *= 2
         with self.assertRaises(ValueError):
             parse_taxpayer(payload, BIN)
+
         payload = fixture('taxpayer')
         payload['taxpayerPortalSearchResponses'][0]['endDate'] = '2019-01-01'
         with self.assertRaises(ValueError):
             parse_taxpayer(payload, BIN)
 
+    @staticmethod
+    def failed_taxpayer_envelope():
+        return {'errorResponse': {'code': BIN, 'taxpayerType': 'UL',
+                                 'messageResult': 'FAILED', 'errorMessage': 'Synthetic lookup failed'},
+                'paymentAnswer': {'iinbin': BIN, 'nameRu': 'Synthetic private payment name'},
+                'answerDto': {'iinBin': BIN, 'overall': 'Synthetic private account details'}}
+
+    def test_failed_lookup_envelope_is_unavailable_and_never_confirms_absence_or_debt(self):
+        payload = self.failed_taxpayer_envelope()
+        payload['errorResponse']['errorMessage'] = 'synthetic-portal-token private failure'
+        self.transport.get_json.return_value = payload
+        result = self.parser.fetch(TAXPAYER_SOURCE, BIN)
+        self.assertEqual((result.status, result.error_code),
+                         (ResultStatus.UNAVAILABLE, 'kgd_taxpayer_result_unconfirmed'))
+        self.assertEqual((result.data, result.raw), ({}, {}))
+        self.assertNotIn('private', repr(result))
+        self.assertNotIn('synthetic-portal-token', repr(result))
+
+    def test_failed_lookup_envelope_requires_exact_legal_subject_and_valid_failure_shape(self):
+        cases = (({'code': '000000000002'}, 'kgd_identity_mismatch'),
+                 ({'code': None}, 'kgd_identity_mismatch'),
+                 ({'taxpayerType': 'IP'}, 'kgd_subject_not_legal_entity'),
+                 ({'messageResult': 'SUCCESS'}, 'kgd_taxpayer_response_invalid'),
+                 ({'errorMessage': ''}, 'kgd_taxpayer_response_invalid'),
+                 ({'errorMessage': 'x' * 4097}, 'kgd_taxpayer_response_invalid'))
+        for change, code in cases:
+            payload = self.failed_taxpayer_envelope()
+            payload['errorResponse'].update(change)
+            self.transport.get_json.return_value = payload
+            with self.subTest(code=code):
+                result = self.parser.fetch(TAXPAYER_SOURCE, BIN)
+                self.assertEqual((result.status, result.error_code), (ResultStatus.INVALID, code))
+                self.assertEqual((result.data, result.raw), ({}, {}))
+
+    def test_failed_lookup_cannot_be_hidden_by_a_successful_or_empty_canonical_list(self):
+        for entries in ([], fixture('taxpayer')['taxpayerPortalSearchResponses']):
+            self.transport.get_json.return_value = {
+                **self.failed_taxpayer_envelope(), 'taxpayerPortalSearchResponses': entries}
+            with self.subTest(entry_count=len(entries)):
+                result = self.parser.fetch(TAXPAYER_SOURCE, BIN)
+                self.assertEqual((result.status, result.error_code),
+                                 (ResultStatus.UNAVAILABLE, 'kgd_taxpayer_result_unconfirmed'))
+                self.assertEqual((result.data, result.raw), ({}, {}))
     def test_registration_request_and_provenance_exclude_credentials(self):
         self.transport.get_json.return_value = fixture('taxpayer')
         result = self.parser.fetch(TAXPAYER_SOURCE, BIN)

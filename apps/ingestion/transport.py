@@ -11,7 +11,7 @@ from .errors import SourceError, is_challenge, require_html_response
 
 
 class HttpTransport:
-    ALLOWED_HOSTS = {'goszakup.gov.kz', 'pk.adata.kz', 'portal.kgd.gov.kz'}
+    ALLOWED_HOSTS = {'goszakup.gov.kz', 'old.goszakup.gov.kz', 'pk.adata.kz', 'portal.kgd.gov.kz'}
 
     def __init__(self, session=None, min_interval=1.5, retries=2, cache_ttl=60,
                  sleeper=sleep, clock=monotonic, heartbeat=None):

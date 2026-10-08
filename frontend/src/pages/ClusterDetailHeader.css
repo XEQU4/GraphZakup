@@ -1,0 +1,31 @@
+.cluster-detail-page .cluster-heading-companies {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 14px;
+  margin: 15px 0 0;
+  max-width: 880px;
+  font-size: 12px;
+  line-height: 1.75;
+}
+.cluster-heading-companies > a,
+.cluster-heading-companies > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.cluster-heading-companies > a {
+  color: #a8c9f8;
+  text-decoration-color: #3c5c87;
+  text-underline-offset: 4px;
+}
+.cluster-heading-companies > a:hover {
+  color: #ffffff;
+}
+.cluster-heading-companies > a:focus-visible {
+  outline: 2px solid #81b3ff;
+  outline-offset: 5px;
+  border-radius: 2px;
+}
+.cluster-heading-companies .cluster-heading-more {
+  color: #8fa7c7;
+}

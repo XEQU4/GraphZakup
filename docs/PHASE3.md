@@ -152,3 +152,36 @@ The roadmap criteria are met for the implemented services: identity-confirmed su
 Actual empty taxpayer responses, nonzero/negative arrears variants, alternate timestamp formats, duplicate registration episodes and live rate-limit/error envelopes were not exercised. Empty taxpayer mapping remains provisional, and an unavailable/invalid result must never be interpreted as no finding or zero arrears. The total-equals-four-categories rule is conservative and fixture-tested; the zero live example does not establish nonzero reconciliation. Unknown formats, negative amounts and inconsistencies remain rejected rather than silently accepted. Do not manufacture an absent-company example or deliberately trigger rate limits to broaden acceptance.
 
 Quotas, contractual freshness, source completeness and other-company entitlement still require operational clarification before a broader pilot. No mass collection, Celery pipeline, paid generation, working-database migration, Docker stack startup or load benchmark occurred in these checks. Compose configuration validation is separate from Phase 1 runtime startup verification. Debt is not yet part of graph scoring or explanations. Phase 4 requires a separate user instruction.
+
+
+## Offline parser-quality follow-up, 8 October 2026
+
+Parser 3.2 adopts stricter shared monetary grouping validation. Missing amounts
+remain invalid and explicit zero remains valid. Earlier accepted 3.1 observations
+and the isolated live-check evidence were preserved; no new KGD request was made.
+The working-data audit found no saved KGD checks. Configuration is disabled, with
+one valid account-token mapping to an existing company. This verifies local
+configuration only; broader entitlement and current source availability remain
+unverified. See PHASE2.md for the associated parser/data-quality corrections.
+
+
+## Broader authorised source check, 8 October 2026
+
+A bounded 12-company investigation verified complete taxpayer/arrears responses
+for three legal entities, including two additional companies. Each accepted
+response matched its requested identifier; all five aggregate amounts were
+explicit zero. Credentials were scoped to selected identifiers only inside the
+owned verification process; .env and automatic collection settings stayed unchanged.
+This sample does not establish universal entitlement, quotas or nonzero-response
+coverage. Individual-entrepreneur taxpayer variants remain unverified.
+
+Three other HTTP 200 lookups returned a FAILED errorResponse envelope. Parser
+3.2 now records a safe unavailable/kgd_taxpayer_result_unconfirmed result for
+that exact-subject failure; malformed or foreign-subject envelopes remain invalid.
+Unrelated payment/detail fields are not taxpayer confirmation. Arrears requests
+are skipped without legal-entity confirmation, and unknown remains unknown.
+Original failed observations were retained; offline reclassification preserved
+actual retrieval times. Accepted fact semantics and parser version remain 3.2.
+
+The full PostgreSQL gate passed 495 tests; KGD-specific coverage passed 43 tests.
+Reports and isolated evidence remain under ignored artifacts/parser-live/.

@@ -105,3 +105,123 @@ Celery uses update and retries by UUID. Scheduled imports default off; concurren
 No live markup/completeness verification. Bounded updates cannot find every old-contract change. Legal periods/verified IINs require actual sources. Legacy tax/court booleans are not fresh verified checks; tax observation/analysis belong to Phases 3/5.
 
 Compose checked statically; daemon not running. Phase 1 stack check remains separate. KGD/snapshots/redesigned graph/DRF/React were not implemented in Phase 2.
+
+
+## Parser and saved-data audit, 8 October 2026
+
+The user authorised this follow-up after the cluster-directory review. The
+working PostgreSQL database was inspected read-only after a freshly verified
+backup (see RECOVERY.md). It contains 777 companies and 500 contracts, with no
+duplicate company BINs or non-null contract registry IDs. All 1,661 observations
+and 4,311 selected facts are legacy/unconfirmed, without external source URLs.
+The 384 existing enrichment timestamps are from 20 June; migration timestamps
+must not be presented as fresh checks. All 768 person identities are unverified.
+The 384 repeated-name groups occur within individual companies' historical and
+current records; there are no cross-company name groups. No ownerships or working
+KGD results are saved. The audit did not merge, delete or rewrite these records.
+
+Implemented corrections:
+
+- Strict amount grouping, phone characters and external identifiers prevent
+  malformed values from silently becoming valid data.
+- Contract party tables are bounded by their own sections; duplicate page IDs,
+  repeated complete pages and external IDs rebound to another contract number
+  are rejected. Resume retains the page guard and confirmed cursor.
+- Registry absence requires a recognised results table. Ambiguous company IDs
+  are rejected. Director names require an explicit leadership label/section;
+  Adata title advertising and registry contact-person names are not leadership.
+- Role refresh keeps source references aligned and is atomic. Foreign/failed
+  evidence cannot replace roles; invalid merged legal intervals are rejected.
+  Older same-source updates fail, while older other-source replay retains newer
+  roles. Unchanged facts retain the graph version. Existing identity reuse skips
+  namesake candidate rescans (4 queries versus 29 in the 13-namesake fixture).
+- The observation cache only reuses the latest matching company attempt with
+  the required parser version. Company/contract parser provenance is now 2.1;
+  KGD is 3.2 because its shared amount validator also changed. Old observations,
+  graphs and explanations remain immutable.
+
+The read-only `audit_data_quality` command reports aggregate saved coverage,
+provenance, repeated-name scope and credential configuration without identifiers,
+personal values or tokens. Missing saved attempts do not prove that historical
+fetching never occurred. Configuration presence does not verify access rights.
+
+Live markup, fresh company records and broader KGD entitlement remain unverified.
+No live collection, pipeline, schema migration or inference was run. Verification
+reports and the database backup are private under `artifacts/parser-quality/`.
+
+Verification: all 458 tests passed on an isolated PostgreSQL database with no
+failures, errors or skips, including 45 new regressions. The first full run exposed
+a SELECT-only test assertion that did not recognise PostgreSQL cursor reads; it
+was corrected and both targeted and full PostgreSQL runs passed. Migration drift
+check found no changes. The actual audit command also passed against read-only
+working PostgreSQL. All 50 working-table fingerprints and protected files matched
+before and after; all owned test databases were dropped. Existing immutable
+results were preserved. Reports: `artifacts/parser-quality/postgresql-tests-latest.json`
+and `command-verification-final.json`. Live source availability was not tested.
+
+
+## Authorised live validation, 8 October 2026
+
+The user authorised using existing company identifiers. The bounded sample covers
+all 11 members of the four active groups plus one configured KGD control. Across
+diagnostic and final checks, 72 HTTP attempts were made without automatic retries;
+no new contract import, scheduled collection or model inference was run.
+
+Company/contract parser 2.2 uses the official old.goszakup.gov.kz registry host
+after verifying the original host redirect. Redirects remain disabled and KGD
+credentials remain restricted to the KGD host. Blank alternative BIN/IIN cells
+are ignored only when another exact valid identifier exists. Optional website
+normalisation preserves raw text and does not fetch or verify that website.
+Adata supports public JSON-LD with explicit identity binding, duplicate-key and
+conflict rejection, and separately evidenced leadership roles. An absent title
+identifier requires both exact structured identifiers and the canonical profile URL.
+
+Explicit enrichment freezes a bounded company/source selection, honours --total,
+--company-bin and repeated --company-source, and checks each source status, age
+and parser version. Resume retains that selection. Updating one source alone
+does not advance the legacy overall enrichment timestamp.
+
+Final accepted evidence: 11 registry profiles, 11 Adata profiles, one Adata 404,
+and three KGD taxpayer/arrears pairs (29 observations for 12 companies). One
+registry search returned two distinct supplier cards for the exact identifier;
+it remains ambiguous and was not resolved by choosing a card arbitrarily. Failed
+attempts and original captures remain in the isolated evidence database and
+ignored artifacts/parser-live/. Reprocessing preserves capture times, including
+one explicitly recorded bounded capture-time approximation.
+
+All 495 PostgreSQL tests passed with no failures, errors or skips. The test
+database was removed and all 50 working tables/protected files matched before
+publication. Public contract-list markup was checked; live contract-party cards
+and a new contract import were not exercised. See the publication record below
+for actual working-data changes.
+
+### Working-data publication
+
+After a second restored-copy rehearsal, the same frozen 29 observations were
+applied to the 12 working companies in one transaction, without HTTP or inference.
+One final graph/analysis refresh created three snapshots and matching saved
+analyses/templates. All original snapshots, analyses, model texts and four group
+UUIDs remain. One five-member phone group now has four members: both fresh
+sources agree on the removed company's new phone, different from the old shared
+legacy value. The previous five-member snapshot remains readable.
+
+All 765 unrelated companies, 500 contracts, accounts and personal views were
+preserved. Eleven current source-scoped director records remain unverified;
+22 same-company matching candidates do not merge identities. No legal role
+periods or ownerships were invented. Copy replay created no additional graph,
+analysis or text versions on repetition. Twenty-six public API GETs passed on
+both the final copy and committed working data without changing any of 50 tables.
+Publication report: artifacts/parser-live/reviewed-promotion-ff2def157f7c42978f72a4529e46503c.json.
+
+This is a verified 12-company refresh, not freshness certification for the whole
+777-company catalogue. Failed/ambiguous live attempts remain in the isolated
+audit evidence; only accepted observations were published. New templates are
+labelled as templates; older model prose was not copied onto changed evidence.
+
+Post-publication aggregate audit: 109 of 4,313 selected facts now have successful
+source evidence; 4,204 remain legacy/unconfirmed. There are 1,690 observations,
+779 unverified person identities and 384 current unconfirmed director roles.
+No duplicate BIN/external contract ID, foreign selected fact, source-role mismatch
+or future retrieval was found. The private audit used scrubbed settings, so its
+configuration subsection is not a statement about actual credentials. A new
+backup passed independent restoration after publication; see RECOVERY.md.

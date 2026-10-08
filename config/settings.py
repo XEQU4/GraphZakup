@@ -239,7 +239,10 @@ SPECTACULAR_SETTINGS = {
     'SERVE_AUTHENTICATION': [],
     'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
     'COMPONENT_SPLIT_REQUEST': True,
-    'ENUM_NAME_OVERRIDES': {},
+    'ENUM_NAME_OVERRIDES': {
+        'AnalysisStatusEnum': ['not_calculated', 'ready', 'stale'],
+        'KgdCoverageStatusEnum': ['not_assessed', 'no_checks', 'partial', 'checked'],
+    },
 }
 
 # Apply password checks to signup and explicit password changes; existing logins remain compatible.

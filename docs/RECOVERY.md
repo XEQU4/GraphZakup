@@ -246,3 +246,42 @@ the test runner dropped it and its absence was verified. All 50 working-table
 fingerprints matched the fresh backup before and after. Report:
 `artifacts/phase7/save-view-followup/postgresql-tests-latest.json`. No working
 write, migration, source collection or model job was run during verification.
+
+
+## Explanation regeneration backup, 8 October 2026
+
+Before the user-authorised explanation changes, a fresh PostgreSQL dump was
+independently restored and compared across all 50 tables and migration history.
+Report: `artifacts/phase7/ai-narrative/database_20261008T054451Z_58f1fe71.json`.
+Dump SHA-256: `911063e44b7a0173634683a49bb33032cc2ae9a58cc0a9ab01281ab13201d446`.
+The owned restoration database was dropped. Original graph, analysis and text
+rows were also fingerprinted individually before explicit generation jobs.
+
+
+## Parser and data-quality follow-up, 8 October 2026
+
+Before ingestion algorithm changes, a fresh backup was independently restored.
+All 50 tables, values and migration history matched; the owned restore database
+was dropped. Report: `artifacts/parser-quality/database_20261008T102835Z_8622e803.json`.
+Dump SHA-256: `e0b986f9bfcf115f5e4e359b418bc74a116f1c2c02f73e7cfb8386133b20576a`.
+The subsequent working-data audit used read-only transactions and retained exact
+source/protected-file fingerprints in `artifacts/parser-quality/`. No schema
+migration, source cleanup, collection or explanation job was run by this audit.
+
+
+## Published source refresh, 8 October 2026
+
+The pre-publication backup above was rechecked against all 50 working tables
+before the atomic publication of 29 accepted observations for 12 companies.
+Original immutable histories and unrelated rows passed preservation checks;
+all 26 public API reads were read-only. The old baseline now describes the
+pre-publication state and must not be mistaken for the current working state.
+
+A new post-publication backup was independently restored and verified:
+`artifacts/parser-live/recovery-after-publication/database_20261008T121036Z_31a18f35.json`.
+Dump SHA-256: `b1a09f146af59d3cf2e3f8a4cc4e211c981bbdb02e450ae8fe82c7aac7ec36de`.
+All 50 tables/values and 69 migration rows matched. The owned restore database
+was dropped and its absence checked; working data and protected files stayed
+equal to the committed publication. Both old and new backups are retained.
+The isolated live evidence and rehearsal copies remain separately owned review
+artifacts; never use them as the application database or remove the source.

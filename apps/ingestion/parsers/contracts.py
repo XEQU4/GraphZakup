@@ -1,4 +1,5 @@
 import logging
+import re
 from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
@@ -18,7 +19,7 @@ class ContractPage:
 
 
 class ContractRegistryParser:
-    BASE_URL = "https://goszakup.gov.kz"
+    BASE_URL = "https://old.goszakup.gov.kz"
 
     def __init__(self, transport=None):
         self.headers = {
@@ -35,7 +36,7 @@ class ContractRegistryParser:
         return self.transport.get(url, headers=self.headers, timeout=timeout)
 
     def parse_bin_data(self, contract_gos_id):
-        if not isinstance(contract_gos_id, int) or contract_gos_id <= 0:
+        if type(contract_gos_id) is not int or contract_gos_id <= 0:
             raise SourceError("contract_external_id_missing")
         url = f"{self.BASE_URL}/ru/egzcontract/cpublic/customer_n_supplier/{contract_gos_id}"
         soup = BeautifulSoup(self._get(url, timeout=15).text, "html.parser")
@@ -44,20 +45,30 @@ class ContractRegistryParser:
         try:
             for heading in soup.find_all("h3"):
                 title = heading.get_text(strip=True)
-                table = heading.find_next("table")
-                if not table:
+                # A missing section must not borrow the next party's table.
+                table = next(iter(heading.find_all_next(["h3", "table"])), None)
+                if table is None or table.name != "table":
                     continue
                 values = {}
                 for row in table.find_all("tr"):
                     cells = row.find_all("td")
                     if len(cells) == 2:
-                        values[cells[0].get_text(strip=True)] = cells[1].get_text(strip=True)
+                        key, value = cells[0].get_text(strip=True), cells[1].get_text(strip=True)
+                        if key in {"БИН", "ИИН"} and key in values and values[key] != value:
+                            raise ValueError("ambiguous_party_field")
+                        values[key] = value
                 if "Заказчик" in title:
                     raw['customer_bin'] = values.get('БИН')
-                    result["customer_bin"] = normalize_bin(values.get("БИН"))
+                    identifier = normalize_bin(values.get("БИН"))
+                    if result["customer_bin"] not in (None, identifier):
+                        raise ValueError("ambiguous_customer_identifier")
+                    result["customer_bin"] = identifier
                 elif "Поставщик" in title:
                     raw['supplier_bin'] = values.get('БИН') or values.get('ИИН')
-                    result["supplier_bin"] = normalize_bin(values.get("БИН") or values.get("ИИН"))
+                    identifier = normalize_bin(values.get("БИН") or values.get("ИИН"))
+                    if result["supplier_bin"] not in (None, identifier):
+                        raise ValueError("ambiguous_supplier_identifier")
+                    result["supplier_bin"] = identifier
         except ValueError as error:
             raise SourceError("contract_party_identifier_invalid") from error
         if not result["supplier_bin"] or not result["customer_bin"]:
@@ -66,7 +77,7 @@ class ContractRegistryParser:
         return result
 
     def fetch_page(self, page_number=1):
-        if page_number < 1:
+        if type(page_number) is not int or page_number < 1:
             raise ValueError("page_number_must_be_positive")
         response = self._get(f"{self.BASE_URL}/ru/registry/contract?page={page_number}")
         soup = BeautifulSoup(response.text, "html.parser")
@@ -77,6 +88,7 @@ class ContractRegistryParser:
         if table.find("tbody") is None:
             raise SourceError("contract_table_body_missing")
         records = []
+        identifiers, numbers = set(), set()
         for row in table.find("tbody").find_all("tr"):
             if row.find("th"):
                 continue
@@ -90,6 +102,8 @@ class ContractRegistryParser:
                 raise SourceError("contract_row_invalid")
             values = [cell.get_text(" ", strip=True) for cell in cells]
             try:
+                if not re.fullmatch(r"[0-9]+", values[0]):
+                    raise ValueError("invalid_contract_external_id")
                 identifier = int(values[0])
                 if identifier <= 0 or not values[1]:
                     raise ValueError("invalid_contract_identity")
@@ -109,6 +123,10 @@ class ContractRegistryParser:
                 }
             except ValueError as error:
                 raise SourceError("contract_row_invalid") from error
+            if identifier in identifiers or record["contract_number"] in numbers:
+                raise SourceError("contract_page_duplicate_identity")
+            identifiers.add(identifier)
+            numbers.add(record["contract_number"])
             records.append(record)
         for record in records:
             parties = self.parse_bin_data(record["contract_gos_id"])

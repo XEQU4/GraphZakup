@@ -3,7 +3,7 @@ from datetime import timedelta
 from decimal import Decimal
 from io import StringIO
 import json
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.core.management import call_command
 from django.db import connection, IntegrityError
@@ -22,9 +22,10 @@ from apps.ingestion.leases import IngestionBusy, RunLease
 from apps.ingestion.models import CompanyKgdState, IngestionRun, IngestionLease, SourceObservation
 from apps.ingestion.observations import cached_company_result
 from apps.ingestion.parsers.kgd import AMOUNT_FIELDS, DEBT_SOURCE, KgdParser, TAXPAYER_SOURCE, parse_tax_debt, parse_taxpayer
+from apps.ingestion.providers import SourceProviders
 from apps.ingestion.services import IngestionFailure, run_pipeline
 from apps.owners.models import Owner, TaxDebt, Directorship, Ownership
-from .test_kgd_parser import BIN, fixture
+from .test_kgd_parser import BIN, KgdParserTests, fixture
 
 
 def success(source, bin_number=BIN, when=None):
@@ -67,6 +68,22 @@ class KgdPipelineTests(TestCase):
     def failure(self, source=TAXPAYER_SOURCE, when=None, status=ResultStatus.UNAVAILABLE, code='kgd_access_denied'):
         return SourceResult(source, f'company:{BIN}', status, error_code=code,
                             observed_at=when or timezone.now(), parser_version=KgdParser.VERSION)
+
+    @override_settings(ENABLE_KGD_CHECKS=True, KGD_PORTAL_TOKEN='synthetic-portal-token',
+                       KGD_ACCOUNT_TOKENS_JSON='{"000000000001":"synthetic-account-token"}')
+    def test_declared_taxpayer_failure_retains_unknown_debt_and_never_requests_it(self):
+        transport = Mock()
+        transport.get_json.return_value = KgdParserTests.failed_taxpayer_envelope()
+        with self.assertRaises(IngestionFailure):
+            self.collect(providers=SourceProviders(transport=transport), force=True, kgd_service='tax_debt')
+        self.assertEqual(transport.get_json.call_count, 1)
+        observations = {row.source: row for row in SourceObservation.objects.all()}
+        self.assertEqual((observations[TAXPAYER_SOURCE].status, observations[TAXPAYER_SOURCE].error_code),
+                         ('unavailable', 'kgd_taxpayer_result_unconfirmed'))
+        self.assertEqual((observations[DEBT_SOURCE].status, observations[DEBT_SOURCE].error_code),
+                         ('not_checked', 'kgd_legal_entity_unconfirmed'))
+        self.assertTrue(all(row.raw_values == row.normalized_values == {} for row in observations.values()))
+        self.assertFalse(CompanyKgdState.objects.filter(last_successful_observation__isnull=False).exists())
 
     def test_registration_is_bounded_and_does_not_mutate_company_graph_or_people(self):
         other = Supplier.objects.create(bin='000000000002', name='Other')

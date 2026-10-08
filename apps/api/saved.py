@@ -2,8 +2,8 @@
 import re
 
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db.models import Case, F, IntegerField, Q, Value, When
-from django.db.models.functions import Cast
+from django.db.models import Case, CharField, F, IntegerField, Q, Value, When
+from django.db.models.functions import Cast, Concat
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, ValidationError
@@ -19,6 +19,8 @@ from apps.ingestion.models import SourceObservation
 from .common import (ApiListView, ApiView, EmptyQuerySerializer, ListQuerySerializer,
                      PaginationQuerySerializer, safe_source_url as _safe_source_url)
 from .schema import ErrorEnvelopeSerializer
+from .cluster_directory import (COVERAGE, REASONS, ClusterDirectorySerializer,
+    SnapshotJSONPredicate, SnapshotMemberCount, SavedMetricInteger, directory_projection)
 
 
 # URLs from saved source data are references, never trusted navigation targets.
@@ -50,6 +52,10 @@ class HistoryQuerySerializer(PaginationQuerySerializer):
 
 class ClusterQuerySerializer(ListQuerySerializer):
     active = serializers.BooleanField(required=False, default=True)
+    relationship = serializers.ChoiceField(choices=list(REASONS), required=False,
+        help_text='Shared, evidenced relationship between distinct members of the saved graph.')
+    coverage = serializers.ChoiceField(choices=COVERAGE, required=False,
+        help_text='Successful KGD arrears check coverage at the saved analysis date, not overall data completeness.')
     minimum_review_priority = serializers.IntegerField(min_value=0, max_value=100, required=False)
     ordering = serializers.ChoiceField(required=False, default='-review_priority', choices=[
         'name', '-name', 'review_priority', '-review_priority', 'created_at', '-created_at'])
@@ -134,22 +140,44 @@ class ClusterSerializer(serializers.ModelSerializer):
     review_priority = serializers.IntegerField(source='saved_review_priority', allow_null=True)
     company_count = serializers.SerializerMethodField()
     current_snapshot = SnapshotSerializer(allow_null=True)
+    directory = serializers.SerializerMethodField()
 
     class Meta:
         model = RiskCluster
         fields = ['uuid', 'name', 'is_active', 'review_priority', 'company_count',
-                  'current_snapshot', 'created_at', 'updated_at']
+                  'current_snapshot', 'directory', 'created_at', 'updated_at']
 
     @extend_schema_field(serializers.IntegerField())
     def get_company_count(self, obj):
-        return len(obj.current_snapshot.member_ids) if obj.current_snapshot else 0
+        return len(set(obj.current_snapshot.member_ids)) if obj.current_snapshot else 0
+
+    @extend_schema_field(ClusterDirectorySerializer)
+    def get_directory(self, obj):
+        return ClusterDirectorySerializer(directory_projection(obj)).data
 
 
 def cluster_queryset():
-    return RiskCluster.objects.select_related('current_snapshot').annotate(saved_review_priority=Case(
-        When(analysis_state__analysis__graph_snapshot_id=F('current_snapshot_id'),
-             then=Cast('analysis_state__analysis__metrics__review_priority', IntegerField())),
-        default=Value(None), output_field=IntegerField()))
+    matching = Q(analysis_state__analysis__graph_snapshot_id=F('current_snapshot_id'),
+                 analysis_state__analysis__cluster_id=F('pk'))
+    metrics = 'analysis_state__analysis__metrics'
+    return RiskCluster.objects.select_related('current_snapshot', 'analysis_state__analysis').defer(
+        'analysis_state__analysis__inputs', 'analysis_state__analysis__findings',
+        'analysis_state__analysis__limitations', 'current_snapshot__legacy_explanation').annotate(
+        saved_review_priority=Case(When(matching, then=SavedMetricInteger(metrics, 'review_priority')),
+            default=Value(None), output_field=IntegerField()),
+        saved_member_count=SnapshotMemberCount('current_snapshot__member_ids'),
+        saved_checked=Case(When(matching, then=SavedMetricInteger(metrics, 'fresh_arrears_checks')),
+            default=Value(None), output_field=IntegerField()),
+        saved_analysis_count=Case(When(matching, then=SavedMetricInteger(metrics, 'company_count')),
+            default=Value(None), output_field=IntegerField()),
+    ).annotate(saved_coverage=Case(
+        When(saved_member_count__gt=0, saved_analysis_count=F('saved_member_count'),
+             saved_checked=F('saved_member_count'), then=Value('checked')),
+        When(saved_member_count__gt=0, saved_analysis_count=F('saved_member_count'),
+             saved_checked__gt=0, saved_checked__lt=F('saved_member_count'), then=Value('partial')),
+        When(saved_member_count__gt=0, saved_analysis_count=F('saved_member_count'),
+             saved_checked=0, then=Value('no_checks')),
+        default=Value('not_assessed'), output_field=CharField()))
 
 
 def cluster_for(uuid):
@@ -176,9 +204,22 @@ class ClusterListView(ApiListView):
         query = self.query
         qs = cluster_queryset().filter(is_active=query['active'])
         if query.get('search'):
-            qs = qs.filter(Q(name__icontains=query['search']) |
-                           Q(suppliers__name__icontains=query['search']) |
-                           Q(suppliers__bin__icontains=query['search'])).distinct()
+            qs = qs.annotate(directory_search=SnapshotJSONPredicate(search=query['search']))
+            title_label = Case(*[When(SnapshotJSONPredicate(relationship=kind), then=Value(label))
+                                for kind, label in REASONS.items()],
+                              default=Value('Relationship group'), output_field=CharField())
+            qs = qs.annotate(directory_title=Case(
+                When(current_snapshot_id__isnull=True, then=Value('Group awaiting a saved graph')),
+                default=Concat(title_label, Value(' · '),
+                Cast('saved_member_count', CharField()), Value(' '),
+                Case(When(saved_member_count=1, then=Value('company')), default=Value('companies'),
+                     output_field=CharField())), output_field=CharField()))
+            qs = qs.filter(Q(name__icontains=query['search']) | Q(directory_search=True) |
+                           Q(directory_title__icontains=query['search']))
+        if query.get('relationship'):
+            qs = qs.filter(SnapshotJSONPredicate(relationship=query['relationship']))
+        if query.get('coverage'):
+            qs = qs.filter(saved_coverage=query['coverage'])
         if 'minimum_review_priority' in query:
             qs = qs.filter(saved_review_priority__gte=query['minimum_review_priority'])
         ordering = query['ordering']
@@ -342,6 +383,7 @@ class DocumentFindingSerializer(serializers.Serializer):
     companies = DocumentCompanySerializer(many=True)
     additional_companies = serializers.IntegerField()
     notes = serializers.ListField(child=serializers.CharField())
+    details = serializers.ListField(child=serializers.CharField(), required=False)
 
 
 class DocumentScoreItemSerializer(serializers.Serializer):
@@ -356,6 +398,16 @@ class DocumentScoreSerializer(serializers.Serializer):
     meaning = serializers.CharField()
 
 
+class NarrativeItemSerializer(serializers.Serializer):
+    text = serializers.CharField()
+    finding_ids = serializers.ListField(child=serializers.CharField())
+
+
+class NarrativeSerializer(serializers.Serializer):
+    paragraphs = NarrativeItemSerializer(many=True)
+    checks = NarrativeItemSerializer(many=True)
+
+
 class DocumentSerializer(serializers.Serializer):
     version = serializers.CharField()
     summary = serializers.CharField()
@@ -365,6 +417,7 @@ class DocumentSerializer(serializers.Serializer):
     coverage = serializers.ListField(child=serializers.CharField())
     score = DocumentScoreSerializer()
     conclusion = serializers.CharField()
+    narrative = NarrativeSerializer(required=False)
 
 
 class ExplanationSerializer(serializers.ModelSerializer):

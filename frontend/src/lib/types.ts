@@ -144,7 +144,35 @@ export interface GraphSnapshot {
   created_at: string;
 }
 
+export type ClusterConnectionType = RelationshipType | "mixed_roles";
+
+export interface ClusterDirectory {
+  title: string;
+  companies: { id: number; name: string; bin: string }[];
+  additional_companies: number;
+  reasons: {
+    type: ClusterConnectionType;
+    label: string;
+    company_count: number;
+  }[];
+  primary_reason: {
+    type: ClusterConnectionType;
+    label: string;
+    company_count: number;
+  } | null;
+  analysis_status: "not_calculated" | "stale" | "ready";
+  analysis_as_of: string | null;
+  review_priority: number | null;
+  coverage: {
+    status: "not_assessed" | "no_checks" | "partial" | "checked";
+    checked: number | null;
+    total: number;
+    as_of: string | null;
+  };
+}
+
 export interface Cluster {
+  directory?: ClusterDirectory;
   uuid: string;
   name: string;
   is_active: boolean;
@@ -287,10 +315,15 @@ export interface AnalysisSnapshot {
 export interface ExplanationDocument {
   version: string;
   summary: string;
+  narrative?: {
+    paragraphs: { text: string; finding_ids: string[] }[];
+    checks: { text: string; finding_ids: string[] }[];
+  };
   findings: {
     finding_id: string;
     title: string;
     fact: string;
+    details?: string[];
     meaning: string;
     companies: { id: number; name: string; bin: string }[];
     additional_companies: number;

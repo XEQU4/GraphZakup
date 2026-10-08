@@ -1,9 +1,10 @@
 import re
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
+from urllib.parse import urlsplit
 
 from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
+from django.core.validators import URLValidator, validate_email
 
 BLACKLIST_EMAILS = {"info@adata.kz", "support@adata.kz"}
 
@@ -22,12 +23,32 @@ def normalize_email(email):
 
 
 def normalize_phone(phone):
-    if not isinstance(phone, str) or re.search(r"[A-Za-zА-Яа-я]", phone):
+    # Never discard letters or unsupported symbols to manufacture a shared contact.
+    if not isinstance(phone, str) or not re.fullmatch(r"\+?[0-9()\s.\-]+", phone.strip()):
         return None
-    digits = re.sub(r"\D", "", phone)
+    digits = re.sub(r"[^0-9]", "", phone)
     if len(digits) == 11 and digits.startswith("8"):
         digits = "7" + digits[1:]
     return digits if len(digits) == 11 and digits.startswith("7") else None
+
+
+def normalize_website(value):
+    """Normalize an optional displayed URL without contacting or verifying the site."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    value = value.strip()
+    if not re.match(r"[a-zA-Z][a-zA-Z0-9+.-]*:", value):
+        value = "https://" + value
+    if len(value) > 200:
+        return None
+    try:
+        url = urlsplit(value)
+        if url.username or url.password:
+            return None
+        URLValidator(schemes=["http", "https"])(value)
+    except (ValueError, ValidationError):
+        return None
+    return value
 
 
 def normalize_bin(value):
@@ -58,11 +79,11 @@ def normalize_date(value):
 def normalize_amount(value):
     if isinstance(value, float) or isinstance(value, bool) or value is None:
         raise ValueError("invalid_amount")
-    raw = re.sub(r"\s", "", str(value)).replace(",", ".")
-    if not re.fullmatch(r"[0-9]+(?:\.[0-9]{1,2})?", raw):
+    raw = re.sub(r"\s+", " ", str(value).strip())
+    if not re.fullmatch(r"(?:[0-9]+|[0-9]{1,3}(?: [0-9]{3})+)(?:[.,][0-9]{1,2})?", raw):
         raise ValueError("invalid_amount")
     try:
-        amount = Decimal(raw)
+        amount = Decimal(raw.replace(" ", "").replace(",", "."))
     except InvalidOperation as error:
         raise ValueError("invalid_amount") from error
     if not amount.is_finite() or amount >= Decimal("1000000000000000000"):

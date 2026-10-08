@@ -21,7 +21,7 @@ a possible later pilot.
 | Graph dashboards | Interactive D3 graph, evidence inspection, history and personal layouts |
 | Company tax information | Identity-gated KGD registration and aggregate arrears, live-verified for one authorised company |
 | Review priority | Versioned, capped rules with separate link strength, financial indicators and unknown coverage |
-| Explanations | Saved English templates; optional free local Qwen3:4b selects supported wording/order, with fallback and reuse |
+| Explanations | Saved English templates; optional free local Qwen3:4b writes evidence-linked prose, with validation, fallback and reuse |
 | Court records, bankruptcy and restricted-participant lists | Planned source-verified indicators; legacy person flags are not verified findings |
 | Owner-specific history | Planned exact-person evidence; company debt is not automatically owner debt |
 | Coordinated tender behaviour | Not assessable yet without bidders, bids, lots and outcomes |
@@ -99,7 +99,7 @@ proxy stays same-origin from the browser and forwards CSRF origin to Django.
 
 Docker builds React automatically from package-lock.json before collectstatic.
 English design follows the supplied blue, restrained cyberpunk references; rewriting
-saved explanations and the relationship-group page remain separate follow-up work.
+the wider relationship-group page remains separate follow-up work. Saved AI explanations now support cited prose and aligned review panels.
 Russian localisation remains deferred. See [Phase 7](docs/PHASE7.md) for verification.
 
 The overview combines Lightswind-derived aurora lighting with original dimensional
@@ -284,4 +284,4 @@ docker compose --env-file .env.docker --profile local-ai up --build -d
 
 The optional profile adds a persistent local model service and initial model download; the normal profile runs without it. Native Windows setup and host/container URLs are in [PHASE5.md](docs/PHASE5.md). Profile syntax is validated; actual container model startup/GPU use remains unverified. Model generation starts through explicit staff POST or `analyse_clusters --cluster UUID --use-model`, using the running worker.
 
-The model selects finding order and validated wording variants. It cannot invent graph edges, identities or published scores. Failures retain a saved template; repeated completed requests reuse text. Optional `AI_EXPERIMENTAL_SCORING` stores a separate staff-only model estimate for evaluation. No independent labelled benchmark establishes a benefit yet; public review priority remains deterministic and uncalibrated. Future paid OpenAI/OpenRouter providers use environment settings and explicit paid opt-in. No ChatGPT subscription is needed for local inference.
+The model writes short English paragraphs and follow-up checks tied to saved finding IDs. Company aliases are expanded from the frozen graph after validation. Graph edges, identities and public scores remain algorithmic. Citation, numerical and contradiction checks reject some invalid output; they do not prove that every sentence is correct. Failures retain a saved template; repeated completed requests reuse text. Optional `AI_EXPERIMENTAL_SCORING` stores a separate staff-only model estimate for evaluation. No independent labelled benchmark establishes a benefit yet; public review priority remains deterministic and uncalibrated. Future paid OpenAI/OpenRouter providers use environment settings and explicit paid opt-in. No ChatGPT subscription is needed for local inference.

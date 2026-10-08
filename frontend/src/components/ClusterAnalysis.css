@@ -1,0 +1,644 @@
+/* Saved analysis has one shared status row and stable reading columns. */
+.app-shell .cluster-detail-page .cluster-analysis-layout.cluster-review-layout {
+  grid-template-columns: minmax(265px, 0.78fr) minmax(0, 1.62fr);
+  column-gap: 24px;
+  row-gap: 14px;
+  align-items: start;
+  margin-top: 30px;
+}
+.app-shell
+  .cluster-detail-page
+  .cluster-review-layout
+  > .cluster-analysis-status {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 3px;
+  margin: 0;
+}
+.app-shell
+  .cluster-detail-page
+  .cluster-review-layout
+  > .cluster-analysis-summary {
+  grid-column: 1;
+  grid-row: 2;
+}
+.app-shell .cluster-detail-page .cluster-review-layout > .cluster-review-main {
+  grid-column: 2;
+  grid-row: 2;
+  display: block;
+  min-width: 0;
+}
+.app-shell .cluster-detail-page .cluster-review-layout .cluster-explanation {
+  grid-column: auto;
+  grid-row: auto;
+}
+.cluster-detail-page .cluster-review-status-note {
+  font-size: 10px;
+  color: #91a7c6;
+  margin-left: auto;
+}
+.cluster-detail-page .cluster-review-layout .cluster-analysis-summary,
+.cluster-detail-page .cluster-review-layout .cluster-explanation {
+  padding: 27px;
+  border: 1px solid #2c456a;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #10213dcc, #061221eb);
+  min-width: 0;
+}
+.cluster-detail-page .cluster-review-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 49px;
+  margin-bottom: 20px;
+}
+.cluster-detail-page .cluster-review-card-heading > div {
+  min-width: 0;
+}
+.cluster-detail-page .cluster-review-card-heading > .badge {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.cluster-detail-page .cluster-review-card-heading .eyebrow {
+  font-size: 8px;
+  letter-spacing: 0.13em;
+  color: #8db4ee;
+}
+.cluster-detail-page .cluster-review-card-heading h2 {
+  margin: 8px 0 0;
+  font:
+    600 23px/1.15 "Space Grotesk Variable",
+    sans-serif;
+  letter-spacing: -0.035em;
+  color: #eff5ff;
+}
+.cluster-detail-page .cluster-review-card-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  border: 1px solid #355a8f;
+  border-radius: 12px;
+  color: #aacfff;
+  background: linear-gradient(140deg, #173b70, #0b1c33);
+}
+.cluster-detail-page .cluster-review-card-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.cluster-detail-page .priority-purpose {
+  margin: 0 0 23px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #9eb4d4;
+}
+.cluster-detail-page .priority-score {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.cluster-detail-page .priority-score > strong {
+  font:
+    600 50px/1 "Space Grotesk Variable",
+    sans-serif;
+  letter-spacing: -0.055em;
+  color: #eff5ff;
+}
+.cluster-detail-page .priority-score > strong > span {
+  color: #89a7d0;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+  margin-left: 5px;
+}
+.cluster-detail-page .priority-score > small {
+  font-size: 10px;
+  color: #8fa7c9;
+}
+.cluster-detail-page .cluster-review-layout .priority-track {
+  height: 5px;
+  border-radius: 5px;
+  background: #1b3152;
+  overflow: hidden;
+  margin: 0 0 18px;
+}
+.cluster-detail-page .cluster-review-layout .priority-track > span {
+  height: 100%;
+  display: block;
+  background: linear-gradient(90deg, #2c5ec6, #9ec7ff);
+  border-radius: inherit;
+}
+.cluster-detail-page .priority-interpretation {
+  display: flex;
+  align-items: start;
+  gap: 9px;
+  margin: 0;
+  font-size: 10px;
+  color: #91a8c9;
+  line-height: 1.8;
+}
+.cluster-detail-page .priority-interpretation > svg {
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  color: #9abbeb;
+}
+.cluster-detail-page .priority-contributions {
+  border-top: 1px solid #29415f;
+  margin-top: 23px;
+  padding-top: 21px;
+}
+.cluster-detail-page .priority-contributions h3 {
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: #d3e3fb;
+}
+.cluster-detail-page .priority-contributions ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.cluster-detail-page .priority-contributions li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid #263b5711;
+  color: #a2b9d9;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.cluster-detail-page .priority-contributions li > span {
+  min-width: 0;
+}
+.cluster-detail-page .priority-contributions li > strong {
+  color: #c8defe;
+  white-space: nowrap;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  font-weight: 400;
+}
+.cluster-detail-page .priority-contributions li small {
+  color: #819abc;
+  font:
+    9px "Manrope Variable",
+    sans-serif;
+}
+.cluster-detail-page .priority-contributions > p {
+  color: #91a7c5;
+  font-size: 11px;
+  line-height: 1.8;
+}
+.cluster-detail-page .cluster-review-layout .analysis-metrics {
+  border-top: 1px solid #29415f;
+  margin: 22px 0 0;
+  padding-top: 6px;
+}
+.cluster-detail-page .cluster-review-layout .analysis-metrics > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 11px;
+  margin: 0;
+  padding: 15px 0;
+  border-bottom: 1px solid #22364f;
+}
+.cluster-detail-page .analysis-metrics dt {
+  color: #c5d5eb;
+  font-size: 11px;
+}
+.cluster-detail-page .analysis-metrics dt > small {
+  display: block;
+  margin-top: 6px;
+  font-size: 9px;
+  color: #7f98bc;
+  line-height: 1.7;
+}
+.cluster-detail-page .analysis-metrics dd {
+  color: #d8e8ff;
+  font-size: 12px;
+  padding-top: 0;
+}
+.cluster-detail-page .analysis-metrics dd > small {
+  font-size: 9px;
+  color: #8aa4c9;
+  margin-left: 2px;
+}
+.cluster-detail-page .priority-evidence-date {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 10px;
+  color: #8da5c7;
+  margin: 17px 0 25px;
+}
+.cluster-detail-page .priority-evidence-date > strong {
+  font-weight: 400;
+  color: #c9dcf7;
+}
+.cluster-detail-page .priority-unavailable {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 12px;
+  padding: 17px 0;
+  color: #a8c2e7;
+}
+.cluster-detail-page .priority-unavailable > p {
+  color: #8ea6c9;
+  font-size: 11px;
+  line-height: 1.8;
+  margin: 0;
+}
+.cluster-detail-page .priority-companies {
+  padding-top: 17px;
+  border-top: 1px solid #29415f;
+}
+.cluster-detail-page .priority-companies > summary {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 36px;
+  font-size: 12px;
+}
+.cluster-detail-page .priority-companies > summary > strong {
+  margin-left: auto;
+  color: #94b7ed;
+  border: 1px solid #345174;
+  background: #0a1b32;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 400;
+}
+.cluster-detail-page .priority-companies .analysis-company-list {
+  padding: 0;
+  list-style: none;
+  margin: 12px 0 0;
+}
+.cluster-detail-page .analysis-company-list li {
+  font-size: 11px;
+  padding: 10px 0;
+  margin: 0;
+  border-bottom: 1px solid #213552;
+  line-height: 1.6;
+}
+.cluster-detail-page .analysis-company-list a {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  color: #a9c9f7;
+}
+.cluster-detail-page .analysis-company-list a > svg {
+  margin-left: auto;
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+}
+.cluster-detail-page .cluster-review-layout .cluster-technical {
+  margin-top: 21px;
+  padding-top: 16px;
+  border-top: 1px solid #29415f;
+}
+.cluster-detail-page .cluster-review-layout .cluster-technical > summary {
+  color: #8ea9cc;
+  font-size: 11px;
+}
+.cluster-detail-page .cluster-review-layout .cluster-technical .field {
+  margin-top: 16px;
+}
+.cluster-detail-page .cluster-review-layout .cluster-technical .field > span {
+  font-size: 10px;
+}
+.cluster-detail-page .cluster-review-layout .cluster-technical select {
+  max-width: 100%;
+  min-width: 0;
+  font-size: 10px;
+  width: 100%;
+  padding: 11px 9px;
+}
+.cluster-detail-page .cluster-review-layout .cluster-technical dl {
+  font-size: 10px;
+}
+.cluster-detail-page
+  .cluster-review-layout
+  .cluster-explanation
+  > .explanation-summary {
+  margin: 24px 0 28px;
+  color: #e3edfd;
+  font-size: 15px;
+  line-height: 1.9;
+}
+.cluster-detail-page .explanation-narrative {
+  margin-top: 25px;
+}
+.cluster-detail-page .explanation-narrative > section {
+  margin: 0 0 27px;
+}
+.cluster-detail-page .explanation-narrative > section > p {
+  font-size: 15px;
+  line-height: 1.95;
+  color: #d6e3f8;
+  margin: 0 0 13px;
+}
+.cluster-detail-page .explanation-narrative > section:first-child > p {
+  font-size: 17px;
+  line-height: 1.85;
+  color: #eef5ff;
+}
+.cluster-detail-page .explanation-references {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 0;
+}
+.cluster-detail-page .explanation-references > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #345074;
+  background: #0a1a30;
+  padding: 6px 9px;
+  border-radius: 7px;
+  color: #a4c8fa;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.cluster-detail-page .explanation-references svg {
+  width: 12px;
+  height: 12px;
+}
+.cluster-detail-page .explanation-references > a:hover {
+  background: #12284a;
+  color: #e2eeff;
+  border-color: #5c81b5;
+}
+.cluster-detail-page .explanation-references > a:focus-visible {
+  outline: 2px solid #9cc6ff;
+  outline-offset: 4px;
+}
+.cluster-detail-page .explanation-next-checks {
+  margin: 30px 0;
+  padding: 23px 24px;
+  border: 1px solid #314d75;
+  border-radius: 15px;
+  background: linear-gradient(125deg, #15315a44, #0b1833bb);
+}
+.cluster-detail-page .explanation-next-checks h3 {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  margin: 0 0 20px;
+  color: #d7e6ff;
+  font-size: 14px;
+}
+.cluster-detail-page .explanation-next-checks h3 > svg {
+  width: 16px;
+  height: 16px;
+  color: #8ebeff;
+}
+.cluster-detail-page .explanation-next-checks ol {
+  margin: 0;
+  padding-left: 20px;
+}
+.cluster-detail-page .explanation-next-checks li {
+  padding: 0 0 15px 6px;
+  color: #b7cdea;
+  font-size: 12px;
+  line-height: 1.9;
+}
+.cluster-detail-page .explanation-next-checks li:last-child {
+  padding-bottom: 0;
+}
+.cluster-detail-page .explanation-next-checks li::marker {
+  color: #85b5fc;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+}
+.cluster-detail-page .explanation-next-checks li > p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.9;
+}
+.cluster-detail-page .explanation-saved-facts,
+.cluster-detail-page .explanation-coverage {
+  border-top: 1px solid #2b4565;
+  padding: 18px 0;
+}
+.cluster-detail-page .explanation-saved-facts > summary,
+.cluster-detail-page .explanation-coverage > summary {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #bad1f1;
+  font-size: 12px;
+  min-height: 28px;
+}
+.cluster-detail-page .explanation-saved-facts > summary > svg,
+.cluster-detail-page .explanation-coverage > summary > svg {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  color: #8eb4e8;
+}
+.cluster-detail-page .explanation-saved-facts > summary > small {
+  margin-left: auto;
+  color: #819abc;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.cluster-detail-page .explanation-facts-body {
+  padding-top: 10px;
+}
+.cluster-detail-page .explanation-facts-body .explanation-finding {
+  padding: 22px 0;
+  border-top: 1px solid #263e5e;
+  scroll-margin-top: 100px;
+}
+.cluster-detail-page .explanation-facts-body .explanation-finding:first-child {
+  border-top: 0;
+}
+.cluster-detail-page .explanation-facts-body h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+.cluster-detail-page .explanation-facts-body p {
+  font-size: 12px;
+  line-height: 1.85;
+  margin: 12px 0;
+}
+.cluster-detail-page .explanation-fact-context {
+  color: #8fa9ce;
+}
+.cluster-detail-page .explanation-fact-details {
+  list-style: none;
+  padding: 10px 13px;
+  margin: 12px 0;
+  border: 1px solid #2c4568;
+  border-radius: 9px;
+  background: #081426;
+}
+.cluster-detail-page .explanation-fact-details li {
+  font:
+    10px/1.9 "IBM Plex Mono",
+    monospace;
+  color: #b6cfef;
+  overflow-wrap: anywhere;
+}
+.cluster-detail-page .explanation-companies a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 9px;
+  font-size: 10px;
+  border-color: #2a456a;
+  color: #a2c6f8;
+  background: #08172b;
+}
+.cluster-detail-page .explanation-companies svg {
+  width: 12px;
+  height: 12px;
+}
+.cluster-detail-page .explanation-finding-limits {
+  margin-top: 15px;
+}
+.cluster-detail-page .explanation-finding-limits > summary {
+  font-size: 11px;
+  color: #8fa8c8;
+}
+.cluster-detail-page .explanation-coverage ul {
+  padding-left: 19px;
+  margin: 19px 0 6px;
+}
+.cluster-detail-page .explanation-coverage li {
+  color: #9ab1d2;
+  font-size: 12px;
+  line-height: 1.9;
+  margin-bottom: 9px;
+}
+.cluster-detail-page .explanation-conclusion {
+  color: #849fc4;
+  font-size: 11px;
+  line-height: 1.9;
+  margin: 16px 0 0;
+}
+.cluster-detail-page .explanation-source {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  border-top: 1px solid #29415f;
+  padding-top: 21px;
+  margin-top: 20px;
+  color: #8fa9cb;
+  font-size: 10px;
+  line-height: 1.8;
+}
+.cluster-detail-page .explanation-source > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.cluster-detail-page .explanation-source > span:first-child > svg {
+  width: 13px;
+  height: 13px;
+  color: #8fb9eb;
+}
+.cluster-detail-page .explanation-model-name {
+  color: #a7c4ec;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9px;
+}
+.cluster-detail-page .explanation-source > .explanation-fallback-note {
+  width: 100%;
+  margin: 0;
+  color: #a4b8d4;
+  font-size: 11px;
+  line-height: 1.8;
+}
+.cluster-detail-page .cluster-explanation-empty > p {
+  color: #9ab1d2;
+  font-size: 12px;
+  line-height: 1.9;
+}
+@media (max-width: 1000px) {
+  .app-shell
+    .cluster-detail-page
+    .cluster-analysis-layout.cluster-review-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .app-shell
+    .cluster-detail-page
+    .cluster-review-layout
+    > .cluster-review-main {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .cluster-detail-page .cluster-review-status-note {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+@media (max-width: 600px) {
+  .cluster-detail-page .cluster-review-layout .cluster-analysis-summary,
+  .cluster-detail-page .cluster-review-layout .cluster-explanation {
+    padding: 21px 18px;
+    border-radius: 17px;
+  }
+  .cluster-detail-page .cluster-review-card-heading {
+    gap: 11px;
+  }
+  .cluster-detail-page .cluster-review-card-heading h2 {
+    font-size: 22px;
+  }
+  .cluster-detail-page .cluster-review-card-heading .eyebrow {
+    font-size: 7px;
+  }
+  .cluster-detail-page .cluster-review-card-icon {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+  }
+  .cluster-detail-page .explanation-narrative > section > p {
+    font-size: 13px;
+    line-height: 1.95;
+  }
+  .cluster-detail-page .explanation-narrative > section:first-child > p {
+    font-size: 15px;
+  }
+  .cluster-detail-page .explanation-next-checks {
+    padding: 20px 17px;
+  }
+  .cluster-detail-page .explanation-saved-facts > summary {
+    flex-wrap: wrap;
+  }
+  .cluster-detail-page .explanation-saved-facts > summary > small {
+    margin-left: 24px;
+  }
+}
+
+.cluster-detail-page .explanation-saved-facts > summary,
+.cluster-detail-page .explanation-coverage > summary,
+.cluster-detail-page .priority-companies > summary {
+  min-height: 44px;
+}
+.cluster-detail-page .explanation-disclosure-arrow {
+  margin-left: auto;
+  color: #91aed6;
+}
+.cluster-detail-page details[open] > summary > .explanation-disclosure-arrow {
+  transform: rotate(180deg);
+}
+.cluster-detail-page .cluster-review-layout .cluster-technical > summary {
+  min-height: 44px;
+  padding: 9px 0;
+}
