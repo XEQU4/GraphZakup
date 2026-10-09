@@ -285,3 +285,34 @@ was dropped and its absence checked; working data and protected files stayed
 equal to the committed publication. Both old and new backups are retained.
 The isolated live evidence and rehearsal copies remain separately owned review
 artifacts; never use them as the application database or remove the source.
+
+## Fifty-company expansion recovery, 8 October 2026
+
+The previous verified backup matched all 50 working tables before code changes.
+During collection the user changed a personal graph layout; all other tables
+remained equal. A new dump preserved that layout:
+`artifacts/parser-expansion/recovery/database_20261008T170904Z_f7760eb7.json`.
+Its restoration matched all 50 tables before offline replay; original histories,
+unrelated rows and repeat-refresh stability passed (`rehearse.json`). The owned
+copy was dropped. The same frozen results were published atomically without HTTP,
+Redis or model calls (`publish.json`); 80 API reads left all table hashes equal.
+
+The current post-publication recovery point is
+`artifacts/parser-expansion/recovery-after/database_20261008T171203Z_b9d8a747.json`.
+Its independent restoration passed across all 50 tables and migration history;
+the verification report contains the dump checksum and exact comparisons. The
+owned restoration database was dropped. Earlier backups remain historical.
+
+## Background collection, 8 October 2026
+
+The expansion backup matched all 50 tables before orchestration changes. A further
+verified snapshot retained initial operational attempts before parser 2.3 changes:
+`artifacts/background-verification/recovery/database_20261008T174228Z_743cc038.json`.
+Following the first real bounded iteration, another independent restoration passed:
+`artifacts/background-verification/recovery-after/database_20261008T180552Z_5e630227.json`.
+Both reports contain checksums, exact table/migration comparisons and owned-copy
+cleanup. No source database was restored or removed. Automatic collection is now
+explicitly authorised and running; future table differences are expected. Stop the
+owned collector before modifying ingestion algorithms and verify a fresh recovery
+point against the then-current state. Never compare an active collector with an
+old static baseline and treat all differences as corruption.

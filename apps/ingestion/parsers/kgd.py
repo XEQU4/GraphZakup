@@ -10,6 +10,7 @@ from ..normalizers import normalize_amount, normalize_bin, normalize_date
 TAXPAYER_SOURCE = 'kgd_taxpayer'
 DEBT_SOURCE = 'kgd_tax_debt'
 LEGAL_TYPES = {'UL', 'UL_NR'}
+REGISTRATION_TYPES = LEGAL_TYPES | {'IP'}
 TAXPAYER_FIELDS = frozenset({
     'bin', 'kgd_taxpayer_type', 'kgd_taxpayer_name', 'kgd_registration_begin',
     'kgd_registration_end', 'kgd_end_reason',
@@ -48,8 +49,8 @@ def validate_facts(source, values, bin_number):
     data = {'bin': bin_number}
     if source == TAXPAYER_SOURCE:
         kind = values.get('kgd_taxpayer_type')
-        if kind not in LEGAL_TYPES:
-            raise ValueError('kgd_subject_not_legal_entity')
+        if kind not in REGISTRATION_TYPES:
+            raise ValueError('kgd_subject_type_unsupported')
         data.update(kgd_taxpayer_type=kind,
                     kgd_taxpayer_name=_text(values.get('kgd_taxpayer_name'), 500),
                     kgd_registration_begin=normalize_date(values.get('kgd_registration_begin')),
@@ -76,7 +77,7 @@ def validate_facts(source, values, bin_number):
     return data
 
 
-def parse_taxpayer(payload, bin_number):
+def parse_taxpayer(payload, bin_number, *, expected_type=None):
     if isinstance(payload, dict) and 'errorResponse' in payload:
         # The official service can answer HTTP 200 with a failed lookup plus
         # unrelated payment/detail envelopes. Those details do not verify a
@@ -90,8 +91,10 @@ def parse_taxpayer(payload, bin_number):
             matches = False
         if not matches:
             raise SourceError('kgd_identity_mismatch')
-        if failure.get('taxpayerType') not in LEGAL_TYPES:
-            raise SourceError('kgd_subject_not_legal_entity')
+        if failure.get('taxpayerType') not in REGISTRATION_TYPES:
+            raise SourceError('kgd_subject_type_unsupported')
+        if expected_type is not None and failure.get('taxpayerType') != expected_type:
+            raise SourceError('kgd_subject_type_mismatch')
         message = failure.get('errorMessage')
         if (failure.get('messageResult') != 'FAILED' or not isinstance(message, str)
                 or not message.strip() or len(message) > 4096):
@@ -113,6 +116,8 @@ def parse_taxpayer(payload, bin_number):
     if len(matching) != 1:
         raise ValueError('kgd_identity_mismatch_or_ambiguous')
     row = matching[0]
+    if expected_type is not None and row.get('taxpayerType') != expected_type:
+        raise SourceError('kgd_subject_type_mismatch')
     reason = row.get('endReason')
     if reason is not None and not isinstance(reason, dict):
         raise ValueError('kgd_taxpayer_response_invalid')
@@ -144,7 +149,7 @@ def parse_tax_debt(payload, bin_number):
 
 
 class KgdParser:
-    VERSION = '3.2'
+    VERSION = '3.3'
     API_URLS = {
         TAXPAYER_SOURCE: 'https://portal.kgd.gov.kz/services/isnaportalsync/public/taxpayer-data',
         DEBT_SOURCE: 'https://portal.kgd.gov.kz/services/isnaportalsync/public/tax-debt-info',
@@ -171,7 +176,7 @@ class KgdParser:
     def ready(self):
         return self.enabled and self._valid_token(self.portal_token)
 
-    def fetch(self, source, bin_number, *, legal_entity_confirmed=False):
+    def fetch(self, source, bin_number, *, legal_entity_confirmed=False, taxpayer_name=''):
         bin_number = normalize_bin(bin_number)
         if source not in self.SOURCE_URLS:
             raise ValueError('kgd_source_invalid')
@@ -188,10 +193,16 @@ class KgdParser:
             return result(ResultStatus.NOT_CHECKED, code='kgd_portal_token_invalid')
         params = {'taxpayerCode': bin_number}
         if source == TAXPAYER_SOURCE:
-            if self.taxpayer_type not in LEGAL_TYPES:
+            if self.taxpayer_type not in REGISTRATION_TYPES:
                 return result(ResultStatus.NOT_CHECKED, code='kgd_taxpayer_type_invalid')
             params.update(taxpayerType=self.taxpayer_type, print='false')
+            if self.taxpayer_type == 'IP':
+                if not isinstance(taxpayer_name, str) or not taxpayer_name.strip() or len(taxpayer_name) > 500:
+                    return result(ResultStatus.NOT_CHECKED, code='kgd_taxpayer_name_required')
+                params['name'] = taxpayer_name.strip()
         else:
+            if self.taxpayer_type == 'IP':
+                return result(ResultStatus.NOT_CHECKED, code='kgd_entrepreneur_debt_scope_unverified')
             if not legal_entity_confirmed:
                 return result(ResultStatus.NOT_CHECKED, code='kgd_legal_entity_unconfirmed')
             account_token = self.account_tokens.get(bin_number)
@@ -203,7 +214,7 @@ class KgdParser:
         try:
             payload = self.transport.get_json(self.API_URLS[source], params=params, timeout=self.timeout,
                                               headers={'X-Portal-Token': self.portal_token, 'Accept': 'application/json'})
-            data, raw = (parse_taxpayer(payload, bin_number) if source == TAXPAYER_SOURCE
+            data, raw = (parse_taxpayer(payload, bin_number, expected_type=self.taxpayer_type) if source == TAXPAYER_SOURCE
                          else parse_tax_debt(payload, bin_number))
             return result(ResultStatus.SUCCESS if data is not None else ResultStatus.NOT_FOUND, data=data, raw=raw)
         except SourceError as error:
@@ -211,7 +222,7 @@ class KgdParser:
                 return result(ResultStatus.UNAVAILABLE, code='kgd_access_denied')
             invalid = error.code in ('source_http_400', 'source_json_invalid', 'source_json_content_type_invalid',
                                       'source_response_too_large', 'kgd_taxpayer_response_invalid',
-                                      'kgd_identity_mismatch', 'kgd_subject_not_legal_entity')
+                                      'kgd_identity_mismatch', 'kgd_subject_type_unsupported', 'kgd_subject_type_mismatch')
             return result(ResultStatus.INVALID if invalid else ResultStatus.UNAVAILABLE, code=error.code)
         except (ValueError, TypeError, KeyError):
             return result(ResultStatus.INVALID, code='kgd_response_invalid')

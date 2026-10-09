@@ -135,6 +135,19 @@ CELERY_TIMEZONE = "Asia/Almaty"
 CELERY_ENABLE_UTC = True
 
 ENABLE_SCHEDULED_IMPORT = env_bool("ENABLE_SCHEDULED_IMPORT")
+BACKGROUND_INTERVAL_SECONDS = int(os.getenv('BACKGROUND_INTERVAL_SECONDS', '900'))
+BACKGROUND_COMPANY_BATCH = int(os.getenv('BACKGROUND_COMPANY_BATCH', '5'))
+BACKGROUND_CONTRACT_BATCH = int(os.getenv('BACKGROUND_CONTRACT_BATCH', '25'))
+BACKGROUND_KGD_BATCH = int(os.getenv('BACKGROUND_KGD_BATCH', '2'))
+BACKGROUND_MAX_REQUESTS = int(os.getenv('BACKGROUND_MAX_REQUESTS', '120'))
+BACKGROUND_RETRY_SECONDS = int(os.getenv('BACKGROUND_RETRY_SECONDS', '21600'))
+BACKGROUND_SOURCE_COOLDOWN_SECONDS = int(os.getenv('BACKGROUND_SOURCE_COOLDOWN_SECONDS', '3600'))
+ENABLE_SCHEDULED_KGD = env_bool('ENABLE_SCHEDULED_KGD')
+if (not 60 <= BACKGROUND_INTERVAL_SECONDS <= 86400 or not 1 <= BACKGROUND_COMPANY_BATCH <= 50
+        or not 1 <= BACKGROUND_CONTRACT_BATCH <= 500 or not 1 <= BACKGROUND_KGD_BATCH <= 10
+        or not 10 <= BACKGROUND_MAX_REQUESTS <= 500 or not 300 <= BACKGROUND_RETRY_SECONDS <= 604800
+        or not 300 <= BACKGROUND_SOURCE_COOLDOWN_SECONDS <= 86400):
+    raise ImproperlyConfigured('Invalid bounded background collection settings.')
 CELERY_BEAT_SCHEDULE = {
     # Daily cleanup of logs older than 30 days
     "cleanup-logs-daily": {
@@ -144,8 +157,9 @@ CELERY_BEAT_SCHEDULE = {
 }
 if ENABLE_SCHEDULED_IMPORT:
     CELERY_BEAT_SCHEDULE["update-procurement-data"] = {
-        "task": "apps.core.tasks.update_all_data",
-        "schedule": 60 * 60 * 12,
+        "task": "apps.core.tasks.collect_background",
+        "schedule": BACKGROUND_INTERVAL_SECONDS,
+        "options": {"queue": "ingestion", "expires": BACKGROUND_INTERVAL_SECONDS},
     }
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_RESULT_EXPIRES = 60 * 60 * 24

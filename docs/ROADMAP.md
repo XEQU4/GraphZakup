@@ -290,3 +290,19 @@ weak-contact group membership. All 495 PostgreSQL tests passed. Per-source bound
 refresh and parser 2.2 fixes are implemented; full-catalogue freshness, ambiguous
 registry cards, wider KGD variants and source quotas remain open. See PHASE2/3
 and RECOVERY for evidence and actual publication. No subsequent phase started.
+
+The user authorised gradual expansion on 8 October. The next fifty were attempted:
+49 gained source evidence, five completed both sources, and registry failures
+stopped further requests to that host. One real IP registration is saved; IP debt
+and conflicting registry cards remain unresolved rather than guessed. The batch
+was rehearsed then published through ingestion services; 505 PostgreSQL tests and
+80 read-only API checks passed. Details: PHASE2/3 and RECOVERY. 715 companies remain
+outside these two batches; partial-source gaps also remain. No new phase started.
+
+The next user instruction explicitly authorised unattended real-source collection
+and complete-stack packaging. Bounded independent Celery stages, native owned
+worker/beat controls, Adata 2.3 role fixes and selected-contract party resolution
+are implemented. `docker-compose.full.yml` prepares collection plus Ollama/Qwen;
+actual full-container execution/data transfer remain deployment work. See the
+latest PHASE2 and RECOVERY entries. This does not add new court/blacklist sources,
+prove current ownership, enable paid inference or start localisation.

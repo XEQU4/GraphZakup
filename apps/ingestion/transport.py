@@ -14,11 +14,22 @@ class HttpTransport:
     ALLOWED_HOSTS = {'goszakup.gov.kz', 'old.goszakup.gov.kz', 'pk.adata.kz', 'portal.kgd.gov.kz'}
 
     def __init__(self, session=None, min_interval=1.5, retries=2, cache_ttl=60,
-                 sleeper=sleep, clock=monotonic, heartbeat=None):
+                 sleeper=sleep, clock=monotonic, heartbeat=None, failure_limit=3, max_requests=None):
+        if type(failure_limit) is not int or not 1 <= failure_limit <= 20:
+            raise ValueError('source_failure_limit_invalid')
         self.session = session or requests.Session()
         self.min_interval, self.retries, self.cache_ttl = min_interval, retries, cache_ttl
         self.sleeper, self.clock, self.heartbeat = sleeper, clock, heartbeat
         self._last, self._cache = {}, OrderedDict()
+        self.failure_limit = failure_limit
+        self._failures, self._blocked = {}, set()
+        if max_requests is not None and (type(max_requests) is not int or not 1 <= max_requests <= 1000):
+            raise ValueError('source_request_budget_invalid')
+        self.max_requests, self.requests_made = max_requests, 0
+
+    @property
+    def blocked_hosts(self):
+        return frozenset(self._blocked)
 
     def get(self, url, *, timeout=30, headers=None, allow_not_found=False):
         return self._get(url, timeout=timeout, headers=headers, allow_not_found=allow_not_found)
@@ -48,6 +59,24 @@ class HttpTransport:
             raise SourceError('source_json_invalid') from None
 
     def _get(self, url, *, timeout=30, headers=None, allow_not_found=False, params=None, json_response=False):
+        host = urlsplit(url).hostname
+        if host in self._blocked:
+            raise SourceError('source_batch_circuit_open')
+        try:
+            response = self._request(url, timeout=timeout, headers=headers, allow_not_found=allow_not_found,
+                                     params=params, json_response=json_response)
+        except SourceError as error:
+            if error.code in ('source_http_401', 'source_http_403', 'source_challenge_or_rate_limit'):
+                self._blocked.add(host)
+            elif error.code.startswith('source_http_') or error.code in ('source_request_failed', 'source_empty_response'):
+                self._failures[host] = self._failures.get(host, 0) + 1
+                if self._failures[host] >= self.failure_limit:
+                    self._blocked.add(host)
+            raise
+        self._failures[host] = 0
+        return response
+
+    def _request(self, url, *, timeout=30, headers=None, allow_not_found=False, params=None, json_response=False):
         parsed = urlsplit(url)
         if (parsed.scheme != 'https' or parsed.hostname not in self.ALLOWED_HOSTS
                 or parsed.username or parsed.password or parsed.port not in (None, 443) or parsed.fragment):
@@ -62,6 +91,8 @@ class HttpTransport:
             self._cache.move_to_end(key)
             return cached[1]
         for attempt in range(self.retries + 1):
+            if self.max_requests is not None and self.requests_made >= self.max_requests:
+                raise SourceError('source_request_budget_exhausted')
             if self.heartbeat:
                 self.heartbeat()
             delay = self.min_interval - (self.clock() - self._last.get(parsed.hostname, -self.min_interval))
@@ -74,6 +105,7 @@ class HttpTransport:
                            'timeout': timeout, 'allow_redirects': False}
                 if params is not None:
                     options['params'] = params
+                self.requests_made += 1
                 response = self.session.get(url, **options)
             except requests.RequestsError:
                 code = 'source_request_failed'
@@ -81,7 +113,8 @@ class HttpTransport:
                 if len(response.content if hasattr(response, 'content') else response.text.encode()) > 4 * 1024 * 1024:
                     raise SourceError('source_response_too_large')
                 if is_challenge(response):
-                    code = 'source_challenge_or_rate_limit'
+                    # Stop this run's host immediately; do not retry a challenge.
+                    raise SourceError('source_challenge_or_rate_limit')
                 elif response.status_code in (408, 500, 502, 503, 504):
                     code = f'source_http_{response.status_code}'
                 else:

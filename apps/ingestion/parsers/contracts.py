@@ -76,7 +76,7 @@ class ContractRegistryParser:
         result['_raw'] = raw
         return result
 
-    def fetch_page(self, page_number=1):
+    def fetch_page(self, page_number=1, *, include_parties=True):
         if type(page_number) is not int or page_number < 1:
             raise ValueError("page_number_must_be_positive")
         response = self._get(f"{self.BASE_URL}/ru/registry/contract?page={page_number}")
@@ -128,11 +128,17 @@ class ContractRegistryParser:
             identifiers.add(identifier)
             numbers.add(record["contract_number"])
             records.append(record)
-        for record in records:
-            parties = self.parse_bin_data(record["contract_gos_id"])
-            record['_raw'].update(parties.pop('_raw', {}))
-            record.update(parties)
+        if include_parties:
+            records = [self.complete_record(record) for record in records]
         return ContractPage(page_number, tuple(records), eof=not records)
+
+    def complete_record(self, record):
+        """Resolve only the selected contract slice, without mutating page fingerprints."""
+        record = {**record, '_raw': dict(record.get('_raw') or {})}
+        parties = self.parse_bin_data(record['contract_gos_id'])
+        record['_raw'].update(parties.pop('_raw', {}))
+        record.update(parties)
+        return record
 
     def iter_pages(self, start_page=1):
         page_number = start_page

@@ -87,10 +87,20 @@ def _public_profile(soup, bin_number, *, require_page_binding=False):
     for item in records:
         if item.get("@type") != "Person" or not isinstance(item.get("jobTitle"), str):
             continue
-        if item["jobTitle"].strip().casefold() not in roles:
+        role = item["jobTitle"].strip().casefold()
+        # The observed public schema uses a Latin P in this specific role label.
+        # Normalize this label only, never a person's name or identifier.
+        if role == 'pуководитель':
+            role = 'руководитель'
+        if role not in roles:
             continue
         bound = _company_page_matches(item.get("mainEntityOfPage"), bin_number)
         name = text(item.get("name"), 255)
+        if name is None:
+            family, given = text(item.get('familyName'), 255), text(item.get('givenName'), 255)
+            additional = text(item.get('additionalName'), 255)
+            if family and given:
+                name = text(' '.join(part for part in (family, given, additional) if part), 255)
         if bound and name:
             directors.add(name)
     if len(directors) > 1:

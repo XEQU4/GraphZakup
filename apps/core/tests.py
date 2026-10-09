@@ -53,7 +53,7 @@ class SettingsSafetyTests(SimpleTestCase):
     def test_explicit_opt_in_adds_schedule(self):
         configured = self.load_settings(ENABLE_SCHEDULED_IMPORT="true")
         self.assertEqual(configured["CELERY_BEAT_SCHEDULE"]["update-procurement-data"]["task"],
-                         "apps.core.tasks.update_all_data")
+                         "apps.core.tasks.collect_background")
 
     def test_test_settings_ignore_inherited_production_credentials(self):
         env = {"PGHOST": "production.example.invalid", "PGPASSWORD": "inherited-private-password",

@@ -225,3 +225,101 @@ No duplicate BIN/external contract ID, foreign selected fact, source-role mismat
 or future retrieval was found. The private audit used scrubbed settings, so its
 configuration subsection is not a statement about actual credentials. A new
 backup passed independent restoration after publication; see RECOVERY.md.
+
+## Fifty-company expansion, 8 October 2026
+
+A frozen next-50 selection excluded the earlier twelve companies. Public sources
+returned 48 Adata successes, one confirmed not-found and one temporary failure;
+the registry returned six successes, three ambiguous matches and 41 unavailable
+results (22 skipped after stopping that host). Repeated HTTP 302 responses had
+empty bodies; one later bounded diagnostic returned 200. Their destination/cause
+was not established. No redirects were followed. The interrupted capture resumed
+from saved source results without repeating completed requests.
+
+49 companies gained at least one successful source observation; five runs
+completed both sources and 45 remain partial. This is not complete verification
+of all fifty companies. The remaining 715 companies were not attempted in this
+batch. Production transport now stops a host after three consecutive failed
+operations, immediately on access denial/challenge/rate limiting, while leaving
+other hosts available. A new run is needed after addressing/waiting out the cause.
+
+After restoring the current backup, offline replay and preservation checks passed.
+One transaction published 100 company-source outcomes plus one verified KGD IP
+registration, retaining real retrieval times and failed-attempt distinctions.
+Normal ingestion services selected facts; one final refresh created five new
+graphs/analyses/templates, bringing active groups to nine. Original immutable
+histories, all contracts, accounts and the user's latest layout were preserved;
+726 companies outside the 50-plus-existing-IP selection were unchanged. Repeating
+the final refresh on the copy created no versions. No model inference occurred.
+
+505 PostgreSQL tests passed without skips. All 80 working API reads passed with
+50 table fingerprints unchanged. Reports/captures: ignored
+`artifacts/parser-expansion/`; the restored rehearsal database was dropped.
+Automatic collection remains disabled. Continue from the saved selection rather
+than blindly retrying every partial run or treating migration dates as freshness.
+
+## User-authorised continuous collection, 8 October 2026
+
+The user requested improvements to the real parsers and unattended collection.
+`ingestion.background` now owns bounded independent stages called by Celery and
+`collect_background`; parser adapters remain ORM-free. Separate cycle/pipeline
+leases, persisted due times/host pauses, oldest-attempt-first selection, six-hour
+failed-record delays and a 120-attempt transport budget prevent monopolised or
+unbounded cycles. Contracts-only runs no longer walk the entire company catalogue.
+Accepted partial data is followed by one fenced graph/template refresh; pending
+company seeds survive an interrupted refresh. No automatic model generation.
+
+Parser 2.3 recognises Adata's observed Latin-P leadership label and explicit name
+parts. Offline parsing of 48 captured pages recovered 28 labelled directors;
+no current owners were inferred from founder strings, which matched the director
+where both were present. Contract party pages are fetched only for the selected
+slice. Invalid/missing participant identifiers leave unresolved contract issues
+while valid records in that slice can commit atomically; network failures still
+stop without advancing that page. Skipped records count against the slice budget
+and remain partial, not silently successful. Later head scans can retry them;
+this is not exhaustive historical or tender-participant collection.
+
+The native Windows helper starts/stops one owned solo worker on `ingestion` and
+one persistent beat, with private logs and PID/start-time checks. Stop/restart was
+verified, including Windows PowerShell JSON-array handling. An initial probe
+encountered a pre-existing legacy task in Redis; it failed before contract writes.
+The final helper excludes that default queue and leaves its messages untouched.
+One real bounded iteration completed 4 registry profiles, 5 Adata profiles and
+2 KGD registration checks, with a partial contract stage and one ambiguous company.
+The later party-quarantine improvement passed isolated tests; its successful live
+contract-import path remains to be confirmed on a scheduled attempt. Subsequent
+due-time checks made zero HTTP calls and created no graph versions.
+
+Compose now routes ingestion to the worker and offers `docker-compose.full.yml`
+for explicit collection plus Ollama/Qwen. Configuration validates; full image/model
+execution is not claimed. The local .env is unchanged. Working data now changes
+through the authorised background service; pause it before a data-changing code
+change or backup comparison. Reports/backups: `artifacts/background-verification/`.
+
+Final gate: 524 isolated PostgreSQL tests passed without skips; complete Compose
+configuration validated. The final 2.3 worker then completed five additional
+Adata checks with five HTTP requests; a duplicate queued cycle made zero requests
+and created zero versions. Exactly one actual worker and beat remain running.
+The helper's Status retains prior source outcomes even when the last tick waited.
+No new working contracts are claimed yet (catalogue remains 777/500); the registry
+stages retain their saved cooldowns. The user's environment, dependency locks,
+learning files and next-app fingerprints remained equal.
+
+## Operational verification, 9 October 2026
+
+At 10:21 Asia/Qyzylorda, the scheduled parser 2.3 run imported 25 real contracts
+without skips and added 36 companies: 813 companies and 525 contracts total.
+Four of five registry profiles, five Adata profiles and two KGD registrations
+succeeded. One registry identity remains ambiguous. Duplicate BINs, duplicate
+contract registry IDs, missing customer links and customer identifier mismatches
+were all zero. A duplicate tick made no requests or new graph/analysis versions.
+KGD coverage is eight taxpayer registrations and three zero-arrears results
+dated 8 October; owner-history coverage is absent. Registry/Adata latest success
+coverage is only 25/73 companies; broad legacy-data gaps remain.
+
+Eight API projections passed through the normal-settings Django client inside a
+read-only PostgreSQL transaction. No live HTTP/browser success is claimed because
+port 8000 was unavailable. The prior 524-test report was reviewed, not rerun.
+Both owned background processes remain running. This confirms the previously
+unverified live contract path, not exhaustive backfill or full production readiness.
+Private read-only audit: artifacts/background-verification/current-audit.json.

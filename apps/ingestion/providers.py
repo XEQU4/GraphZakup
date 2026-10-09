@@ -7,14 +7,14 @@ from .normalizers import normalize_bin
 from .parsers.adata import fetch_company_data
 from .parsers.companies import SupplierRegistryParser
 from .parsers.contracts import ContractRegistryParser
-from .parsers.kgd import KgdParser, TAXPAYER_SOURCE, DEBT_SOURCE, LEGAL_TYPES
+from .parsers.kgd import KgdParser, TAXPAYER_SOURCE, DEBT_SOURCE, LEGAL_TYPES, REGISTRATION_TYPES
 from .transport import HttpTransport
 
 
 class SourceProviders:
     """One connection pool and pacing policy per run, shared by all adapters."""
     COMPANY_SOURCES = ('goszakup_supplier', 'adata')
-    VERSION = '2.2'
+    VERSION = '2.3'
 
     def __init__(self, heartbeat=None, transport=None):
         self.transport = transport or HttpTransport(
@@ -25,7 +25,10 @@ class SourceProviders:
         self._kgd = None
 
     def contract_page(self, number):
-        return self.contracts.fetch_page(number)
+        return self.contracts.fetch_page(number, include_parties=False)
+
+    def complete_contract(self, record):
+        return self.contracts.complete_record(record)
 
     def company(self, source, bin_number):
         bin_number = normalize_bin(bin_number)
@@ -75,7 +78,11 @@ class SourceProviders:
         except (ValueError, TypeError):
             return False
 
-    def kgd(self, source, bin_number, *, legal_entity_confirmed=False):
+    @property
+    def kgd_taxpayer_type(self):
+        return self.kgd_client().taxpayer_type
+
+    def kgd(self, source, bin_number, *, legal_entity_confirmed=False, taxpayer_name=''):
         bin_number = normalize_bin(bin_number)
         if source not in KgdParser.SOURCE_URLS:
             raise ValueError('kgd_source_invalid')
@@ -85,7 +92,8 @@ class SourceProviders:
             return SourceResult(source, f'company:{bin_number}', ResultStatus.NOT_CHECKED,
                                 parser_version=KgdParser.VERSION, source_url=KgdParser.SOURCE_URLS[source],
                                 error_code='kgd_configuration_invalid')
-        return client.fetch(source, bin_number, legal_entity_confirmed=legal_entity_confirmed)
+        return client.fetch(source, bin_number, legal_entity_confirmed=legal_entity_confirmed,
+                            taxpayer_name=taxpayer_name)
 
     def kgd_cache_allowed(self, source, bin_number):
         """Cache cannot bypass the credentials required by the selected service."""
@@ -96,5 +104,6 @@ class SourceProviders:
         if not client.ready:
             return False
         if source == TAXPAYER_SOURCE:
-            return client.taxpayer_type in LEGAL_TYPES
-        return source == DEBT_SOURCE and client._valid_token(client.account_tokens.get(bin_number))
+            return client.taxpayer_type in REGISTRATION_TYPES
+        return (source == DEBT_SOURCE and client.taxpayer_type in LEGAL_TYPES
+                and client._valid_token(client.account_tokens.get(bin_number)))

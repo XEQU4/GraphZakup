@@ -29,7 +29,7 @@ class TransportTests(SimpleTestCase):
         self.assertEqual(self.delays, [1.5])
 
     def test_retry_after_is_bounded_and_failed_responses_not_cached(self):
-        client = self.transport([response(429, headers={'Retry-After': '999999'}), response(), response()], retries=1, cache_ttl=0)
+        client = self.transport([response(503, headers={'Retry-After': '999999'}), response(), response()], retries=1, cache_ttl=0)
         client.get('https://goszakup.gov.kz/card/1')
         client.get('https://goszakup.gov.kz/card/1')
         self.assertEqual(self.session.get.call_count, 3)

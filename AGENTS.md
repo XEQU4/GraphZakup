@@ -337,3 +337,78 @@ changed; new current explanations are saved templates, without model inference.
 Private evidence/replay/publication reports: artifacts/parser-live/. Read the
 latest RECOVERY.md entry before another data-changing algorithm. No Git, entity
 page redesign, new source integration, localisation or Phase 8 was started.
+
+Latest authorised expansion, 8 October 2026: next 50 identifiers were frozen and
+attempted; 49 gained at least one successful source result, five completed both
+sources and 45 runs are partial. Adata: 48 success/one not-found/one unavailable;
+registry: six success/three ambiguous/41 unavailable (22 circuit-skipped).
+Temporary empty-body 302 responses prompted stopping that host; one later probe
+returned 200 but did not establish the redirect cause. Transport now stops a host
+after three consecutive failed operations and immediately for denial/challenge/
+rate limits; independent sources continue. No automatic follow-redirect bypass.
+KGD 3.3 accepts explicit source-confirmed IP registration with name and exact
+returned type, fences cross-type caches, and blocks IP legal-entity debt as
+unverified. One real registration is saved; no live IP debt request was made.
+Conflicting exact-identifier registry cards remain unresolved; no name merges.
+101 outcomes were replayed on a restored copy then published atomically through
+normal ingestion services; five new graph/analysis/template versions, nine active
+groups. No inference. Original histories, contracts, accounts and latest personal
+layout were preserved; 726 out-of-scope companies unchanged. 505 PostgreSQL tests
+and 80 read-only API GETs passed. Current verified backup and private reports are
+under artifacts/parser-expansion/; see RECOVERY.md. Next 715 companies have not
+been attempted; source gaps remain in this batch. Preserve frozen selection to
+avoid retrying completed HTTP calls. .env, dependencies, test.py and next-app
+unchanged. No Git or subsequent phase was started.
+
+User-authorised continuous collection (8 October 2026) supersedes the earlier
+automatic-collection prohibition: improve existing parsers and keep Celery beat
+collecting while development continues. apps/ingestion/background.py owns bounded
+independent contracts/profile/KGD stages with durable due times, host cooldowns,
+fair source-specific selection, request caps and cycle/pipeline leases. Partial
+accepted data refreshes graphs/templates; no automatic LLM calls. Adata parser
+2.3 fixes the observed Latin-P leadership label and explicit name parts; founder
+markup is not current ownership. Contracts resolve only the chosen party slice;
+unsupported identities remain unresolved issues, while network failures preserve
+the page checkpoint. Invalid rows count against the requested budget.
+scripts/background.ps1 Start/Status/Stop manages one owned native solo worker on
+the isolated ingestion queue and one beat. Logs/markers/schedule are ignored in
+artifacts/background/. Windows process ownership and stop/restart were checked;
+leave the final owned processes running as requested. Do not consume/purge the
+user's default Redis queue: an old queued legacy task was encountered during the
+initial probe and failed before contract writes. Existing Redis/PostgreSQL belong
+to the user. .env remains unchanged; collection flags are process-local.
+Before changing collection algorithms, stop this owned collector and verify a
+current backup, then restart after tests. Current working hashes legitimately
+change under scheduled collection. Recovery details and private reports are in
+artifacts/background-verification/. A real cycle completed four registry profiles,
+five Adata profiles and two KGD checks; contract stage was partial. The subsequent
+party-quarantine fix is offline-tested; successful live contract import under that
+fix is not yet claimed. Full Docker opt-in: docker-compose.full.yml plus local-ai
+profile; config validates, but full Linux stack/model startup and transfer of the
+native database still need verification. No Git, new paid/source integrations,
+entity redesign or localisation was performed.
+
+Final background gate: 524 PostgreSQL tests passed without skips. The final 2.3
+worker completed another five live Adata checks; duplicate tick made zero HTTP
+calls and no versions. One worker/beat remains running, verified with Status.
+Current native catalogue is still 777 companies/500 contracts; successful new
+contract imports under the quarantine fix remain unverified until a due registry
+cycle. Status retains individual source outcomes and UTC next-due times. Full
+Compose configuration validates; Windows collector start/stop/restart verified.
+Protected environment/dependencies/learning/next-app files stayed unchanged.
+
+Read-only operational verification, 9 October 2026 at 10:21 Asia/Qyzylorda:
+the running 2.3 collector completed a real 25-contract import without skips,
+adding 36 companies (813 companies/525 contracts total). The same cycle saved
+four registry profiles, five Adata profiles and two KGD registrations; one
+registry identity remained ambiguous. There are eight successful taxpayer
+registrations and three saved zero-arrears checks dated 8 October; no owner KGD
+history is implemented. A duplicate tick made zero HTTP requests/new versions.
+No duplicate BINs/contract registry IDs or customer-link mismatches were found.
+Eight normal-settings API client GETs passed in a PostgreSQL read-only transaction;
+port 8000 was unavailable, so live browser verification is not claimed. Prior
+524-test gate was inspected, not rerun. Both owned processes remain running.
+The catalogue still has substantial legacy coverage; contract polling covers a
+bounded registry-head slice, not exhaustive backfill. Report:
+artifacts/background-verification/current-audit.json. No ingestion algorithm,
+environment, migration or Git command changed in this verification.

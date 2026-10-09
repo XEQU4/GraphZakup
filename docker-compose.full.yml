@@ -1,0 +1,23 @@
+# Explicit complete-stack opt-in. The normal Compose file stays collection-off.
+# docker compose -f docker-compose.yml -f docker-compose.full.yml --profile local-ai up --build -d
+services:
+  web:
+    environment:
+      AI_PROVIDER: ollama
+      AI_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
+  worker:
+    environment:
+      AI_PROVIDER: ollama
+      AI_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
+      ENABLE_SCHEDULED_IMPORT: "true"
+      ENABLE_SCHEDULED_KGD: "true"
+      ENABLE_KGD_CHECKS: "true"
+    depends_on:
+      ollama-init:
+        condition: service_completed_successfully
+        required: true
+  beat:
+    environment:
+      ENABLE_SCHEDULED_IMPORT: "true"
+      ENABLE_SCHEDULED_KGD: "true"
+      ENABLE_KGD_CHECKS: "true"

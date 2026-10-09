@@ -8,6 +8,20 @@ from apps.ingestion.services import IngestionFailure, run_pipeline
 logger = logging.getLogger(__name__)
 
 
+@shared_task(name='apps.core.tasks.collect_background', ignore_result=True)
+def collect_background():
+    from apps.ingestion.background import run_background_cycle
+    try:
+        result = run_background_cycle()
+    except IngestionBusy:
+        return {'status': 'busy'}
+    except Exception:
+        logger.error('Background collection failed; inspect saved ingestion runs.')
+        return {'status': 'failed'}
+    logger.info('Background collection completed: %s; HTTP attempts: %s', result['status'], result.get('requests', 0))
+    return result
+
+
 @shared_task(
     bind=True,
     max_retries=2,

@@ -67,13 +67,15 @@ class SourceParserTests(SimpleTestCase):
                     parser.fetch_page(5)
 
     def test_http_challenge_and_network_error_are_not_empty_pages(self):
-        parser = ContractRegistryParser()
-        parser.transport.retries = 0
         for bad in (response("Service unavailable", 503), response("g-recaptcha", 200), response("", 200)):
+            parser = ContractRegistryParser()
+            parser.transport.retries = 0
             with self.subTest(status=bad.status_code), patch.object(parser.session, "get", return_value=bad):
                 with patch.object(parser.transport, 'sleeper'), self.assertRaises(SourceError):
                     parser.fetch_page(5)
         from curl_cffi.requests import RequestsError
+        parser = ContractRegistryParser()
+        parser.transport.retries = 0
         with patch.object(parser.session, "get", side_effect=RequestsError("private response")):
             with patch.object(parser.transport, 'sleeper'), self.assertRaises(SourceError) as caught:
                 parser.fetch_page(5)

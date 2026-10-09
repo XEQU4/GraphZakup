@@ -185,3 +185,25 @@ actual retrieval times. Accepted fact semantics and parser version remain 3.2.
 
 The full PostgreSQL gate passed 495 tests; KGD-specific coverage passed 43 tests.
 Reports and isolated evidence remain under ignored artifacts/parser-live/.
+
+## Entrepreneur registration, 8 October 2026
+
+One source-confirmed entrepreneur returned an exact-identifier SUCCESS with type
+IP from the official taxpayer endpoint. Parser 3.3 accepts explicit IP registration
+with the recorded company name in the request, verifies the returned requested
+type, and prevents registration-cache reuse across UL/UL_NR/IP types. The captured
+response was replayed offline into working registration history with its original
+retrieval time. No credential or default .env setting changed.
+
+IP registration does not authorize legal-entity debt collection: service and
+parser both block that path with `kgd_entrepreneur_debt_scope_unverified`. No live
+IP debt request was made; debt attribution and wider entitlement remain unverified.
+Existing three legal-entity debt successes remain intact. Synthetic tests cover
+type mismatches, name requirements, cache changes and the debt boundary.
+
+The ambiguous registry subject has two exact-identifier cards with conflicting
+names, addresses, registration dates and legal form. One explicitly says IP; the
+other has no legal form and reports 1970-01-01. Neither first-match nor latest-date
+selection establishes authoritative identity, so registry enrichment remains
+ambiguous. Both private cards are retained for review; no name merge was made.
+Official registration reference: https://portal.kgd.gov.kz/kk/pages/api-services/find-taxpayer.

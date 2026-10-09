@@ -32,7 +32,7 @@ class KgdParserTests(SimpleTestCase):
         self.parser = KgdParser(self.transport, enabled=True, portal_token='synthetic-portal-token',
                                 account_tokens={BIN: 'synthetic-account-token'})
 
-    def test_exact_bin_and_legal_entity_are_required(self):
+    def test_exact_identifier_and_supported_subject_type_are_required(self):
         data, raw = parse_taxpayer(fixture('taxpayer'), BIN)
         self.assertEqual(data['bin'], BIN)
         self.assertEqual(data['kgd_registration_begin'], date(2020, 1, 1))
@@ -42,7 +42,7 @@ class KgdParserTests(SimpleTestCase):
             payload['taxpayerPortalSearchResponses'][0]['code'] = value
             with self.subTest(value=value), self.assertRaises(ValueError):
                 parse_taxpayer(payload, BIN)
-        for kind in ('FL', 'IP', None):
+        for kind in ('FL', 'UNKNOWN', None):
             payload = fixture('taxpayer')
             payload['taxpayerPortalSearchResponses'][0]['taxpayerType'] = kind
             with self.subTest(kind=kind), self.assertRaises(ValueError):
@@ -91,7 +91,8 @@ class KgdParserTests(SimpleTestCase):
     def test_failed_lookup_envelope_requires_exact_legal_subject_and_valid_failure_shape(self):
         cases = (({'code': '000000000002'}, 'kgd_identity_mismatch'),
                  ({'code': None}, 'kgd_identity_mismatch'),
-                 ({'taxpayerType': 'IP'}, 'kgd_subject_not_legal_entity'),
+                 ({'taxpayerType': 'FL'}, 'kgd_subject_type_unsupported'),
+                 ({'taxpayerType': 'IP'}, 'kgd_subject_type_mismatch'),
                  ({'messageResult': 'SUCCESS'}, 'kgd_taxpayer_response_invalid'),
                  ({'errorMessage': ''}, 'kgd_taxpayer_response_invalid'),
                  ({'errorMessage': 'x' * 4097}, 'kgd_taxpayer_response_invalid'))

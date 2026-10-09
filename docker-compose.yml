@@ -28,6 +28,14 @@ x-backend: &backend
     PGPORT: "5432"
     CELERY_BROKER_URL: redis://redis:6379/0
     ENABLE_SCHEDULED_IMPORT: ${ENABLE_SCHEDULED_IMPORT:-false}
+    ENABLE_SCHEDULED_KGD: ${ENABLE_SCHEDULED_KGD:-false}
+    BACKGROUND_INTERVAL_SECONDS: ${BACKGROUND_INTERVAL_SECONDS:-900}
+    BACKGROUND_COMPANY_BATCH: ${BACKGROUND_COMPANY_BATCH:-5}
+    BACKGROUND_CONTRACT_BATCH: ${BACKGROUND_CONTRACT_BATCH:-25}
+    BACKGROUND_KGD_BATCH: ${BACKGROUND_KGD_BATCH:-2}
+    BACKGROUND_MAX_REQUESTS: ${BACKGROUND_MAX_REQUESTS:-120}
+    BACKGROUND_RETRY_SECONDS: ${BACKGROUND_RETRY_SECONDS:-21600}
+    BACKGROUND_SOURCE_COOLDOWN_SECONDS: ${BACKGROUND_SOURCE_COOLDOWN_SECONDS:-3600}
     INGESTION_LEASE_SECONDS: ${INGESTION_LEASE_SECONDS:-900}
     INGESTION_SOURCE_CACHE_SECONDS: ${INGESTION_SOURCE_CACHE_SECONDS:-900}
     INGESTION_REQUEST_INTERVAL: ${INGESTION_REQUEST_INTERVAL:-1.5}
@@ -114,7 +122,7 @@ services:
   worker:
     <<: *backend
     restart: unless-stopped
-    command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=1", "--hostname=worker@%h"]
+    command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=1", "--queues=celery,ingestion", "--hostname=worker@%h"]
     depends_on:
       migrate:
         condition: service_completed_successfully

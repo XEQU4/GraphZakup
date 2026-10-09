@@ -135,10 +135,12 @@ def enrichment_selection(total, force, days, company_bin, sources, version):
 
 
 def _new_run(mode, total, start_page, force, days, company_bin=None, kgd_service=None,
-             company_sources=None, provider_version=None):
+             company_sources=None, provider_version=None, contracts_only=False):
     mode = {'new': 'initial'}.get(mode, mode)
     if mode not in ('initial', 'update', 'full', 'enrich', 'kgd'):
         raise ValueError('invalid_ingestion_mode')
+    if type(contracts_only) is not bool or (contracts_only and mode in ('enrich', 'kgd')):
+        raise ValueError('invalid_contracts_only_mode')
     if total <= 0 or (start_page is not None and start_page < 1) or days <= 0:
         raise ValueError('invalid_ingestion_options')
     if company_sources is not None and mode != 'enrich':
@@ -173,7 +175,8 @@ def _new_run(mode, total, start_page, force, days, company_bin=None, kgd_service
     if company_bin is not None or kgd_service is not None:
         raise ValueError('kgd_options_require_kgd_mode')
     run = IngestionRun.objects.create(mode=mode, stage='enrichment' if mode == 'enrich' else 'contracts',
-                                     options={'total': total, 'force': force, 'days': days})
+                                     options={'total': total, 'force': force, 'days': days,
+                                              'contracts_only': contracts_only})
     if mode != 'enrich':
         checkpoint, created = SourceCheckpoint.objects.get_or_create(source='goszakup_contracts', stream=mode)
         # Compatibility for phase1 checkpoints created after migration (including offline fixtures).
@@ -197,7 +200,8 @@ def _new_run(mode, total, start_page, force, days, company_bin=None, kgd_service
 def _contracts_stage(run, lease, providers):
     limit = run.options['total']
     saved = run.counters.get('contracts', 0)
-    while saved < limit:
+    checked = run.counters.get('contract_rows_checked', saved)
+    while checked < limit:
         lease.heartbeat()
         number = run.next_page
         try:
@@ -211,7 +215,7 @@ def _contracts_stage(run, lease, providers):
                     lease.ensure_owned()
                     record_observation(run, SourceResult('goszakup_contracts', f'page:{number}', ResultStatus.NOT_FOUND,
                                                        parser_version=providers.VERSION))
-                    IngestionIssue.objects.filter(run=run, stage='contracts', page=number).update(resolved=True)
+                    IngestionIssue.objects.filter(run=run, stage='contracts', subject_key=f'page:{number}').update(resolved=True)
                 break
             page_hash = fingerprint(page.records)
             previous_page = run.counters.get('last_complete_contract_page', {})
@@ -219,23 +223,43 @@ def _contracts_stage(run, lease, providers):
                     and previous_page.get('fingerprint') == page_hash):
                 raise SourceError('contract_page_repeated')
             offset = run.offset if run.page_fingerprint == page_hash else 0
-            selected = page.records[offset:offset + limit - saved]
+            selected = page.records[offset:offset + limit - checked]
             if not selected:
                 raise SourceError('contract_page_offset_invalid')
+            completed, rejected = [], []
+            for item in selected:
+                try:
+                    completed.append(providers.complete_contract(item) if hasattr(providers, 'complete_contract') else item)
+                except SourceError as error:
+                    # An unsupported or ambiguous party must not block all valid
+                    # contracts. Network/challenge failures still stop the page.
+                    if error.code not in ('contract_party_identifier_invalid', 'contract_party_identifier_missing'):
+                        raise
+                    rejected.append((item, error.code))
             with transaction.atomic():
                 lease.ensure_owned()
-                for item in selected:
+                for item in completed:
                     save_contract(run, item)
+                    IngestionIssue.objects.filter(run=run, stage='contracts',
+                        subject_key=f'contract:{item["contract_gos_id"]}').update(resolved=True)
+                for item, code in rejected:
+                    subject = f'contract:{item["contract_gos_id"]}'
+                    issue(run, 'goszakup_contracts', subject, 'contracts', code, page=number)
+                    record_observation(run, SourceResult('goszakup_contracts', subject, ResultStatus.INVALID,
+                        parser_version=providers.VERSION, error_code=code,
+                        source_url=f'{ContractRegistryParser.BASE_URL}/ru/egzcontract/cpublic/show/{item["contract_gos_id"]}'))
                 consumed = offset + len(selected)
                 next_page = number + 1 if consumed == len(page.records) else number
                 next_offset = 0 if consumed == len(page.records) else consumed
                 SourceCheckpoint.objects.update_or_create(source='goszakup_contracts', stream=run.mode, defaults={
                     'next_page': next_page, 'offset': next_offset, 'page_fingerprint': page_hash if next_offset else '', 'run': run,
                 })
-                saved += len(selected)
+                saved += len(completed)
+                checked += len(selected)
                 run.next_page, run.offset = next_page, next_offset
                 run.page_fingerprint = page_hash if next_offset else ''
-                run.counters = {**run.counters, 'contracts': saved}
+                run.counters = {**run.counters, 'contracts': saved, 'contract_rows_checked': checked,
+                                'contracts_skipped': run.counters.get('contracts_skipped', 0) + len(rejected)}
                 if not next_offset:
                     run.counters['last_complete_contract_page'] = {'number': number, 'fingerprint': page_hash}
                 run.save(update_fields=['next_page', 'offset', 'page_fingerprint', 'counters', 'updated_at'])
@@ -243,7 +267,7 @@ def _contracts_stage(run, lease, providers):
                 key = {'initial': 'last_import_page', 'full': 'full_import_page', 'update': 'last_update_page'}[run.mode]
                 SystemSetting.objects.update_or_create(key=key, defaults={'value': str(next_page)})
                 SystemSetting.objects.update_or_create(key='last_import', defaults={'value': timezone.now().isoformat()})
-                IngestionIssue.objects.filter(run=run, stage='contracts', page=number).update(resolved=True)
+                IngestionIssue.objects.filter(run=run, stage='contracts', subject_key=f'page:{number}').update(resolved=True)
         except LeaseLost:
             raise
         except Exception as error:
@@ -258,9 +282,11 @@ def _contracts_stage(run, lease, providers):
                                                      parser_version=providers.VERSION,
                                                      error_code=code))
             raise IngestionFailure(run, code) from None
+    if run.issues.filter(stage='contracts', resolved=False).exists():
+        raise IngestionFailure(run, 'contract_parties_incomplete')
     with transaction.atomic():
         lease.ensure_owned()
-        run.stage = 'enrichment' if saved else 'complete'
+        run.stage = 'enrichment' if saved and not run.options.get('contracts_only') else 'complete'
         run.save(update_fields=['stage', 'updated_at'])
 
 
@@ -343,18 +369,32 @@ def _kgd_stage(run, lease, providers):
         lease.heartbeat()
         results = []
         for source in sources:
-            confirmed = bool(results and results[0].status == ResultStatus.SUCCESS)
+            registered_type = (results[0].data.get('kgd_taxpayer_type')
+                               if results and results[0].status == ResultStatus.SUCCESS else None)
+            confirmed = registered_type in {'UL', 'UL_NR'}
             try:
                 if source == DEBT_SOURCE and not confirmed:
                     result = SourceResult(source, f'company:{supplier.bin}', ResultStatus.NOT_CHECKED,
-                                          parser_version=KgdParser.VERSION, error_code='kgd_legal_entity_unconfirmed')
+                                          parser_version=KgdParser.VERSION, error_code=(
+                                              'kgd_entrepreneur_debt_scope_unverified' if registered_type == 'IP'
+                                              else 'kgd_legal_entity_unconfirmed'))
                 else:
+                    expected_type = getattr(providers, 'kgd_taxpayer_type', settings.KGD_TAXPAYER_TYPE)
                     cached = None
                     if not run.options['force'] and providers.kgd_cache_allowed(source, supplier.bin):
                         cached = cached_company_result(source, supplier, KgdParser.VERSION,
                                                        seconds=settings.KGD_SOURCE_CACHE_SECONDS)
-                    result = cached or providers.kgd(source, supplier.bin, legal_entity_confirmed=confirmed)
+                        # Empty/failed results do not carry a verified subject type.
+                        if source == TAXPAYER_SOURCE and cached and (
+                                cached.status != ResultStatus.SUCCESS
+                                or cached.data.get('kgd_taxpayer_type') != expected_type):
+                            cached = None
+                    result = cached or providers.kgd(source, supplier.bin, legal_entity_confirmed=confirmed,
+                                                     taxpayer_name=supplier.name)
                 result = normalize_kgd_result(result, source, supplier)
+                if (source == TAXPAYER_SOURCE and result.status == ResultStatus.SUCCESS
+                        and result.data.get('kgd_taxpayer_type') != expected_type):
+                    raise ValueError('kgd_subject_type_mismatch')
             except LeaseLost:
                 raise
             except Exception as error:
@@ -397,7 +437,8 @@ def _kgd_stage(run, lease, providers):
 
 
 def run_pipeline(*, mode='update', total=500, start_page=None, force=False, days=7,
-                 resume=None, providers=None, cluster_builder=None, company_bin=None, kgd_service=None, company_sources=None):
+                 resume=None, providers=None, cluster_builder=None, company_bin=None, kgd_service=None,
+                 company_sources=None, contracts_only=False):
     if resume is not None:
         run = IngestionRun.objects.get(uuid=uuid.UUID(str(resume)))
         if run.mode == 'legacy':
@@ -415,7 +456,7 @@ def run_pipeline(*, mode='update', total=500, start_page=None, force=False, days
             lease.ensure_owned()
             if run is None:
                 run = _new_run(mode, total, start_page, force, days, company_bin, kgd_service,
-                    company_sources, getattr(providers, 'VERSION', SourceProviders.VERSION))
+                    company_sources, getattr(providers, 'VERSION', SourceProviders.VERSION), contracts_only)
             else:
                 run.refresh_from_db()
                 run.status, run.error_code, run.finished_at = 'running', '', None

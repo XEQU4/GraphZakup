@@ -50,7 +50,7 @@ class FakeKgd:
     def __init__(self, responses=None):
         self.responses, self.calls = responses or {}, []
 
-    def kgd(self, source, bin_number, *, legal_entity_confirmed=False):
+    def kgd(self, source, bin_number, *, legal_entity_confirmed=False, taxpayer_name=''):
         self.calls.append((source, bin_number, legal_entity_confirmed))
         result = self.responses.get((source, bin_number))
         if isinstance(result, Exception):

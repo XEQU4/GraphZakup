@@ -214,6 +214,53 @@ Startup, shutdown without data loss, HTTPS and migration of an existing database
 
 ## Local development and verification
 
+### Background collection
+
+On Windows, with the existing local PostgreSQL, Redis and `.venv`, explicitly start
+the owned development collector:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/background.ps1 -Action Start
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/background.ps1 -Action Status
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/background.ps1 -Action Stop
+```
+
+Start opts in only for these processes; it does not edit `.env`. One solo worker
+consumes the separate `ingestion` queue and one beat stores its schedule under
+ignored `artifacts/background/`. Logs and process ownership records are there too.
+The default queue is deliberately not consumed, so historical queued tasks are
+not accidentally executed. This Windows helper is for development; deployment
+uses the Linux worker in Compose. Stop it before changing ingestion algorithms
+or starting another collector against the same database.
+
+Every 15 minutes the service checks independently due stages: up to 25 contract
+rows from the registry head (hourly), five companies per public source, and two
+eligible KGD subjects (at least 30 minutes between KGD stages). Per-cycle HTTP
+budget is 120, retries are disabled, and hosts are paced by at least three seconds.
+Fresh results wait seven days; failed company checks wait six hours. Host
+denial/rate limits and repeated failures pause that host, without blocking Adata.
+These bounds are configurable with `BACKGROUND_*`. This head window is not an
+exhaustive national tender/bid archive or a full historical backfill.
+
+Successful contract imports add supplier/customer companies. Evidence-backed
+directors remain unverified without identifiers; the available Adata founder
+markup is not a complete current ownership register. KGD uses explicit saved
+subject types and company-specific debt credentials; unavailable checks remain
+unknown. Each completed cycle refreshes saved graphs/templates, including after
+partial source failures; it does not run inference automatically.
+
+The explicit complete Docker configuration also starts Ollama/Qwen and enables
+the bounded collector, after configuring a separate `.env.docker` as above:
+
+```powershell
+docker compose --env-file .env.docker -f docker-compose.yml -f docker-compose.full.yml --profile local-ai up --build -d
+```
+
+The current native database is not automatically copied into the Docker volume.
+Compose configuration is checked; full image/model startup and data transfer still
+need deployment verification. Qwen is available to the existing explicit model
+jobs; source collection publishes templates until such a job is requested.
+
 The project requires Python 3.13 or later and Node 22.12 or later (Node 24 LTS recommended). Dependencies are defined in `pyproject.toml` and `uv.lock`. Set local credentials in `.env`; a real `SECRET_KEY` is required. Before running Django against an existing database, verify its backup, then apply migrations:
 
 ```powershell
