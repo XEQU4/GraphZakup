@@ -323,3 +323,44 @@ port 8000 was unavailable. The prior 524-test report was reviewed, not rerun.
 Both owned background processes remain running. This confirms the previously
 unverified live contract path, not exhaustive backfill or full production readiness.
 Private read-only audit: artifacts/background-verification/current-audit.json.
+
+## Resumable collection redesign, 9 October 2026
+
+User requested systematic collection, refresh and automatic saved AI rather than
+continued growth of unenriched records. Data reset was unnecessary. Head catch-up,
+archive reconciliation and independent repair now persist frozen page slices and
+positions. Rejected contract rows have a durable ContractRetry record/backoff;
+network errors retain position. Recent unchanged rows reuse party evidence.
+Profile queues reserve capacity for previously attempted records. KGD debt and
+registration have independent eligibility, with subject/credential restrictions
+preserved. Discovery pauses above the first-attempt enrichment backlog threshold.
+One transient timeout no longer postpones all healthy subjects for an hour.
+
+Automatic local-only AI uses a separate queue/worker and existing deduplicated,
+version-fenced jobs. Failed generation retains a template and waits six hours;
+lost pending messages can be replayed. Native Start includes Ollama and two workers;
+Stop requests graceful task completion. The user's default Redis queue is untouched.
+Full Compose includes the AI worker; configuration validates, Linux runtime is unverified.
+
+544 PostgreSQL tests passed before the final timeout adjustment; 32 focused tests
+then passed including its new regression. Restored-copy migration forward/reverse/
+reapply preserved original rows. Three isolated real-source crawl slices succeeded
+with six HTTP requests: restart consumed frozen rows, and unchanged parties were
+reused. Working migration applied. The first live cycle increased saved KGD
+registrations from eight to fourteen, with transient source failures still visible.
+Eight real local model jobs succeeded before a verified graceful stop/restart.
+Private reports/recovery: artifacts/collection-v2/.
+
+This is not a proof of complete national coverage: mutable HTML pages require
+repeated reconciliation; the archive has not been fully traversed. Unsupported
+owner histories, IP debt, missing company entitlements and ambiguous source records
+remain explicit gaps. No new court/bankruptcy/blacklist source, data deletion,
+paid generation, localisation or Git command was performed.
+
+Final native check: nine automatic Qwen jobs succeeded and all nine current saved
+texts use Ollama. After transient transport errors, bounded recheck succeeded:
+ten Adata and ten KGD registrations in the last completed cycle, 24 registrations
+total. Registry still has two ambiguous identities. Discovery is intentionally
+held at 813 companies/525 contracts while 729 await first profile attempts.
+Host/numerical-curl diagnostics exclude exception messages and credentials; five
+transport/privacy tests passed. Final report: artifacts/collection-v2/final-verification.json.

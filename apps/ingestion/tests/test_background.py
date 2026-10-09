@@ -14,6 +14,7 @@ from apps.ingestion.models import IngestionRun
 from apps.ingestion.observations import record_observation
 from apps.ingestion.parsers.contracts import ContractPage
 from apps.ingestion.services import run_pipeline
+from apps.ingestion.collection import eligible_kgd
 from .helpers import FakeProviders, contract_record
 
 
@@ -50,7 +51,7 @@ class BackgroundTests(TestCase):
     def test_broken_contract_source_does_not_prevent_adata_and_final_refresh(self):
         provider = BackgroundProvider(results={('adata', self.first.bin): {'name': 'Updated'}})
         provider.pages[1] = SourceError('source_http_502')
-        with patch('apps.ingestion.background.refresh_graph_analysis', return_value={'changed': True}) as refresh:
+        with patch('apps.ingestion.collection.refresh_graph_analysis', return_value={'changed': True}) as refresh:
             result = run_background_cycle(providers=provider)
         self.assertEqual(result['stages']['goszakup_contracts']['status'], 'partial')
         self.assertEqual(result['stages']['adata']['status'], 'completed')
@@ -69,6 +70,41 @@ class BackgroundTests(TestCase):
         self.observe(self.first, status='invalid', hours=10)
         self.assertEqual(list(due_companies('adata', version='2.0', now=timezone.now(), limit=2)), [self.second, self.first])
 
+    def test_expired_results_keep_capacity_while_new_companies_arrive(self):
+        self.observe(self.first, hours=200)
+        Supplier.objects.create(bin='000000000003', name='Another new company')
+        selected = list(due_companies('adata', version='2.0', now=timezone.now(), limit=2))
+        self.assertIn(self.first, selected)
+        self.assertIn(self.second, selected)
+
+    def test_fresh_registration_does_not_hide_missing_debt_check(self):
+        self.observe(self.first, source='kgd_taxpayer', version='3.3',
+            data={'bin': self.first.bin, 'kgd_taxpayer_type': 'UL'})
+        client = SimpleNamespace(account_tokens={self.first.bin: 'offline-token'}, _valid_token=bool)
+        provider = SimpleNamespace(kgd_client=lambda: client)
+        self.assertEqual(eligible_kgd(provider, 'kgd_taxpayer', timezone.now()), [])
+        self.assertEqual(eligible_kgd(provider, 'kgd_tax_debt', timezone.now()), [(self.first, 'UL')])
+
+    def test_debt_without_company_credential_and_ip_are_not_requested(self):
+        self.observe(self.first, source='kgd_taxpayer', version='3.3',
+            data={'bin': self.first.bin, 'kgd_taxpayer_type': 'UL'})
+        self.observe(self.second, source='kgd_taxpayer', version='3.3',
+            data={'bin': self.second.bin, 'kgd_taxpayer_type': 'IP'})
+        client = SimpleNamespace(account_tokens={self.second.bin: 'offline-token'}, _valid_token=bool)
+        self.assertEqual(eligible_kgd(SimpleNamespace(kgd_client=lambda: client), 'kgd_tax_debt', timezone.now()), [])
+
+    @override_settings(BACKGROUND_ENRICHMENT_HIGH_WATER=10)
+    def test_discovery_waits_for_existing_profile_backlog(self):
+        for number in range(3, 15):
+            Supplier.objects.create(bin=f'{number:012}', name='Waiting company')
+        provider = BackgroundProvider()
+        with patch('apps.ingestion.collection.refresh_graph_analysis', return_value={}):
+            result = run_background_cycle(providers=provider)
+        self.assertEqual(result['stages']['goszakup_contracts']['status'], 'enrichment_backlog')
+        self.assertEqual(result['stages']['contract_history']['status'], 'enrichment_backlog')
+        self.assertEqual(provider.page_calls, [])
+        self.assertTrue(provider.company_calls)
+
     def test_fresh_success_does_not_need_repeat_collection(self):
         self.observe(self.first)
         self.observe(self.second, hours=200)
@@ -81,7 +117,7 @@ class BackgroundTests(TestCase):
         finally:
             lease.release()
         provider = BackgroundProvider()
-        with patch('apps.ingestion.background.refresh_graph_analysis', return_value={}):
+        with patch('apps.ingestion.collection.refresh_graph_analysis', return_value={}):
             run_background_cycle(providers=provider)
             provider.page_calls.clear()
             provider.company_calls.clear()
@@ -93,11 +129,22 @@ class BackgroundTests(TestCase):
     def test_closed_registry_circuit_still_allows_adata(self):
         provider = BackgroundProvider()
         provider.transport.blocked_hosts.add('old.goszakup.gov.kz')
-        with patch('apps.ingestion.background.refresh_graph_analysis', return_value={}):
+        with patch('apps.ingestion.collection.refresh_graph_analysis', return_value={}):
             result = run_background_cycle(providers=provider)
         self.assertEqual(provider.page_calls, [])
         self.assertEqual(provider.company_calls, [('adata', self.first.bin)])
         self.assertEqual(result['stages']['goszakup_supplier']['status'], 'source_paused')
+
+    def test_isolated_timeout_does_not_pause_the_whole_healthy_source_for_an_hour(self):
+        provider = BackgroundProvider(results={('adata', self.first.bin): SourceResult('adata',
+            f'company:{self.first.bin}', ResultStatus.UNAVAILABLE, error_code='source_request_failed')})
+        with patch('apps.ingestion.collection.refresh_graph_analysis', return_value={}):
+            run_background_cycle(providers=provider)
+        state = read_state('adata')
+        from datetime import datetime
+        interval = datetime.fromisoformat(state['next_due']) - datetime.fromisoformat(state['finished_at'])
+        self.assertLess(interval.total_seconds(), 300)
+        self.assertEqual(state['status'], 'partial')
 
     def test_type_detection_never_uses_name_or_identifier_shape(self):
         self.first.name = 'IP Synthetic'
@@ -114,10 +161,10 @@ class BackgroundTests(TestCase):
 
     def test_status_retains_previous_source_outcome_and_does_not_collect(self):
         provider = BackgroundProvider()
-        with patch('apps.ingestion.background.refresh_graph_analysis', return_value={}):
+        with patch('apps.ingestion.collection.refresh_graph_analysis', return_value={}):
             run_background_cycle(providers=provider)
             run_background_cycle(providers=provider)
-        with patch('apps.ingestion.background.run_pipeline', side_effect=AssertionError('unexpected collection')):
+        with patch('apps.ingestion.collection.run_pipeline', side_effect=AssertionError('unexpected collection')):
             state = collection_status()
         self.assertEqual(state['latest_cycle']['stages']['adata']['status'], 'waiting')
         self.assertEqual(state['sources']['adata']['status'], 'completed')

@@ -119,6 +119,17 @@ class IngestionIssue(models.Model):
                                               name='ingestion_issue_subject_unique')]
 
 
+class ContractRetry(models.Model):
+    """A rejected registry row remains actionable independently of page movement."""
+    external_id = models.PositiveBigIntegerField(unique=True)
+    record = models.JSONField(default=dict)
+    error_code = models.CharField(max_length=80)
+    attempts = models.PositiveIntegerField(default=0)
+    next_attempt_at = models.DateTimeField(default=timezone.now, db_index=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 class PersonSourceIdentity(models.Model):
     person = models.ForeignKey('owners.PersonIdentity', on_delete=models.PROTECT, related_name='source_identities')
     supplier = models.ForeignKey('companies.Supplier', on_delete=models.PROTECT)

@@ -306,3 +306,22 @@ are implemented. `docker-compose.full.yml` prepares collection plus Ollama/Qwen;
 actual full-container execution/data transfer remain deployment work. See the
 latest PHASE2 and RECOVERY entries. This does not add new court/blacklist sources,
 prove current ownership, enable paid inference or start localisation.
+
+## Agreed next steps, 9 October 2026
+
+The resumable collection implementation is ready to save as an incremental
+milestone; this does not certify complete source coverage. Leave the authorised
+collector running and monitor gaps. Next proposed task: refine company/person
+detail pages around sourced facts, retrieval dates, relationships/contracts,
+KGD registration versus debt, and explicit unknown/unverified states. Then verify
+the complete Docker stack with an explicit native-data transfer/recovery rehearsal
+and end-to-end workflows. Source entitlement/ownership/IP-debt limitations must
+remain visible and require separate integration decisions.
+
+After the remaining work, the user requests a complete project audit with their
+preferred model label "GPT6AstraPro"; their current preference is "GPT6Astra"
+with high reasoning. These are recorded preferences, not confirmation of model
+availability or a model switch. Final audit should cover architecture, security,
+parsers/data quality, graph/AI evidence and versioning, API/UI, performance,
+tests and deployment/recovery. Do not start that final audit or the next task
+automatically. Git remains user-operated.

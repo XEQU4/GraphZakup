@@ -316,3 +316,26 @@ explicitly authorised and running; future table differences are expected. Stop t
 owned collector before modifying ingestion algorithms and verify a fresh recovery
 point against the then-current state. Never compare an active collector with an
 old static baseline and treat all differences as corruption.
+
+## Collection redesign, 9 October 2026
+
+The owned collector was stopped before changes. Fresh recovery:
+`artifacts/collection-v2/recovery/database_20261009T054153Z_ee92c64d.json`.
+Independent restoration passed. Migration ingestion.0007 adds only ContractRetry;
+forward/reverse/reapply were checked on a separately restored owned database.
+All 47 non-permission/migration tables matched exactly; original permission/content
+type rows were preserved (Django adds entries for the new model). Reverse restored
+the original schema/migration rows; new content-type/permission entries are retained
+by Django. The owned copy was dropped; working data stayed unchanged during rehearsal.
+
+The working migration was then applied and authorised collection/local generation
+resumed. After the first live cycle, graceful shutdown and another verified restore
+produced `artifacts/collection-v2/recovery-live/database_20261009T061843Z_e3d52472.json`.
+This recovery point includes the new table and automatic saved model texts; all
+51 tables and migration history matched. Collection resumes afterwards, so later
+source differences are expected. Never delete source companies/history to reset coverage.
+
+Before adding safe transport diagnostics, a further graceful stop and independent
+restore passed: `artifacts/collection-v2/recovery-diagnostics/database_20261009T062729Z_6f01e3d2.json`.
+The collector was subsequently restarted. This is the latest recorded recovery
+point, not a static baseline for the now-running collector.

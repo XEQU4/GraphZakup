@@ -412,3 +412,44 @@ The catalogue still has substantial legacy coverage; contract polling covers a
 bounded registry-head slice, not exhaustive backfill. Report:
 artifacts/background-verification/current-audit.json. No ingestion algorithm,
 environment, migration or Git command changed in this verification.
+
+Latest user-authorised collection redesign, 9 October 2026, supersedes the old
+head-only/template-only background limitations. Ingestion now has persistent head,
+history and repair streams, frozen page slices, unchanged-party reuse, durable
+ContractRetry/backoff, fair profile refresh, independent KGD debt eligibility and
+enrichment backlog backpressure. Migration ingestion.0007 is applied after verified
+forward/reverse/reapply on a restored copy; no working records were deleted.
+Native Start opts in to local Ollama/Qwen and a separate iz2-ai worker; Stop waits
+for active tasks. Automatic model jobs reuse existing dedup/version fences, preserve
+templates on failure and never use paid providers. Default .env remains unchanged;
+GET remains read-only. The default Redis queue remains unconsumed by native helpers.
+544 full PostgreSQL tests passed, then 32 targeted tests after a live-discovered
+isolated-timeout cooldown fix. Three live crawl slices passed in an owned restored
+copy (six requests). First working cycle saved six additional KGD registrations;
+eight automatic real Qwen jobs succeeded before graceful stop/restart. Recovery:
+artifacts/collection-v2/recovery-live/database_20261009T061843Z_e3d52472.json.
+See latest PHASE2/RECOVERY entries. Full archive traversal, Linux stack runtime,
+owner histories, IP debt and broad debt entitlement remain unverified/unimplemented
+as applicable. Do not promise every field will become known or delete the source
+database to hide gaps. Current owned collector/model processes should stay running;
+stop them and verify fresh recovery before further data-changing algorithms.
+
+Final live check for that redesign: all nine current explanations are real saved
+Ollama results; the last completed cycle saved ten Adata results and ten KGD
+registrations (24 total). Registry retained two ambiguous identities. Catalogue
+813/525 is intentionally held while 729 companies await first attempts from both
+profile sources. Earlier simultaneous transport failures recovered on bounded
+recheck; host-only numerical curl diagnostics now omit exception text/credentials
+(five transport tests passed). Graceful Stop/Start was verified twice. Latest
+verified recovery before diagnostic logging:
+artifacts/collection-v2/recovery-diagnostics/database_20261009T062729Z_6f01e3d2.json.
+Final report: artifacts/collection-v2/final-verification.json. Owned ingestion/AI
+workers, beat and local Ollama remain running. No Git commands ran.
+
+9 October follow-up: the user wants to save the collection milestone, then continue
+with company/person detail pages and complete-stack verification. They request a
+full project audit after remaining work, preferably using their label
+"GPT6AstraPro"; current model preference is "GPT6Astra", high reasoning. Record
+these as preferences, without claiming availability or silently switching models.
+See the latest ROADMAP entry. Source coverage is still incomplete; commitment of
+the implementation is not a production-readiness or complete-data certification.

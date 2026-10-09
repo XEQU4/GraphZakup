@@ -2,12 +2,15 @@
 from collections import OrderedDict
 from decimal import Decimal
 import json
+import logging
 from time import monotonic, sleep
 from urllib.parse import urlsplit
 
 from curl_cffi import requests
 
 from .errors import SourceError, is_challenge, require_html_response
+
+logger = logging.getLogger(__name__)
 
 
 class HttpTransport:
@@ -107,7 +110,10 @@ class HttpTransport:
                     options['params'] = params
                 self.requests_made += 1
                 response = self.session.get(url, **options)
-            except requests.RequestsError:
+            except requests.RequestsError as error:
+                # Never log the exception message: it can contain authenticated URLs.
+                logger.warning('Source transport failed: host=%s curl_code=%s', parsed.hostname,
+                               int(getattr(error, 'code', 0) or 0))
                 code = 'source_request_failed'
             else:
                 if len(response.content if hasattr(response, 'content') else response.text.encode()) > 4 * 1024 * 1024:

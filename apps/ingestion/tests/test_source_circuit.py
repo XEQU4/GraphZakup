@@ -5,9 +5,20 @@ from django.test import SimpleTestCase
 
 from apps.ingestion.errors import SourceError
 from apps.ingestion.transport import HttpTransport
+from curl_cffi import requests
 
 
 class SourceCircuitTests(SimpleTestCase):
+    def test_transport_diagnostic_never_logs_authenticated_exception_text(self):
+        session = Mock()
+        session.get.side_effect = requests.RequestsError('private-token-in-authenticated-url', code=28)
+        client = HttpTransport(session=session, retries=0)
+        with self.assertLogs('apps.ingestion.transport', level='WARNING') as output:
+            with self.assertRaisesMessage(SourceError, 'source_request_failed'):
+                client.get_json('https://portal.kgd.gov.kz/', params={'token': 'private-token'})
+        self.assertIn('curl_code=28', output.output[0])
+        self.assertNotIn('private-token', output.output[0])
+
     def transport(self, statuses, retries=0):
         session = Mock()
         session.get.side_effect = [SimpleNamespace(status_code=status, text='Synthetic response', headers={})

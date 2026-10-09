@@ -36,16 +36,24 @@ if ($Action -eq 'Status') {
     exit $LASTEXITCODE
 }
 if ($Action -eq 'Stop') {
-    # Stop beat first. Only this helper's recorded processes are touched.
-    foreach ($role in @('beat', 'worker')) {
-        foreach ($record in @($records | Where-Object Role -eq $role)) {
-            $owned = Get-OwnedProcess $record
-            if ($owned) { Stop-Process -Id $owned.Id }
+    # Stop scheduling, then let each owned worker finish its current task.
+    foreach ($record in @($records | Where-Object Role -eq 'beat')) {
+        $owned = Get-OwnedProcess $record
+        if ($owned) { Stop-Process -Id $owned.Id }
+    }
+    $activeWorkers = @($records | Where-Object { $_.Role -in @('worker', 'ai-worker') -and (Get-OwnedProcess $_) })
+    if ($activeWorkers.Count) {
+        & $python $helper shutdown
+        if ($LASTEXITCODE -ne 0) { throw 'Graceful shutdown request failed; workers were not force-stopped.' }
+        $deadline = [DateTime]::UtcNow.AddMinutes(8)
+        while (@($activeWorkers | Where-Object { Get-OwnedProcess $_ }).Count) {
+            if ([DateTime]::UtcNow -ge $deadline) { throw 'Workers are still finishing tasks. Check Status; no forced termination was performed.' }
+            Start-Sleep -Milliseconds 500
         }
     }
     $beatPidFile = Join-Path $runtimeFolder 'beat.pid'
     if (Test-Path -LiteralPath $beatPidFile) { Remove-Item -LiteralPath $beatPidFile }
-    Write-Output 'Owned worker and beat stopped. Redis, PostgreSQL and saved data are retained.'
+    Write-Output 'Owned collection/AI workers and beat stopped. Redis, PostgreSQL, Ollama and saved data are retained.'
     exit 0
 }
 foreach ($record in $records) {
@@ -54,9 +62,11 @@ foreach ($record in $records) {
 & $python $helper ping
 if ($LASTEXITCODE -ne 0) { throw 'Redis is unavailable. Start your local Redis service or Docker Desktop first.' }
 New-Item -ItemType Directory -Path $runtimeFolder -Force | Out-Null
+& (Join-Path $PSScriptRoot 'local_ai.ps1')
+if ($LASTEXITCODE -ne 0) { throw 'Local AI startup failed. No collector was started.' }
 $records = @()
 $stamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfff')
-foreach ($role in @('worker', 'beat')) {
+foreach ($role in @('worker', 'ai-worker', 'beat')) {
     $pidRecordPath = Join-Path $runtimeFolder "$role-pid.json"
     # The helper writes its actual Python PID, including through the venv launcher.
     $startedAfter = [DateTime]::UtcNow

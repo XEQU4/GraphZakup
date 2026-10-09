@@ -12,6 +12,21 @@ services:
       ENABLE_SCHEDULED_IMPORT: "true"
       ENABLE_SCHEDULED_KGD: "true"
       ENABLE_KGD_CHECKS: "true"
+      ENABLE_BACKGROUND_AI: "true"
+      AI_ALLOW_PAID: "false"
+      AI_TIMEOUT_SECONDS: "180"
+      AI_MAX_OUTPUT_TOKENS: "2048"
+    depends_on:
+      ollama-init:
+        condition: service_completed_successfully
+        required: true
+  ai-worker:
+    environment:
+      AI_PROVIDER: ollama
+      AI_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
+      AI_ALLOW_PAID: "false"
+      AI_TIMEOUT_SECONDS: "180"
+      AI_MAX_OUTPUT_TOKENS: "2048"
     depends_on:
       ollama-init:
         condition: service_completed_successfully

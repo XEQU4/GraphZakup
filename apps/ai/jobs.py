@@ -26,7 +26,7 @@ def set_target(cluster, job):
 
 
 @transaction.atomic
-def request_analysis(user, cluster_id, *, use_model=True, retry_model=False):
+def request_analysis(user, cluster_id, *, use_model=True, retry_model=False, queue=None):
     if user is not None and (not user.is_authenticated or not user.is_staff):
         raise ValueError('staff_required')
     if type(use_model) is not bool or type(retry_model) is not bool:
@@ -55,13 +55,16 @@ def request_analysis(user, cluster_id, *, use_model=True, retry_model=False):
     job = AnalysisJob.objects.create(requested_by=user, graph_snapshot=graph,
         input_hash=signature, dedup_key=key, as_of=as_of, options=generation_options(config))
     set_target(cluster, job)
-    transaction.on_commit(lambda: enqueue(job.pk))
+    transaction.on_commit(lambda: enqueue(job.pk, queue=queue) if queue else enqueue(job.pk))
     return job, True
 
 
-def enqueue(pk):
+def enqueue(pk, *, queue=None):
     try:
-        analyse_cluster_task.delay(pk)
+        if queue:
+            analyse_cluster_task.apply_async(args=[pk], queue=queue)
+        else:
+            analyse_cluster_task.delay(pk)
     except Exception:
         AnalysisJob.objects.filter(pk=pk, status='pending').update(
             status='failed', error_code='broker_unavailable', finished_at=timezone.now())
