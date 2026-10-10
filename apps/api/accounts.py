@@ -8,7 +8,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import ScopedRateThrottle
+from .throttling import AuthenticationThrottle
 
 from .auth import LoginSessionAuthentication, SessionSerializer, session_result
 from .common import ApiError, ApiView, StrictSerializer
@@ -147,7 +147,7 @@ class AccountGraphViewList(ApiListView):
 
 class RegisterView(ApiView):
     authentication_classes = [LoginSessionAuthentication]
-    throttle_classes = [ScopedRateThrottle]
+    throttle_classes = [AuthenticationThrottle]
     throttle_scope = 'api_register'
 
     @extend_schema(request=RegisterSerializer, responses={201: SessionSerializer},
@@ -172,7 +172,7 @@ class RegisterView(ApiView):
 
 class ProfileView(ApiView):
     permission_classes = [IsAuthenticated]
-    throttle_classes = [ScopedRateThrottle]
+    throttle_classes = [AuthenticationThrottle]
     throttle_scope = 'api_account'
 
     @extend_schema(responses=ProfileSerializer, description='Read only the current account profile.')
@@ -198,7 +198,7 @@ class ProfileView(ApiView):
 
 class PasswordView(ApiView):
     permission_classes = [IsAuthenticated]
-    throttle_classes = [ScopedRateThrottle]
+    throttle_classes = [AuthenticationThrottle]
     throttle_scope = 'api_password'
 
     @extend_schema(request=PasswordSerializer, responses=SessionSerializer,

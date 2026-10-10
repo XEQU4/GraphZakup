@@ -2,10 +2,24 @@
 # New installations can set COMPOSE_PROJECT_NAME=iz2 in their private environment.
 name: ${COMPOSE_PROJECT_NAME:-governmentprocurementgraph}
 
+x-logging: &bounded-logging
+  driver: json-file
+  options:
+    max-size: ${DOCKER_LOG_MAX_SIZE:-10m}
+    max-file: "${DOCKER_LOG_MAX_FILES:-3}"
+
 x-backend: &backend
   image: ${COMPOSE_PROJECT_NAME:-governmentprocurementgraph}-backend:local
   # Only migrate builds this tag; the other services reuse its local image.
   pull_policy: never
+  init: true
+  read_only: true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  logging: *bounded-logging
+  pids_limit: ${BACKEND_PIDS_LIMIT:-128}
   environment: &backend-env
     DJANGO_LOAD_DOTENV: "false"
     GPG_LOG_TO_FILES: "false"
@@ -27,6 +41,9 @@ x-backend: &backend
     PGHOST: db
     PGPORT: "5432"
     CELERY_BROKER_URL: redis://redis:6379/0
+    AUTH_THROTTLE_REDIS_URL: redis://redis:6379/1
+    AUTH_THROTTLE_KEY_PREFIX: ${AUTH_THROTTLE_KEY_PREFIX:-iz2:auth:v1}
+    AUTH_TRUSTED_PROXY_CIDRS: ${AUTH_TRUSTED_PROXY_CIDRS:-}
     ENABLE_SCHEDULED_IMPORT: ${ENABLE_SCHEDULED_IMPORT:-false}
     ENABLE_SCHEDULED_KGD: ${ENABLE_SCHEDULED_KGD:-false}
     BACKGROUND_INTERVAL_SECONDS: ${BACKGROUND_INTERVAL_SECONDS:-60}
@@ -51,7 +68,8 @@ x-backend: &backend
     AI_MODEL: ${AI_MODEL:-}
     AI_MODEL_REVISION: ${AI_MODEL_REVISION:-}
     AI_BASE_URL: ${AI_BASE_URL:-}
-    AI_OLLAMA_BASE_URL: http://ollama:11434
+    # Keep native AI_OLLAMA_BASE_URL separate from the selected container runtime.
+    AI_OLLAMA_BASE_URL: ${DOCKER_OLLAMA_BASE_URL:-http://ollama:11434}
     AI_API_KEY: ${AI_API_KEY:-}
     AI_ALLOW_PAID: ${AI_ALLOW_PAID:-false}
     AI_EXPERIMENTAL_SCORING: ${AI_EXPERIMENTAL_SCORING:-false}
@@ -69,11 +87,23 @@ x-backend: &backend
     KGD_SOURCE_CACHE_SECONDS: ${KGD_SOURCE_CACHE_SECONDS:-900}
     KGD_RESULT_MAX_AGE_DAYS: ${KGD_RESULT_MAX_AGE_DAYS:-7}
     PORT: "8000"
+    WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+    GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}
+    GUNICORN_GRACEFUL_TIMEOUT: ${GUNICORN_GRACEFUL_TIMEOUT:-30}
+    GUNICORN_MAX_REQUESTS: ${GUNICORN_MAX_REQUESTS:-1000}
+    GUNICORN_MAX_REQUESTS_JITTER: ${GUNICORN_MAX_REQUESTS_JITTER:-100}
 
 services:
   db:
     image: postgres:17-alpine
     restart: unless-stopped
+    logging: *bounded-logging
+    security_opt: [no-new-privileges:true]
+    mem_limit: ${DB_MEMORY_LIMIT:-1g}
+    cpus: ${DB_CPU_LIMIT:-1.0}
+    pids_limit: ${DB_PIDS_LIMIT:-128}
+    shm_size: ${DB_SHM_SIZE:-128m}
+    stop_grace_period: 60s
     environment:
       POSTGRES_DB: ${DB_NAME:-suppliergraph}
       POSTGRES_USER: ${DB_USER:-suppliergraph}
@@ -90,7 +120,14 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
+    logging: *bounded-logging
+    security_opt: [no-new-privileges:true]
+    mem_limit: ${REDIS_MEMORY_LIMIT:-512m}
+    cpus: ${REDIS_CPU_LIMIT:-0.5}
+    pids_limit: ${REDIS_PIDS_LIMIT:-64}
+    stop_grace_period: 60s
+    # Broker keys must never be silently evicted. Leave headroom for AOF rewrite.
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "${REDIS_MAXMEMORY:-192mb}", "--maxmemory-policy", "noeviction"]
     volumes:
       - redis_data:/data
     healthcheck:
@@ -104,6 +141,8 @@ services:
     build: .
     command: ["python", "manage.py", "migrate", "--noinput"]
     restart: "no"
+    mem_limit: ${MIGRATE_MEMORY_LIMIT:-512m}
+    cpus: ${MIGRATE_CPU_LIMIT:-1.0}
     depends_on:
       db:
         condition: service_healthy
@@ -111,8 +150,15 @@ services:
   web:
     <<: *backend
     restart: unless-stopped
+    mem_limit: ${WEB_MEMORY_LIMIT:-512m}
+    cpus: ${WEB_CPU_LIMIT:-1.0}
+    stop_grace_period: ${WEB_STOP_GRACE_PERIOD:-45s}
     ports:
-      - "${WEB_BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-8000}:8000"
+      - "127.0.0.1:${WEB_PORT:-8000}:8000"
+    networks:
+      default: {}
+      edge:
+        ipv4_address: ${WEB_PROXY_ADDRESS:-172.30.254.3}
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -128,15 +174,16 @@ services:
   worker:
     <<: *backend
     restart: unless-stopped
+    mem_limit: ${WORKER_MEMORY_LIMIT:-1g}
+    cpus: ${WORKER_CPU_LIMIT:-1.0}
+    # TERM requests a Celery warm shutdown; let the bounded active cycle finish.
+    stop_grace_period: ${WORKER_STOP_GRACE_PERIOD:-15m}
     command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=1", "--queues=celery,ingestion", "--hostname=worker@%h"]
     depends_on:
       migrate:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
-      ollama-init:
-        condition: service_completed_successfully
-        required: false
     healthcheck:
       test: ["CMD-SHELL", "celery -A config inspect ping --destination=worker@$$HOSTNAME --timeout=5"]
       interval: 30s
@@ -147,17 +194,34 @@ services:
   ai-worker:
     <<: *backend
     restart: unless-stopped
-    command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=1", "--queues=iz2-ai", "--hostname=ai@%h"]
+    mem_limit: ${AI_WORKER_MEMORY_LIMIT:-512m}
+    cpus: ${AI_WORKER_CPU_LIMIT:-1.0}
+    stop_grace_period: ${AI_WORKER_STOP_GRACE_PERIOD:-5m}
+    # Optional dependencies permit disabled profiles, but also failed init jobs.
+    # Verify local model metadata before consuming a queued AI job.
+    command: ["python", "-m", "config.ai_worker"]
     depends_on:
       migrate:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
+        required: false
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping --destination=ai@$$HOSTNAME --timeout=5"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
 
   beat:
     <<: *backend
     restart: unless-stopped
-    command: ["celery", "-A", "config", "beat", "--loglevel=info", "--scheduler=django_celery_beat.schedulers:DatabaseScheduler", "--pidfile=/tmp/celerybeat.pid"]
+    mem_limit: ${BEAT_MEMORY_LIMIT:-256m}
+    cpus: ${BEAT_CPU_LIMIT:-0.5}
+    stop_grace_period: 30s
+    command: ["celery", "-A", "config", "beat", "--loglevel=info", "--scheduler=config.beat:HealthyDatabaseScheduler", "--pidfile=/tmp/celerybeat.pid"]
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -165,15 +229,31 @@ services:
         condition: service_healthy
       worker:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-m", "config.container_health", "beat"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
 
   # Explicit profile: downloads a free model; no cloud AI or source collection.
-  ollama:
+  ollama: &ollama-runtime
     image: ollama/ollama:0.40.0
     profiles: [local-ai]
     restart: unless-stopped
+    logging: *bounded-logging
+    security_opt: [no-new-privileges:true]
+    mem_limit: ${OLLAMA_MEMORY_LIMIT:-6g}
+    cpus: ${OLLAMA_CPU_LIMIT:-4.0}
+    pids_limit: ${OLLAMA_PIDS_LIMIT:-256}
+    stop_grace_period: 60s
     environment:
       OLLAMA_HOST: 0.0.0.0:11434
       OLLAMA_NO_CLOUD: "1"
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_MAX_QUEUE: "4"
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-5m}
     volumes:
       - ollama_models:/root/.ollama
     healthcheck:
@@ -183,19 +263,98 @@ services:
       start_period: 15s
       retries: 20
 
+  # Select this profile instead of local-ai on an NVIDIA-capable host.
+  ollama-gpu:
+    <<: *ollama-runtime
+    profiles: [local-ai-gpu]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
   ollama-init:
     image: ollama/ollama:0.40.0
-    profiles: [local-ai]
+    profiles: [local-ai, local-ai-gpu]
     restart: "no"
+    logging: *bounded-logging
+    security_opt: [no-new-privileges:true]
+    mem_limit: ${OLLAMA_INIT_MEMORY_LIMIT:-256m}
+    cpus: ${OLLAMA_INIT_CPU_LIMIT:-0.5}
+    pids_limit: 64
     environment:
-      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_HOST: ${DOCKER_OLLAMA_BASE_URL:-http://ollama:11434}
       OLLAMA_NO_CLOUD: "1"
     command: ["pull", "${OLLAMA_MODEL:-qwen3:4b}"]
     depends_on:
       ollama:
         condition: service_healthy
+        required: false
+      ollama-gpu:
+        condition: service_healthy
+        required: false
+
+  # Generate coherent HTTPS settings with scripts/prepare_deploy.py --domain.
+  # The local diagnostic endpoint remains bound to loopback, never a public IP.
+  proxy:
+    image: caddy:2.11.7-alpine
+    profiles: [https]
+    restart: unless-stopped
+    init: true
+    read_only: true
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    logging: *bounded-logging
+    mem_limit: ${PROXY_MEMORY:-128m}
+    cpus: ${PROXY_CPUS:-0.5}
+    pids_limit: 100
+    stop_grace_period: 30s
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:-}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost},localhost,127.0.0.1
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-}
+      TRUST_PROXY_SSL_HEADER: ${TRUST_PROXY_SSL_HEADER:-false}
+      SECURE_SSL_REDIRECT: ${SECURE_SSL_REDIRECT:-false}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      CSRF_COOKIE_SECURE: ${CSRF_COOKIE_SECURE:-false}
+      AUTH_TRUSTED_PROXY_CIDRS: ${AUTH_TRUSTED_PROXY_CIDRS:-}
+      PROXY_ADDRESS: ${PROXY_ADDRESS:-172.30.254.2}
+    entrypoint: ["/bin/sh", "/etc/caddy/start-proxy.sh"]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./deploy/start-proxy.sh:/etc/caddy/start-proxy.sh:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    tmpfs: ["/tmp:size=16m,mode=1777"]
+    networks:
+      edge:
+        ipv4_address: ${PROXY_ADDRESS:-172.30.254.2}
+    depends_on:
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:2019/config/]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  edge:
+    ipam:
+      config:
+        - subnet: ${PROXY_SUBNET:-172.30.254.0/28}
 
 volumes:
   postgres17_data:
   redis_data:
   ollama_models:
+  caddy_data:
+  caddy_config:

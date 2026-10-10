@@ -31,10 +31,6 @@ let language: Language = readPreference();
 export function getLanguage(): Language {
   return language;
 }
-export function getLocale(): "en-US" | "ru-RU" {
-  return language === "ru" ? "ru-RU" : "en-US";
-}
-
 export function setLanguage(next: Language): void {
   if (next !== "en" && next !== "ru") return;
   try {

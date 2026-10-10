@@ -1,6 +1,5 @@
 """The single ingestion process for commands and Celery; no ORM in parsers."""
 from datetime import timedelta
-from decimal import Decimal
 import uuid
 
 from django.core.exceptions import ValidationError

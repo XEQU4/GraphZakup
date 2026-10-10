@@ -14,6 +14,15 @@ The findings and test inventory below describe the original audited snapshot.
 This remediation does not close the other findings or change the public-release
 verdict.
 
+**Linux preparation follow-up, 10 October 2026:** deployment-wide authentication
+limits/trusted-peer policy (AUD-004), framing protection (AUD-011) and Docker
+resource/log bounds (part of AUD-017) were implemented and independently checked.
+Full-stack startup, native-data transfer/recovery, local HTTPS, restart/outage
+behaviour and one real synthetic Qwen job passed. Scope and remaining public
+release gates are recorded in [DEPLOYMENT_CHECK.md](DEPLOYMENT_CHECK.md). The
+historical audit below remains unchanged; AUD-002/AUD-010 and other findings are
+not closed by packaging work.
+
 ## 1. Executive summary
 
 IZ2 is a substantial working prototype, not merely a visual mock-up. Collection services, source observations, exact-identifier person matching, versioned relationship graphs, deterministic review rules, saved model explanations, accounts and personal graph layouts are implemented. Fresh backend/frontend tests passed, an isolated Linux image built and ran, actual browser flows worked, and a fresh PostgreSQL backup restored with matching table contents.

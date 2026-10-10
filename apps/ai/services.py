@@ -74,10 +74,6 @@ def input_hash(inputs):
                    'company_checks': checks, 'contracts': inputs['contracts']})
 
 
-def render_explanation(analysis, plan=None):
-    return document_text(build_document(analysis, plan))
-
-
 def explanation_content(analysis, plan=None):
     document = build_document(analysis, plan)
     return {'text': document_text(document), 'presentation': {**(plan or {}), 'document': document}}

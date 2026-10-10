@@ -1,9 +1,0 @@
-/* Keep decorative text free of a browsing caret without hiding editable carets. */
-:is(.app-shell, .mobile-drawer, .login-dialog, .dialog-content) {
-  caret-color: transparent;
-}
-
-:is(.app-shell, .mobile-drawer, .login-dialog, .dialog-content)
-  :is(input, textarea, [contenteditable=""], [contenteditable="true"]) {
-  caret-color: #c5d8ef;
-}

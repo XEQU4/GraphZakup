@@ -1,168 +1,228 @@
-# Run IZ2 with Docker Compose
+﻿# IZ2 on a Linux server
 
-The stack combines PostgreSQL 17, Redis, one-time migrations, Django/Gunicorn, a Celery worker and one beat scheduler. Automatic data collection is disabled by default. Real API tokens are not required to start an empty database and check the interface.
+The image includes Django/Gunicorn and the compiled React workspace. Compose
+runs PostgreSQL 17, Redis, migrations, web, ingestion worker, AI worker and one
+beat scheduler. One Compose file has optional profiles for Ollama/Qwen, NVIDIA
+access and Caddy HTTPS. Dockerfile builds the shared application image.
+No Node installation is needed on the server.
 
-The product/package name is IZ2/iz2. Existing Compose installations preserve their
-`COMPOSE_PROJECT_NAME`; the default is pinned to the legacy namespace so a local
-directory rename does not replace database/Redis volumes. `.env.example` selects
-`iz2` for a new installation. Database/user names and GPG environment settings are
-compatibility identifiers and do not need a destructive rename.
+This is deployment preparation, not public-release approval. Remaining gates
+are in docs/FINAL_AUDIT.md. In particular, review model prose while AUD-002 is
+open. EN/RU changes the workspace; source records, saved explanations and the
+standalone English API reference keep their language.
 
-The image builds the React workspace with a pinned Node stage and npm lockfile,
-then collects its assets with Django. No Node installation or separate frontend
-service is required on the Docker host. Native development needs the frontend
-build before collectstatic; see README. Phase 7 configuration/image-tag checks
-passed, but an actual image build remains unverified without Docker Engine.
+## New installation
 
-## Preparation
+Requirements: Linux Docker Engine, Compose 2.24.4+ and Python 3 for host helpers.
+Run commands from the repository root. Windows can use Docker Desktop in Linux
+mode and .venv\Scripts\python.exe instead of python3.
 
-Docker with Linux containers and Docker Compose v2 is required. For existing data, first verify backup and recovery as described in [docs/RECOVERY.md](docs/RECOVERY.md).
+For an empty installation, use the complete block below. To transfer existing
+native data, run only environment preparation and configuration validation,
+then continue with the transfer section before the first `up`.
 
-From the repository root in PowerShell:
-
-```powershell
-if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-python -c "import secrets; print(secrets.token_urlsafe(50))"
+```sh
+python3 scripts/prepare_deploy.py --project iz2 --output .env.docker --ai cpu
+docker compose --env-file .env.docker config --quiet
+docker compose --env-file .env.docker up --build -d --wait
+docker compose --env-file .env.docker ps -a
 ```
 
-Copy the generated value into SECRET_KEY and set your own DB_PASSWORD. If `.env` already exists, preserve it and update the necessary keys manually. Do not replace existing credentials with the example file.
+The helper generates secrets locally, uses mode 0600 on Linux, refuses overwrites
+and preserves native .env. With --ai cpu it enables local Ollama/Qwen and saves
+COMPOSE_PROFILES=local-ai. Use --ai template to omit the model, or --ai gpu for
+an NVIDIA host with the NVIDIA Container Toolkit. Select one AI mode only.
+Collection, automatic model jobs and paid generation remain off.
+Generated Docker environments use a 180-second AI timeout and 2048 output tokens
+for local CPU inference; native defaults remain 90 seconds and 1024 tokens.
+Do not print expanded Compose configuration with working secrets; use --quiet.
 
-The website listens on `127.0.0.1:8000` by default; DEBUG is disabled. Compose passes only the listed variables. PostgreSQL always uses the internal route `db:5432`; PGHOST from the local `.env` does not override it.
+Keep COMPOSE_PROJECT_NAME unchanged for an existing installation. The default
+namespace remains governmentprocurementgraph; iz2 is for a new installation.
+Preserve postgres17_data, redis_data, ollama_models and database identifiers.
+Old PostgreSQL 16 data needs dump/restore, never a direct volume attachment to 17.
+Compose always uses db:5432 regardless of the native database host.
 
-## One command for the stack
+Local HTTP binds only 127.0.0.1:8000. PostgreSQL, Redis and Ollama have no public
+ports. An empty database is not populated automatically. Create an administrator:
 
-```powershell
-docker compose up --build -d
+```sh
+docker compose --env-file .env.docker exec web python manage.py createsuperuser
 ```
 
-PostgreSQL and Redis pass health checks. The migrate service applies migrations and exits; web and worker wait for it to succeed. Beat also waits for a healthy worker. Do not scale beat: each environment needs one scheduler.
+## Transfer the native database before starting the application
+
+Stop collection and other application writers for a consistent transfer. Native
+Windows commands (also stop a running Django development server with Ctrl+C):
 
 ```powershell
-docker compose ps -a
-docker compose logs --tail=100 migrate web worker beat
-Invoke-RestMethod http://127.0.0.1:8000/health/live/
-Invoke-RestMethod http://127.0.0.1:8000/health/ready/
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/background.ps1 -Action Stop
+.\.venv\Scripts\python.exe scripts/backup_database.py --verify-restore --deployment-manifest
 ```
 
-`/health/live/` checks the HTTP process without accessing dependencies. `/health/ready/` performs SELECT 1 and Redis PING; an unavailable dependency returns HTTP 503 without credentials or a traceback in the response. These endpoints only read state. The worker health check uses a targeted Celery inspect ping.
+The output identifies the dump and companion .deployment.json without printing
+secrets or rows. Transfer both securely into the target artifacts/transfer/.
+Keep another encrypted backup off the server; never commit backups or tokens.
 
-Website: http://127.0.0.1:8000/ . Create an administrator separately:
+Build the image and start only the target database/Redis. Do not migrate before
+restoring into the empty target:
 
-```powershell
-docker compose exec web python manage.py createsuperuser
+```sh
+docker compose --env-file .env.docker build migrate
+docker compose --env-file .env.docker up -d --wait db redis
+python3 scripts/deploy_database.py --env-file .env.docker --project iz2 restore --dump artifacts/transfer/DATABASE.dump --manifest artifacts/transfer/DATABASE.deployment.json --output-dir artifacts/recovery
+docker compose --env-file .env.docker up -d --wait
 ```
 
-An empty database contains no companies or graphs. Compose does not fill it through live parsing.
+Replace DATABASE with the generated basename and iz2 with the target namespace.
+Restore refuses a populated target or active application containers. It validates
+the checksum, restores transactionally, then compares rows, sequences, indexes
+and constraints. It never drops a database or cleans an existing schema.
+Ownership/ACLs map to the target user; external media/custom PostgreSQL roles need
+separate handling. A changed SECRET_KEY invalidates old sessions, requiring login.
+The verified transfer requires the same PostgreSQL major version. Cross-major
+upgrades need a separate rehearsal. If comparison fails after restoration, the
+helper preserves the target for inspection; it never erases it for another try.
 
-## Configuration and persistence
+For later Docker backups:
 
-| Variable | Purpose |
-| --- | --- |
-| SECRET_KEY | Required runtime secret; the example placeholder is rejected |
-| DB_NAME, DB_USER, DB_PASSWORD | Container database and matching Django credentials |
-| WEB_PORT, WEB_BIND_ADDRESS | Host port and address; Gunicorn uses port 8000 inside the container |
-| ALLOWED_HOSTS | Explicit hostnames without a protocol; wildcard is rejected when DEBUG=false |
-| CSRF_TRUSTED_ORIGINS | Additional origins, including their protocol |
-| ENABLE_SCHEDULED_IMPORT | false disables update_all_data; true explicitly enables the live pipeline |
-| INGESTION_REQUEST_INTERVAL | Minimum interval between requests to one host; default 1.5 seconds |
-| INGESTION_SOURCE_CACHE_SECONDS | Successful company-observation TTL; default 900 seconds, 0 disables it |
-| INGESTION_LEASE_SECONDS | Pipeline lease with heartbeat and fencing; default 900 seconds, minimum 60 |
-| GPG_LOG_TO_FILES | true for local Python; Compose forces false and writes stdout/stderr |
-| OPENROUTER_API_KEY, OPENROUTER_MODEL, GOSZAKUP_TOKEN | External integrations; keys may be empty for infrastructure checks |
-| AI_PROVIDER | template (default), ollama, openai or openrouter; generation requires an explicit job |
-| AI_MODEL, AI_MODEL_REVISION | Model and manual immutable version/digest label for result reuse |
-| AI_BASE_URL, AI_OLLAMA_BASE_URL | Optional provider override and native Ollama default; Compose uses internal ollama:11434 |
-| AI_API_KEY, AI_ALLOW_PAID | Private remote-provider key; paid use requires explicit true opt-in |
-| AI_EXPERIMENTAL_SCORING | false by default; separate staff-only model estimate, never the published review priority |
-| AI_TIMEOUT_SECONDS, AI_MAX_OUTPUT_TOKENS | Bounded inference; defaults 90 seconds and 1024 output tokens |
-| AI_MAX_INPUT_CHARS, AI_MAX_FINDINGS, AI_CONTEXT_TOKENS | Defaults 8000 characters, 12 model-assisted findings and 4096 local context tokens |
-| OLLAMA_MODEL | local-ai profile download tag, default qwen3:4b; keep aligned with AI_MODEL |
-
-The database uses the new postgres17_data volume; Redis uses redis_data and AOF. The old PostgreSQL 16 postgres_data volume is not attached to 17. Transfer data through a verified dump/restore into a separate database. This configuration does not change or delete the old volume.
-
-Shutdown preserves volumes:
-
-```powershell
-docker compose down
+```sh
+docker compose --env-file .env.docker stop beat worker ai-worker web
+python3 scripts/deploy_database.py --env-file .env.docker --project iz2 backup --output-dir artifacts/backups
+docker compose --env-file .env.docker up -d --wait
 ```
 
-A later `docker compose up -d` reuses the saved database. Do not add `--volumes` when stopping an environment whose data you need.
+Use an independent empty project for restore rehearsals. A checksum alone is not
+restore proof. Docker backups output a `.dump` and companion `.json`; use that
+JSON path for `restore --manifest`. Native `--deployment-manifest` instead outputs
+the `.deployment.json` shown above. Never use down --volumes on data you need.
 
-Docker installs dependencies from uv.lock with `uv sync --frozen --no-dev`, preserving the user's pyproject/lock. Static assets are built with a dummy build-only key; it does not replace runtime SECRET_KEY. The image runs as a non-root user. Only migrate builds the shared backend image; web/worker/beat reuse the same local image with pull_policy=never. Use the command with `--build` above for the first start.
+The same .env.docker selects optional services for startup and recovery. No extra
+Compose files or profile flags are needed:
 
-Containers log only to stdout/stderr, available through `docker compose logs`. Gunicorn workers do not share file rotation. Local Python enables file logging by default through GPG_LOG_TO_FILES=true.
-
-## Check a separate environment
-
-Create smoke.env in the ignored artifacts/ directory with temporary credentials, an available WEB_PORT and a unique project name. Do not copy working passwords or API keys. Compose does not load the local `.env` as a container env_file. Process environment variables take precedence over `--env-file`; isolated checks must also use temporary values there.
-
-```powershell
-docker compose --env-file artifacts/phase1/smoke.env -p gpg_phase1_smoke up --build -d
-docker compose --env-file artifacts/phase1/smoke.env -p gpg_phase1_smoke ps -a
+```sh
+python3 scripts/deploy_database.py --env-file .env.docker --project iz2 backup --output-dir artifacts/backups
 ```
 
-Set your own SECRET_KEY/DB_PASSWORD, ENABLE_SCHEDULED_IMPORT=false, empty API keys and a separate WEB_PORT in smoke.env. The project prefix separates containers and volumes from the normal deployment.
+Its metadata container uses `--no-deps`; inspection does not start migrations,
+application processes, collection or model jobs.
 
-Offline application tests use in-memory SQLite, do not load `.env`, connect to working PostgreSQL/Redis, or open log files:
+## Collection and Qwen
 
-```powershell
-.\.venv\Scripts\python.exe -B manage.py test --settings=config.test_settings
-```
-
-## Public HTTPS deployment
-
-Use a TLS reverse proxy and put the domain in ALLOWED_HOSTS. Enable SECURE_SSL_REDIRECT, SESSION_COOKIE_SECURE and CSRF_COOKIE_SECURE. TRUST_PROXY_SSL_HEADER=true is allowed only when the proxy replaces incoming X-Forwarded-Proto. Enable HSTS through SECURE_HSTS_SECONDS after checking HTTPS; subdomains/preload require those domains to be ready.
-
-Health endpoints are exempt from SSL redirect for internal HTTP health checks; Compose adds localhost/127.0.0.1 to allowed hosts. Add a separate frontend origin to CSRF_TRUSTED_ORIGINS when necessary.
-
-Enable automatic collection deliberately after checking sources, data and tokens: ENABLE_SCHEDULED_IMPORT=true. The task guard also blocks previously saved beat schedules while the flag is false; schedule records are not deleted. Schedules are available in Django admin.
-
-After Phase 2, the task reads a window of 500 contracts from the beginning of the registry in `update` mode, then refreshes eligible companies and clusters. A retry continues the same `IngestionRun`; a database lease blocks concurrent pipelines. Read status without source requests using `docker compose exec web python manage.py ingestion_status`. Details and local commands are in [docs/PHASE2.md](docs/PHASE2.md). Rebuild the updated image; migrate creates observations and isolates old name-only roles while preserving original records.
-
-KGD settings from `.env.docker` are passed to application services. Checks default off (`ENABLE_KGD_CHECKS=false`) and have no automatic schedule. The manual task `apps.core.tasks.check_kgd` shares the ingestion lease and saved-run retry mechanism. Apply migrations through the migration service and restart services after changing credentials. Do not place portal/account tokens in CLI/Celery arguments or Compose configuration output. One registration/zero-arrears scenario is accepted; broader coverage remains unverified. See [docs/PHASE3.md](docs/PHASE3.md).
-
-Phase 4 adds schema-only graph migration `graph.0005`. It does not invent historical evidence or calculate graphs during migration. After a current verified backup and migration, explicitly run `docker compose exec web python manage.py build_clusters` to publish graphs from saved facts; no source request or paid generation occurs. Existing UUIDs/texts are preserved. Staff-requested graph jobs use the existing worker, share the ingestion lease and have no automatic beat schedule. Restart/rebuild services so the worker discovers `apps.graph.tasks`. Layouts belong to signed-in users; stale snapshot/revision saves return 409. See [docs/PHASE4.md](docs/PHASE4.md).
-
-## Phase 5 analysis and optional local model
-
-Schema-only migrations `ai.0001_initial` and `ai.0002_analysistarget` create analysis/text histories and job/current-result state. They do not backfill analyses or replace legacy text. Rebuild application services so Celery discovers `apps.ai.tasks`. After backup/migration, explicitly prepare existing saved graphs with:
-
-```powershell
-docker compose exec web python manage.py analyse_clusters
-```
-
-`build_clusters` and the ingestion cluster stage now atomically save affected analyses/templates with graph results. Neither path calls a model. Automatic collection remains disabled by default; there is no AI beat schedule. Unchanged graphs/facts reuse results.
-
-For free local model assistance, edit the private Compose environment:
+The generated CPU/GPU environment configures Ollama and worker queues. To collect on
+this host, set these private environment values:
 
 ```dotenv
-AI_PROVIDER=ollama
-AI_MODEL=qwen3:4b
-AI_BASE_URL=
-OLLAMA_MODEL=qwen3:4b
-AI_ALLOW_PAID=false
-AI_EXPERIMENTAL_SCORING=false
+ENABLE_SCHEDULED_IMPORT=true
+ENABLE_SCHEDULED_KGD=true
+ENABLE_KGD_CHECKS=true
+ENABLE_BACKGROUND_AI=false
 ```
 
-Start the complete stack including the optional model service:
+Copy authorised credentials privately. KGD registration and company-scoped debt
+tokens have different roles; missing entitlement never means zero debt. Native
+and Docker database copies do not synchronise automatically.
 
-```powershell
-docker compose --env-file .env.docker --profile local-ai up --build -d
-docker compose --env-file .env.docker --profile local-ai logs --tail=50 ollama-init worker
+```sh
+docker compose --env-file .env.docker up --build -d --wait --wait-timeout 600
+docker compose --env-file .env.docker exec web python manage.py ingestion_status
 ```
 
-Initialisation downloads approximately 2.5 GB of weights to persistent `ollama_models`; application images contain no weights. The worker waits for the initialisation service. `OLLAMA_NO_CLOUD=1` restricts the container server to local operation; there is no exposed Ollama host port. Default startup omits this profile. Compose configuration has been validated; actual profile startup, model-download recovery and container GPU performance remain unverified. CPU inference may exceed the application timeout; GPU access needs a separately verified Docker/WSL2 configuration.
+First model setup downloads weights into ollama_models and may exceed this wait
+on slow networks. Inspect ollama-init logs and repeat startup once it finishes.
+Ingestion does not depend on model readiness; the AI worker waits for it.
 
-For native Windows Ollama and a container application, set `AI_BASE_URL=http://host.docker.internal:11434` and use the normal Compose profile. Local Python uses `http://127.0.0.1:11434`. Preserve host bind restrictions and verify the required container route before use. The portable runtime/weights retained under ignored `artifacts/phase5/` are a verification installation, not a global system installation; local setup instructions are in [docs/PHASE5.md](docs/PHASE5.md).
+Collection uses independent bounded contract/profile/KGD stages, due times,
+retries, host cooldowns and database leases. Meaningful evidence changes update
+saved graph/analysis/template versions. GET never collects or regenerates.
+Automatic model jobs additionally require ENABLE_BACKGROUND_AI=true; leave it
+false until prose publication is ready. Explicit staff model jobs remain
+available. Generated environments disable paid providers.
 
-Staff can request a model presentation on the graph page, or explicitly enqueue:
+On an NVIDIA host, generate with --ai gpu instead of --ai cpu. The helper selects
+local-ai-gpu and its matching internal model address. Do not enable both AI
+profiles together. To change an existing deployment, preserve secrets and project
+name; set COMPOSE_PROFILES, AI_PROVIDER, AI_MODEL and DOCKER_OLLAMA_BASE_URL
+consistently, then stop the previous model service before starting its replacement.
+CPU uses local-ai/http://ollama:11434; GPU uses
+local-ai-gpu/http://ollama-gpu:11434; both use AI_PROVIDER=ollama,
+AI_MODEL=qwen3:4b. Preserve any https profile in the comma-separated list.
+Measure actual memory and latency:
+a six-GiB model cap is a limit, not a hardware recommendation. Keep model revision
+metadata aligned with deployed weights.
 
-```powershell
-docker compose exec web python manage.py analyse_clusters --cluster YOUR_CLUSTER_UUID --use-model
+## Domain and HTTPS
+
+For a new deployment with a chosen domain, generate its environment with HTTPS
+settings from the outset (replace example.org/contact with your real values):
+
+```sh
+python3 scripts/prepare_deploy.py --project iz2 --output .env.docker --ai cpu --domain example.org --acme-email admin@example.org
+docker compose --env-file .env.docker up --build -d --wait
+docker compose --env-file .env.docker exec web python manage.py check --deploy
 ```
 
-The model selects supported findings/wording, and failure retains a saved template. A completed unchanged request reuses the same text. To retry a saved model failure add `--retry-model`. Review priority remains deterministic; experimental model scores are separate and unvalidated on real labels.
+Run environment preparation only once; it refuses to overwrite an existing file.
+For an existing .env.docker preserve all secrets and its namespace. Add https to
+COMPOSE_PROFILES; set SITE_DOMAIN, ACME_EMAIL, ALLOWED_HOSTS and
+CSRF_TRUSTED_ORIGINS=https://your-domain. Set TRUST_PROXY_SSL_HEADER,
+SECURE_SSL_REDIRECT, SESSION_COOKIE_SECURE and CSRF_COOKIE_SECURE to true, and
+AUTH_TRUSTED_PROXY_CIDRS=172.30.254.2/32 for the default proxy address. The proxy
+refuses incomplete/insecure matching settings. Configure DNS and open TCP 80/443;
+UDP 443 is optional HTTP/3.
 
-Optional future OpenAI/OpenRouter connection uses `AI_PROVIDER`, `AI_MODEL`, `AI_BASE_URL` and private `AI_API_KEY`. Paid providers additionally require `AI_ALLOW_PAID=true`; keys/subscriptions alone do not bypass that gate. Only models supporting the strict output contract are compatible. Restart web and worker after configuration changes; there is no automatic paid fallback. Update `AI_MODEL_REVISION` when changing a floating model alias. No paid inference was used in Phase 5 verification.
+Caddy persists certificates. The direct web diagnostic port stays bound to
+127.0.0.1; only Caddy publishes public ports. Secure cookies and HTTPS redirects
+are enabled. Only its fixed peer address may supply overwritten
+client-IP/scheme headers. Default dedicated subnet is 172.30.254.0/28, proxy
+172.30.254.2 with web peer 172.30.254.3; change PROXY_SUBNET, PROXY_ADDRESS and
+WEB_PROXY_ADDRESS together if they conflict, also updating AUTH_TRUSTED_PROXY_CIDRS.
+This single-host configuration has one
+web container with multiple Gunicorn processes; replica scaling needs a new
+address plan.
+This assumes one public edge; adding a CDN needs a new trust-policy review.
+Enable HSTS only after verifying real HTTPS; preload/subdomains need separate
+readiness. Domain issuance/firewalls still require checks on the chosen server.
 
-Official references: [uv in Docker](https://docs.astral.sh/uv/guides/integration/docker/), [Compose startup order](https://docs.docker.com/compose/how-tos/startup-order/), [Django deployment checklist](https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/).
+API/admin account quotas are atomic across processes in private Redis DB 1.
+Redis outages return 503 for protected account operations instead of resetting
+limits. Keep Redis noeviction. Native local quotas produce a deployment warning.
+Framing is denied. Redis Cluster is not supported by this multi-key limiter.
+
+## Operations and upgrades
+
+Use the same private environment file for later starts/stops/upgrades.
+
+```sh
+docker compose --env-file .env.docker ps -a
+docker compose --env-file .env.docker logs --tail=100 web worker ai-worker beat
+curl -f http://127.0.0.1:8000/health/live/
+curl -f http://127.0.0.1:8000/health/ready/
+docker compose --env-file .env.docker stats --no-stream
+docker compose --env-file .env.docker stop
+docker compose --env-file .env.docker up -d --wait
+```
+
+Use the HTTPS domain for health requests with the https profile. Readiness
+checks PostgreSQL/Redis; worker probes use targeted ping; beat probes a heartbeat
+written after scheduler progress. Health does not prove complete source coverage.
+Docker marks unhealthy services but does not restart them solely because a probe
+fails. Monitor that state. unless-stopped restarts crashed services and starts
+them after Docker/host restart, unless explicitly stopped. Enable Docker Engine
+startup on the host.
+
+Logs rotate at 10 MiB x 3 per service. Memory/CPU/PID limits are configurable.
+Redis has a 192-MiB data budget inside a 512-MiB cap; monitor queue/memory growth.
+Workers have warm-shutdown windows; do not force short timeouts during collection.
+Backends are non-root, read-only, without capabilities and have a writable /tmp.
+Gunicorn recycles workers and omits query strings/headers from access logs.
+Backup disk retention is an operator decision.
+
+Before upgrading, verify a backup, stop writers, build, run startup/migrations,
+then inspect health and representative saved pages. Do not use live parsing or
+paid generation as a test. Migrations do not regenerate immutable explanations.
+
+References: [Compose services](https://docs.docker.com/reference/compose-file/services/),
+[Caddy proxy](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy),
+[Django checklist](https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/).
+

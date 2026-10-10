@@ -6,7 +6,7 @@ from rest_framework import serializers
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import ScopedRateThrottle
+from .throttling import AuthenticationThrottle
 
 from .common import ApiError, ApiView, StrictSerializer
 
@@ -62,7 +62,7 @@ class SessionView(ApiView):
 
 class LoginView(ApiView):
     authentication_classes = [LoginSessionAuthentication]
-    throttle_classes = [ScopedRateThrottle]
+    throttle_classes = [AuthenticationThrottle]
     throttle_scope = 'api_login'
 
     @extend_schema(request=LoginSerializer, responses=SessionSerializer, description='CSRF-protected '

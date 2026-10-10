@@ -377,3 +377,23 @@ controls; targeted static/browser checks passed (PHASE7). Next agreed work after
 the user-operated commit/push is Docker configuration for a Linux server; no
 hosting provider is selected yet. Existing collector controls were inspected;
 workers/beat remain stopped and no Windows autostart task was installed.
+
+The user subsequently authorised Linux Docker preparation. Operational limits,
+health checks, shared authentication/proxy policy, optional HTTPS/GPU overlays
+and safe environment/recovery tools are implemented. The complete stack,
+verified native/Docker restores, account/layout restart persistence and one
+synthetic CPU Qwen task passed locally. See DEPLOYMENT_CHECK.md for exact scope.
+Temporary projects were removed and working data was preserved. Native processes
+were not changed; final Status showed worker/AI-worker running but beat stopped.
+No host/domain/public deployment has been selected.
+Remaining public-release gates include model-prose validation, dependency
+advisories and publication policy; those are separate follow-up tasks.
+
+## Repository consolidation follow-up, 10 October 2026
+
+The user requested structural/file usage review and removal of unused sources,
+including next-app. Current module boundaries, removals and regression checks are
+recorded in REPOSITORY_AUDIT.md. One docker-compose.yml with environment-selected
+AI/HTTPS profiles replaces the earlier overlays; DEPLOY.md is the current command
+reference. This does not close outstanding model/dependency/publication findings
+or start source integrations, data cleanup, public release or a new phase.

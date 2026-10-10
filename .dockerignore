@@ -58,6 +58,6 @@ frontend/.vite/
 frontend/coverage/
 frontend/*.tsbuildinfo
 
-# Standalone accidental Next.js experiment; IZ2 uses frontend/.
+# Removed standalone experiment; never include a recreated copy in images.
 /next-app/
 /.playwright-mcp/

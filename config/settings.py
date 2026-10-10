@@ -1,4 +1,6 @@
+import ipaddress
 import os
+import re
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
@@ -50,6 +52,21 @@ SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD")
 GPG_DISABLE_LOGGING_INIT = env_bool("GPG_DISABLE_LOGGING_INIT")
 GPG_LOG_TO_FILES = env_bool("GPG_LOG_TO_FILES", True)
 
+# Native development keeps an in-process limiter. Compose supplies an isolated
+# Redis database so all web workers share atomic, expiring authentication quotas.
+AUTH_THROTTLE_REDIS_URL = os.getenv("AUTH_THROTTLE_REDIS_URL", "").strip()
+AUTH_THROTTLE_KEY_PREFIX = os.getenv("AUTH_THROTTLE_KEY_PREFIX", "iz2:auth:v1").strip()
+if (AUTH_THROTTLE_REDIS_URL and not AUTH_THROTTLE_REDIS_URL.startswith(("redis://", "rediss://"))
+        or not re.fullmatch(r"[A-Za-z0-9:_-]{1,100}", AUTH_THROTTLE_KEY_PREFIX)):
+    raise ImproperlyConfigured("Invalid authentication throttle backend or key prefix.")
+AUTH_TRUSTED_PROXY_CIDRS = env_list("AUTH_TRUSTED_PROXY_CIDRS")
+try:
+    for proxy_network in AUTH_TRUSTED_PROXY_CIDRS:
+        ipaddress.ip_network(proxy_network, strict=True)
+except ValueError as error:
+    raise ImproperlyConfigured("AUTH_TRUSTED_PROXY_CIDRS must contain canonical IP networks.") from error
+X_FRAME_OPTIONS = "DENY"
+
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -77,13 +94,16 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "apps.api.throttling.TrustedProxyMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "apps.api.throttling.AdminLoginThrottleMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"

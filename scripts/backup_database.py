@@ -16,11 +16,14 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import uuid
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 TEST_PREFIX = "gpg_restore_verify_"
 HASH_SCHEME = "sha256-sorted-row-json-sha256-v1"
 
@@ -201,7 +204,8 @@ def compare_metadata(expected, actual):
             if expected.get(name) != actual.get(name)}
 
 
-def verify_restore(config, restore_tool, dump_path, expected, output_dir, sql, connect, result):
+def verify_restore(config, restore_tool, dump_path, expected, output_dir, sql, connect, result,
+                   expected_structure=None):
     if not local_host(config.get("host", "")):
         raise BackupError("restore_verification_requires_local_server")
     name = TEST_PREFIX + uuid.uuid4().hex
@@ -222,6 +226,9 @@ def verify_restore(config, restore_tool, dump_path, expected, output_dir, sql, c
         try:
             configure_snapshot(restored)
             actual = table_metadata(restored, output_dir, sql)
+            if expected_structure is not None:
+                from scripts.database_manifest import structure_metadata
+                actual_structure = structure_metadata(restored, sql)
         finally:
             restored.rollback()
             restored.close()
@@ -232,13 +239,23 @@ def verify_restore(config, restore_tool, dump_path, expected, output_dir, sql, c
                        and expected["public.django_migrations"] == actual.get("public.django_migrations")})
         if differences:
             raise BackupError("restored_table_metadata_mismatch")
+        if expected_structure is not None:
+            result["structure_and_sequences_verified"] = expected_structure == actual_structure
+            if not result["structure_and_sequences_verified"]:
+                result["status"] = "failed"
+                result["structure_differences"] = compare_metadata(expected_structure, actual_structure)
+                raise BackupError("restored_structure_metadata_mismatch")
     finally:
         try:
             if result["created"]:
                 validate_test_database(name, config["dbname"], name, result["created"])
                 with maintenance.cursor() as cursor:
                     cursor.execute(sql.SQL("DROP DATABASE {} WITH (FORCE)").format(sql.Identifier(name)))
+                    cursor.execute("SELECT 1 FROM pg_database WHERE datname=%s", (name,))
+                    if cursor.fetchone() is not None:
+                        raise BackupError("temporary_database_still_exists")
                 result["cleanup"] = "dropped"
+                result["absence_verified"] = True
         except Exception as error:
             result["cleanup"] = "failed"
             result["cleanup_error_type"] = type(error).__name__
@@ -261,6 +278,8 @@ def main(argv=None):
     parser.add_argument("--output-dir", type=Path, default=ROOT / "artifacts" / "phase0")
     parser.add_argument("--pg-bin", type=Path, help="Directory containing pg_dump and pg_restore")
     parser.add_argument("--verify-restore", action="store_true")
+    parser.add_argument("--deployment-manifest", action="store_true",
+                        help="Also verify schema/sequence state and write a Compose transfer manifest; stop writers first")
     options = parser.parse_args(argv)
     try:
         output_dir = safe_output_directory(options.output_dir)
@@ -290,6 +309,16 @@ def main(argv=None):
         dump_tool, restore_tool, tool_version = find_tools(server_major, options.pg_bin)
         report.update({"server_version_num": version, "tool_major": tool_version,
                        "tables": table_metadata(connection, output_dir, sql)})
+        deployment_manifest = None
+        if options.deployment_manifest:
+            from scripts.database_manifest import capture, structure_metadata
+            from scripts.deploy_database import require_same, write_private
+            deployment_manifest = {
+                "manifest_version": 1, "hash_scheme": HASH_SCHEME,
+                "postgres_major": server_major, "tables": report["tables"],
+                "structure": structure_metadata(connection, sql),
+            }
+            report["verification_scope"] += "; defaults, indexes, constraints and sequence definitions/state"
         report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
         args, env = process_config(config)
         run_tool([str(dump_tool), "--format=custom", "--file", str(dump_path),
@@ -298,9 +327,21 @@ def main(argv=None):
         connection.close()
         connection = None
         report["dump"] = {"sha256": file_checksum(dump_path), "bytes": dump_path.stat().st_size}
+        if deployment_manifest is not None:
+            require_same(deployment_manifest, capture(config))
         if options.verify_restore:
             verify_restore(config, restore_tool, dump_path, report["tables"], output_dir,
-                           sql, psycopg2.connect, report["verification"])
+                           sql, psycopg2.connect, report["verification"],
+                           expected_structure=deployment_manifest["structure"]
+                           if deployment_manifest is not None else None)
+        if deployment_manifest is not None:
+            transfer_path = dump_path.with_suffix(".deployment.json")
+            write_private(transfer_path, {
+                "status": "complete", "dump_sha256": report["dump"]["sha256"],
+                "manifest": deployment_manifest,
+                "restore_verification": report["verification"]["status"],
+            })
+            report["deployment_manifest_path"] = str(transfer_path)
         report["status"] = "passed"
     except Exception as error:
         report["status"] = "failed"
@@ -318,6 +359,7 @@ def main(argv=None):
         report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps({"status": report["status"], "report_path": str(report_path),
                       "dump_path": str(dump_path), "verification": report["verification"]["status"],
+                      "deployment_manifest_path": report.get("deployment_manifest_path"),
                       "error": report.get("error")}, ensure_ascii=False))
     return 0 if report["status"] == "passed" else 1
 

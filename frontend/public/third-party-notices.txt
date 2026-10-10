@@ -1,7 +1,6 @@
 IZ2 frontend third-party notices
 
 Adapted components:
-React Bits Orb: https://github.com/DavidHDev/react-bits
 Magic UI Border Beam: https://github.com/magicuidesign/magicui
 
 React Bits text motion, locally adapted for IZ2:

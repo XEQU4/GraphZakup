@@ -89,5 +89,3 @@ export function formatCount(value: number | null | undefined): string {
 export function cx(...values: (string | false | null | undefined)[]): string {
   return values.filter(Boolean).join(" ");
 }
-
-export const cn = cx;

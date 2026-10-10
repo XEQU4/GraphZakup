@@ -17,28 +17,35 @@ import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_DIRECTORIES = ("apps", "config", "logging_setup", "static", "templates", "docs", "scripts", "tests")
-SOURCE_FILES = ("AGENTS.md", "README.md", "DEPLOY.md", "Dockerfile", "docker-compose.yml", "pyproject.toml", "uv.lock", "manage.py", "test.py", ".env.example", ".gitignore", ".dockerignore")
+SOURCE_DIRECTORIES = ("apps", "config", "logging_setup", "static", "templates", "frontend", "deploy", "docs", "scripts", "tests")
+SOURCE_FILES = ("AGENTS.md", "README.md", "DEPLOY.md", "ARTICLE_CONTEXT.md", "Dockerfile", "docker-compose.yml", "pyproject.toml", "uv.lock", "manage.py", "test.py", ".env.example", ".gitignore", ".gitattributes", ".dockerignore")
 EXCLUDED_DIRECTORIES = {"__pycache__", "node_modules", ".venv", ".git"}
-EXCLUDED_SUFFIXES = {".pyc", ".pyo", ".pyd", ".dump", ".backup", ".log", ".pem", ".key"}
+EXCLUDED_SOURCE_TREES = {("static", "frontend"), ("frontend", "coverage"),
+                         ("frontend", ".vite"), ("frontend", ".cache")}
+EXCLUDED_SUFFIXES = {".pyc", ".pyo", ".pyd", ".dump", ".backup", ".log", ".pem", ".key", ".tsbuildinfo"}
 
 
-def source_paths() -> list[Path]:
-    files = {ROOT / name for name in SOURCE_FILES if (ROOT / name).is_file()}
+def source_paths(root: Path = ROOT) -> list[Path]:
+    files = {root / name for name in SOURCE_FILES
+             if (root / name).is_file() and not (root / name).is_symlink()}
     for directory in SOURCE_DIRECTORIES:
-        base = ROOT / directory
-        if not base.exists():
+        base = root / directory
+        if not base.is_dir() or base.is_symlink():
             continue
-        for path in base.rglob("*"):
-            if path.is_symlink() or not path.is_file():
-                continue
-            relative = path.relative_to(ROOT)
-            if any(part in EXCLUDED_DIRECTORIES for part in relative.parts):
-                continue
-            if path.name.startswith(".env") or path.suffix.lower() in EXCLUDED_SUFFIXES:
-                continue
-            files.add(path)
-    return sorted(files, key=lambda path: path.relative_to(ROOT).as_posix())
+        for current, directories, names in os.walk(base, followlinks=False):
+            parent = Path(current)
+            directories[:] = [name for name in directories
+                if name not in EXCLUDED_DIRECTORIES
+                and (parent / name).relative_to(root).parts not in EXCLUDED_SOURCE_TREES
+                and not (parent / name).is_symlink()]
+            for name in names:
+                path = parent / name
+                if path.is_symlink() or not path.is_file():
+                    continue
+                if name.startswith(".env") or path.suffix.lower() in EXCLUDED_SUFFIXES:
+                    continue
+                files.add(path)
+    return sorted(files, key=lambda path: path.relative_to(root).as_posix())
 
 
 def sha256(path: Path) -> str:
@@ -77,7 +84,7 @@ def checks(paths: list[Path]) -> dict:
     loader = MigrationLoader(None, ignore_no_migrations=True)
     changes = MigrationAutodetector(loader.project_state(), ProjectState.from_apps(apps), NonInteractiveMigrationQuestioner()).changes(graph=loader.graph)
     result["model_migration_drift"] = {app: [migration.name for migration in migrations] for app, migrations in changes.items()}
-    result["discovered_tests"] = DiscoverRunner(verbosity=0).build_suite([]).countTestCases()
+    result["discovered_tests"] = DiscoverRunner(verbosity=0).build_suite(["apps", "tests"]).countTestCases()
     result["staticfiles_backend"] = settings.STORAGES["staticfiles"]["BACKEND"]
     return result
 

@@ -1,205 +1,159 @@
-# IZ2 architecture
+﻿# IZ2 architecture
 
-Recorded on 5 October 2026; analysis status updated on 7 October 2026. This document distinguishes implemented behaviour from the target thesis architecture. Ingestion, provenance, identity and KGD checks are implemented; registration and complete zero arrears are verified for one company. Indexed evidence, immutable graph snapshots/lineage, personal views and explicit background recalculation are implemented. Phase 5 adds immutable analysis/explanations, deterministic review priority and optional validated local model presentations. The accepted graph prototype is ported into React; further graph design is deferred by the user. Phase 6 implements versioned DRF reads/jobs and locally served OpenAPI. Phase 7 implements the reference-based React workspace and integrated builds. Broader KGD coverage and calibrated prediction remain future work.
+Current implementation, reviewed 10 October 2026. Historical measurements and
+phase decisions remain in PHASE1–7; release findings are in FINAL_AUDIT.md.
+Current startup and recovery commands are in [DEPLOY.md](../DEPLOY.md).
 
-Collect procurement/company information, show verifiable links, and explain observed patterns. A link does not establish wrongdoing; group contract volume is not damage. Conclusions require sources, temporal context, and confidence.
+IZ2 is a modular Django application with a React/TypeScript workspace. PostgreSQL
+stores evidence and durable results; Redis carries Celery jobs and shared account
+quotas. One application image contains Django/Gunicorn and the compiled frontend.
+There is no separate Next.js application or frontend server in production.
 
-Product brand: IZ2; Python package/repository: `iz2`; intended domain: `iz2.kz`.
-The original scope includes verified company/person history from additional open
-registers. Court/blacklist/bankruptcy adapters and owner-specific findings remain
-future source work, with exact subject identity and dated evidence required.
-The rename preserves database/volume identifiers and personal-view keys; Compose
-pins the existing default namespace to avoid selecting fresh volumes after a
-directory rename. It does not register or deploy the intended domain.
+The thesis prototype supports inspection of procurement relationships. A shared
+contact or a connected group is evidence for review, not proof of wrongdoing.
+Court, bankruptcy, restricted-participant and tender-bid integrations remain
+future work. Current ownership cannot be inferred from director names or
+incomplete founder markup.
 
-Related: [audit](AUDIT.md), [baseline](BASELINE.md), [recovery](RECOVERY.md), [roadmap](ROADMAP.md), [repository rules](../AGENTS.md).
+## Repository boundaries
 
-A procurement analyst checking company links is the initial design assumption. Audience, thesis deadline, and API/AI budgets are unconfirmed and may change priorities. All project deliverables use English; Russian website localisation follows completion of the English interface. Original source labels/data retain their source language.
-
-## Requirements status
-
-| Requirement | Status |
+| Location | Responsibility |
 | --- | --- |
-| Consolidate/optimise parsers | Implemented in Phase 2: shared session, pacing, caches, checkpoints, lease, resumable stages |
-| KGD information | Taxpayer/arrears adapters and retained checks accepted for one company's registration/zero-arrears scenario; broader coverage unverified |
-| DRF backend and React | Versioned DRF API and React/TypeScript workspace implemented, retaining Django/admin/migrations |
-| Persist graph/analysis/explanations | Immutable graph/analysis/text histories and personal views implemented |
-| Update explanations after significant changes | Authorised graph refresh atomically updates affected analyses/templates; model generation remains explicit |
-| Substantial graph improvement | Implemented and prototype accepted; final graph/interface polish follows in Phase 7 |
-| Attractive, usable reference-based UI | Implemented using supplied blue animation references; user visual acceptance pending |
-| Docker backend/Celery/Redis/database | Fixed and verified in Phase 1: shared build, migration gate, health checks |
-| README/startup documentation | Updated as phases progress |
-| Specific LLM/budget/public startup | Free local Qwen3:4b selected for verification; paid use opt-in, benefit/calibration and public pilot remain unapproved |
+| `apps/ingestion/` | Parsers, transport, provenance, persistence and collection orchestration |
+| `apps/companies/`, `apps/contracts/` | Company and contract models, compatibility pages |
+| `apps/owners/` | Person/source identity and role history; existing package/table names retained |
+| `apps/graph/` | Evidence index, stable groups, immutable snapshots, lineage and personal views |
+| `apps/ai/` | Deterministic rules, analyses/templates and validated provider jobs |
+| `apps/api/` | Versioned projections, accounts, permissions, staff jobs and shared throttling |
+| `apps/core/` | Shared models, task entry points and operational management commands |
+| `apps/dashboard/`, `apps/frontend/` | Compatibility dashboard and Django React entry/manifest integration |
+| `config/` | Django/Celery settings, URLs, WSGI/ASGI, Gunicorn and container health/startup |
+| `frontend/src/` | React pages, components, hooks, API bindings, localisation and shared `styles/` |
+| `templates/`, `static/` | Django/legacy/API pages, local fonts, graph assets and licences |
+| `logging_setup/` | Native process-safe file logging and retention |
+| `scripts/` | Host-operated startup, audit, environment, backup and recovery tools |
+| `deploy/` | Caddy configuration and HTTPS startup validation |
+| `tests/` | Cross-cutting regression tests and synthetic source fixtures |
+| `docs/` | Current architecture/operations plus dated audit and phase records |
 
-## Existing system
+App-specific tests live next to their domain. `frontend` owns its tests and
+lockfile. `test.py` is the user's learning file, excluded from application tests.
+Ignored `artifacts/` contains private backups, reports and the native model cache;
+it must not enter Git or images. `static/frontend/` and `staticfiles/` are generated
+assets. Virtual environments, dependencies, IDE settings and runtime schedules
+are local state, not application modules.
 
-Django/PostgreSQL store suppliers, contracts, owners, directors, and clusters. Pages use templates/JavaScript/Bootstrap; D3 draws graphs. DRF serves /api/v1/; React is planned.
-
-The common [parser directory](../apps/ingestion/parsers) handles contracts, participants, Adata and KGD. The shared [service](../apps/ingestion/services.py) stores observations/roles/stage progress; commands and [Celery](../apps/core/tasks.py) call it directly. [Compose](../docker-compose.yml) defines PostgreSQL, Redis, migrate, web, worker, and beat. Automatic collection and manual KGD checks default off. See [PHASE1.md](PHASE1.md), [PHASE2.md](PHASE2.md) and [PHASE3.md](PHASE3.md).
-
-| Area | Implementation | Limitation |
-| --- | --- | --- |
-| Companies/contracts | [Supplier](../apps/companies/models.py) supplier/customer roles; [Contract](../apps/contracts/models.py) customer FK; SourceObservation/SelectedFact | Supplier name retained for compatibility; source completeness/freshness unproven |
-| People/roles | [PersonIdentity, Owner, Director, Ownership, Directorship](../apps/owners/models.py), source identities/candidates | Evidence and observed history exist; confirmed IIN/legal periods/ownership require external sources |
-| KGD company checks | SourceObservation plus CompanyKgdState; identity-gated adapters, manual leased pipeline; Phase 5 uses validated dated company results | Live registration/zero-arrears accepted for one company; positive/stale/failure scoring uses fixtures; broader coverage unverified |
-| Graph | RiskCluster, EvidenceEdge, GraphInputState, GraphSnapshot, ClusterLineage; indexed atomic [service](../apps/graph/services.py) | All inputs still read for dirty detection; publication is scoped; legacy score remains uncalibrated |
-| Analysis/explanations | [Rules](../apps/ai/rules.py), immutable AnalysisSnapshot/Explanation, current AnalysisState, legacy-text compatibility | Review priority is uncalibrated; bidding data unavailable; company/dashboard indices remain labelled legacy |
-| LLM | [Provider boundary](../apps/ai/providers.py), schema validation, deduplicated jobs/latest-request fencing, saved fallback | Finding order/wording variants only; no proven readability/prediction advantage; paid transport tested offline |
-| Background work | Celery, beat, IngestionRun, fenced lease | Resumable shared pipeline; lease protects service calls, not arbitrary scripts |
-| UI | Templates/Bootstrap/D3, saved graph history, GraphViewState, search/evidence/path navigation | User accepted graph prototype; automated browser/dense/responsive visual checks unverified; final design/React follow references |
-
-The [audit](AUDIT.md) records defects/check boundaries. Architecture documentation does not verify source quality/completeness.
-
-## Target design
-
-A modular Django/DRF backend, React frontend, PostgreSQL, Celery, and Redis. The thesis uses one backend divided by domain. Graph databases/microservices require a measured reason and are not planned now.
+## Data flow
 
 ```mermaid
 flowchart LR
-    S[Procurement registries Adata KGD] --> I[Ingestion and observations]
-    I --> E[Companies people roles contracts]
-    E --> G[Link evidence and graph versions]
-    G --> A[Rules and analysis versions]
-    A --> X[Stored explanations]
-    A --> API[DRF API]
-    G --> API
-    X --> API
-    API --> UI[React and interactive graph]
-    Q[Celery and Redis] --> I
-    Q --> G
-    Q --> A
-    Q --> X
+    S[Registry / Adata / KGD] --> P[Parsers and transport]
+    P --> I[Ingestion services and observations]
+    I --> E[Companies / people / roles / contracts]
+    E --> G[Evidence index and graph snapshots]
+    G --> A[Rules and analysis snapshots]
+    A --> T[Saved templates and model explanations]
+    G --> API[DRF API]
+    A --> API
+    T --> API
+    API --> UI[React workspace]
+    B[Beat and Celery] --> I
+    B --> T
 ```
 
-PostgreSQL holds durable results/job state; Redis provides queues/cache. Cache loss must not remove graph/explanation versions. Deduplication needs database constraints/current-version checks as well as temporary locks.
+Parsers fetch and normalise; ingestion services persist and orchestrate stages.
+Views and commands do not implement an independent pipeline. Money uses Decimal.
+Success, confirmed absence, source failure and not checked remain distinct.
 
-| Module | Responsibility |
-| --- | --- |
-| `apps.ingestion` | Source adapters, transport, normalisation, observations, runs, checkpoints |
-| `apps.companies` | Companies, verified identifiers, supplier/customer roles |
-| `apps.owners` or future people module | Identity matching, temporal directorship/ownership |
-| `apps.contracts` | Contracts/changes; lots/bidders only with available sources |
-| `apps.graph` | Link evidence, stable groups, snapshots, membership history |
-| `apps.ai` | Rules/findings/template and LLM explanations |
-| `apps.core` | Shared technical mechanisms without hidden business orchestration |
-| `frontend` | React/API requests/pages/graph interaction |
+Collection has independent bounded contract/profile/KGD stages, durable due
+times, checkpoints, retries, per-host cooldowns and database leases. Contract
+head catch-up, archive reconciliation and repair retain progress. A backlog
+threshold lets enrichment catch up before more discovery. External HTML
+pagination, quotas and source outages prevent a guarantee of complete coverage.
 
-Future people-module naming/serializer placement will be decided during implementation. Table migration must preserve original-record links.
+SourceObservation and SelectedFact retain source/date/version provenance.
+Retrieval time is separate from legal applicability. Same-name people are not
+merged without identity evidence. Directory grouping keeps source identities
+separate. Graph person links require verified identity and applicable role
+evidence; unknown dates remain unknown.
 
-## Ingestion and provenance
+KGD registration and arrears are independent states. CompanyKgdState retains the
+latest attempt and last successful result per company/source. Registration
+requires returned identity/type confirmation; debt requests additionally require
+company-specific entitlement. Entrepreneur registration does not establish
+support for entrepreneur debt checks. A failed/unavailable check never means zero
+debt, and company debt is not assigned to a director or owner.
 
-Parsers in `apps/ingestion/parsers/` neither invoke later stages nor persist models. Transport handles timeouts/retries/pacing/connection reuse. Ingestion validates, saves observations, and selects fields. Actual priorities/modes/missing-field policy are in [PHASE2.md](PHASE2.md).
+## Saved graphs and explanations
 
-Distinguish success, object absence, source unavailability, malformed response, and not checked. Never reduce these to empty values or zero debt.
+RiskCluster has a stable UUID; GraphSnapshot and ClusterLineage preserve
+membership/evidence history through changes, splits and merges. Feature indexes
+avoid production all-pairs comparison. Repeat collection without meaningful
+changes does not recreate snapshots or explanations. Compatibility graph helpers
+remain for existing routes and tests.
 
-| Entity | Stored information |
-| --- | --- |
-| `IngestionRun` | Source/mode/stages/times/status/counters/diagnostics |
-| `SourceCheckpoint` | Confirmed source/stream progress |
-| `SourceObservation` | Subject/field/raw and normalised values/source/dates/parser version |
-| `IdentityCandidate` | Possible match, evidence, confidence, decision |
-| `SelectedFact`, `IngestionIssue`, `IngestionLease` | Selected provenance, retryable errors, concurrent publication fencing |
-| `PersonIdentity`, `PersonSourceIdentity` | Verified or isolated identity, source, observed name |
-| `CompanyKgdState` (Phase 3) | Company/source, latest attempt and retained last successful observation; reporting dates kept in evidence |
+AnalysisSnapshot binds deterministic, capped review findings to exact saved
+evidence. The public score is a review index, not a probability. Explanation
+stores immutable templates or model text. AnalysisState points to the current
+result. Jobs use deduplication, exact version binding and latest-request fencing;
+late output cannot replace a newer requested result. Personal GraphViewState is
+separate from analytical hashes and uses optimistic revision checks.
 
-Initial loading, regular updates, and retries are separate. Checkpoints advance after confirmed processing, retaining partial-page state. Repeats produce the same domain data without duplicates.
+The optional Qwen model writes short English, evidence-cited prose from prepared
+facts; aliases are expanded from frozen labels. Schema/reference/number and
+contradiction guards plus a bounded local repair reject some invalid output.
+They are not semantic proof: AUD-002 remains open. Failure keeps a saved template.
+The model never decides identity, edges or public review scores. Experimental
+estimates remain separate. Paid providers require explicit opt-in.
 
-Verified BIN is an exact company key. Name similarity finds candidates/variants. Names alone cannot merge people without reliable identifiers/supporting evidence. Legacy false merges must be reversible without losing observations.
-
-Keep retrieval dates separate from effective periods. Unknown periods stay unknown. Simultaneous leadership requires proven overlap. Company tax debt is not owner debt.
-
-KGD runs are separate from contract/enrichment/cluster stages and check a fixed selection of up to 500 companies. Taxpayer lookup must confirm the exact BIN and legal-entity type before an arrears request. Private portal/account credentials never enter run options or observation URLs. Latest attempt and retained last success have separate references; cache reuse does not advance retrieval time. Company-page GET reads state only. KGD does not alter identities or graph edges. Phase 5 explicitly prepares dated company-financial findings from saved observations, preserving current unknowns after source failure. Verification scope is in [PHASE3.md](PHASE3.md) and [PHASE5.md](PHASE5.md).
-
-## Evidence and analysis
-
-`EvidenceEdge` links observations with type, participants, normalised feature, interval, sources, and confidence. Graph and explanation use the same evidence.
-
-Feature indexes and shared person/contact nodes replace all-pairs comparison in production graph publication. Contacts used by more than 20 companies remain weak evidence but do not form groups. This is a provisional conservative heuristic, not a calibrated risk rule. The legacy pair-projection helper remains for compatibility; graph pages read snapshots. See [PHASE4.md](PHASE4.md).
-
-Separate identity, link reliability, and behavioural risk. Connected-component membership proves neither every pair's direct relation nor uniform risk. Version group rules/scoring.
-
-A rule returns a finding with code/version, participants, evidence, period, confidence, score contribution, and interpretation limits. A business centre/service provider may explain shared contacts. Calibrate risk on labelled cases rather than automatically inheriting current thresholds.
-
-Coordinated-bidding patterns need bidders, bids, lots, and results. Contracts alone cannot establish coordinated bids or winner rotation.
-
-## Persisting graph and explanations
-
-Separate persistent groups, versions, and personal views.
-
-| Entity | Purpose |
-| --- | --- |
-| `RiskCluster` (implemented) | Permanent UUID/current GraphSnapshot |
-| `GraphSnapshot` (implemented) | Immutable membership, significant nodes, copied link evidence, graph hash and changes |
-| `ClusterLineage` (implemented) | Merge/split/retirement/reactivation transitions |
-| `AnalysisSnapshot` (implemented) | Immutable inputs/findings/metrics/limitations/rule versions, exact graph binding |
-| `Explanation` (implemented) | Immutable text/status/language/provider/model/prompt/analysis link, separate experimental estimate |
-| `AnalysisState` (implemented) | Current published analysis/text |
-| `AnalysisJob`, `AnalysisTarget` (implemented) | Durable deduplicated jobs and latest-request publication fence |
-| `GraphViewState` (implemented) | User/state-schema version/coordinates/pins/zoom/filters, optimistic revision checks |
-
-`graph_hash` covers canonical significant nodes/edges. `analysis_hash` also covers rule-used facts/metrics and relevant rule/normaliser versions. Repeat retrieval dates, row order, and run IDs do not change hashes alone. If a rule uses fact age, include an explicit analysis date/evaluation period.
-
-Reuse text by exact analysis binding/hash, prompt/template version, provider configuration/model revision, and language. Changed facts/rules/explanation parameters create new results. Retrieval-only observation changes reuse the original published references. Freshness-category changes affect the analysis hash. Database constraints and cluster row locks handle concurrent requests. Initially prepare English; add Russian variants later.
-
-Rebuilds detect dirty company inputs and close impact over previous/current features and active memberships. The index still reads all inputs; unaffected groups receive no recreated versions. Exact composition wins, including a possible archived UUID; otherwise maximum overlap, Jaccard and oldest record determine continuation. Splits retain one UUID and can reactivate exact archived compositions or create new UUIDs. Old links and predecessor snapshots remain readable through lineage. GraphRebuildJob deduplicates staff-requested work, enqueues after commit, shares the ingestion lease and records exact resulting versions. See the verified scenarios in [PHASE4.md](PHASE4.md).
-
-Jobs target exact snapshots. Late output stays in history without replacing current text. Show version, calculation time, and explanation state. GET reads saved results; authorised POST starts work.
-
-Viewing state does not affect analytical hashes. Preserve existing coordinates where possible; place added nodes near neighbours and provide explicit reset.
-
-## AI role
-
-Deterministic rules establish matches/patterns. Templates provide the first explanation and LLM fallback.
-
-The implemented LLM contract receives prepared findings without names/BINs/IINs/contacts and returns only finding order and predefined English wording variants. Closed-schema validation rejects arbitrary prose and invented references. The renderer adds saved company labels after validation. The LLM cannot create edges or decide identity. Full narrative generation is not implemented.
-
-Template is the default provider; local Ollama Qwen3:4b is the free candidate. OpenAI/OpenRouter adapters are configured through environment settings; paid calls require explicit opt-in. Saved fallbacks keep the system useful during provider failure. Optional model scores stay separate for staff evaluation and never replace the public rules without independent evidence. Pin model names/revisions manually; floating aliases are not automatically resolved. See [PHASE5.md](PHASE5.md) for limits and measured results.
+GET only reads saved domain results. Graph refresh and generation run through
+explicit staff jobs or authorised background ingestion. Docker starts with
+collection and automatic model generation disabled; the native collector helper
+has a separately authorised opt-in. Visiting a page or switching language does
+not collect or rewrite evidence.
 
 ## API and interface
 
-`/api/v1/` exposes companies/contracts/people/clusters/snapshots/evidence/explanations/job states without HTML fragments. Require validated filters/pagination/write permissions/OpenAPI.
+`/app/` is the same-origin React workspace; `/api/v1/` is DRF; `/api/v1/docs/`
+is the locally bundled English Swagger reference. `/legacy/` and existing
+template detail routes remain supported. Vite entry and lazy chunks use the
+original Vite hashes, avoiding duplicate React contexts from double hashing.
 
-Phase 6 uses same-origin Django sessions and CSRF on login/writes. Public reads match the local thesis site; users save their own views and staff launch saved-data jobs/read operational status. No HTTP collection-start route exists. Personal IIN/raw source payloads/experimental estimates are excluded from public projections. Revisit publication policy and separate mobile clients before a pilot. See [PHASE6.md](PHASE6.md).
+Public API projections omit IIN, raw observations and model estimates. Accounts
+use Django sessions and CSRF. Users manage their own graph views, username and
+password; email is read-only. Only staff can request recalculation/generation.
+There is no HTTP collection-start endpoint. Redis shares account quotas across
+processes and account operations fail closed when that backend is unavailable.
 
-React uses TypeScript, React Router, Radix icons/dialogs, Motion and OGL. The accepted D3 interaction is ported; graph redesign is deferred. Vite emits its own hashed chunks under static/frontend. Django serves the same Vite entry URL used by lazy imports; applying a second manifest hash to that entry would duplicate React contexts. The collected Vite manifest is read without rebuilding. The home route redirects to /app/, whose deep routes serve the SPA; /legacy/ retains template compatibility. API mount/navigation are reads. Anonymous views retain the original localStorage key; authenticated view writes retain CSRF and revision fencing. Bootstrap is absent from React.
+The accepted interface has EN/RU presentation, responsive directories, D3 graph
+interaction, saved layouts, evidence/history panels and controllable motion.
+Original identifiers, source labels and saved explanation language do not change.
+Django and Celery use Asia/Qyzylorda; timestamps remain UTC-aware and business
+dates follow that local calendar. Native and Linux boundary tests cover this.
 
-Phase 4 improves graph readability, highlighting, search, filters, zoom, legend, evidence, and layout restoration. Final colours/typography/components/page composition follow user references. Substantial graph improvement must not wait for final polishing. Russian website localisation follows the complete English interface.
+## Deployment and operations
 
-## Deployment
+One `docker-compose.yml` runs PostgreSQL 17, Redis, a migration gate, web,
+ingestion worker, AI worker and beat. Optional profiles add CPU Ollama
+(`local-ai`), NVIDIA Ollama (`local-ai-gpu`) and Caddy (`https`). Environment
+preparation writes the profile selection and matching settings together. The
+CPU/GPU profiles are alternatives. `Dockerfile` builds the shared image using a
+Node stage for React and a Python runtime; Node is absent from the runtime.
 
-Compose runs PostgreSQL/Redis/migrate/web/worker/beat. Optional `local-ai` adds Ollama and a model-initialisation gate with persistent weights. Phase 5 validates both Compose configurations; actual local-ai profile startup/GPU operation remains unverified. A pinned Node builder compiles React before Python static collection; no separate frontend container is needed. Actual Phase 7 Linux image build remains unverified while Docker Engine is unavailable.
+The legacy default project/volume names remain compatible. Persistent database,
+Redis, model and certificate volumes are separate from images. Backend processes
+run as a non-root user with a read-only filesystem, restricted capabilities,
+resource/log bounds and health checks. Only Caddy publishes public ports; the
+direct web diagnostic port binds to loopback. The proxy validates secure-cookie,
+redirect, allowed-origin and single-peer trust configuration before starting.
 
-Install from lockfile; app services wait for successful migration, not independent concurrent migrations. Keep secrets outside images/repository. Persist data in volumes; verify backups separately. The user performs Git operations.
+Backups/restores require quiet writers and an empty restore target. Checksums,
+row/schema/sequence manifests are compared; tools do not erase existing data.
+Native-to-Linux transfer, HTTP/HTTPS account/view persistence, outage handling
+and a synthetic CPU Qwen task were verified on isolated projects. NVIDIA
+execution, real-domain certificate issuance, server load and off-host backup
+operations still require target-host verification. Current cleanup checks are
+recorded in [REPOSITORY_AUDIT.md](REPOSITORY_AUDIT.md).
 
-## Key decisions
-
-| Decision | Status/reason |
-| --- | --- |
-| Modular Django/PostgreSQL | Implemented; Phase 2 separated ingestion |
-| DRF/React | Implemented in Phases 6–7; user frontend visual acceptance pending |
-| No name-only person merge | Implemented: scoped identities/candidates/IIN evidence/legacy isolation |
-| Observations/temporal roles | Implemented; unknown legal boundaries remain unknown |
-| Tax data linked to exact legal-entity BIN | Implemented and accepted for one company's registration/zero-arrears scenario |
-| Shared evidence graph | Implemented for grouping, graph rendering and compatibility template; Phase 5 rules consume snapshots |
-| Stable UUID/snapshots/lineage | Implemented; repeat, addition, retirement, merge/split and restoration scenarios verified |
-| Analysis hashes separate from views | Implemented: graph/semantic fact/rule hashes exclude personal views |
-| Versioned background results | Graph/analysis jobs fence publication; late model output remains in history; GET reads saved data |
-| Rules/templates before LLM | Implemented with capped categories/no group-size bonus; public indices remain uncalibrated |
-| Model scoring | User authorised considering it if better; experimental estimates remain separate until independent evaluation |
-| Same-origin sessions initially | Phase 6 API implements CSRF-protected login/own views/staff jobs; public pilot access policy remains future work |
-| English first, Russian localisation later | User instruction; preserve original source data |
-
-## Thesis version and further development
-
-Proposed minimum: reproducible limited-sample collection, observations, available KGD service, evidence, graph/analysis versions, explanations, DRF/React/Compose. KGD depends on actual access; fixture demonstrations must not appear to be current checks.
-
-1. Find a company by BIN and inspect sources/contracts.
-2. Inspect each selected cluster edge through observations.
-3. Repeat unchanged collection and show retained versions/no new LLM calls.
-4. Add a linked company; show new version, retained history/layout.
-5. Demonstrate namesakes/non-overlapping roles without false identity/simultaneity.
-6. Make a source unavailable; show correct check state, resume, preserved data.
-
-Use permitted/anonymised examples with manual labels. Measure matching precision/recall, false links by type, temporal correctness, supported explanation claims, SQL/runtime on fixed inputs, repeat LLM counts/cost. Set targets after baseline; unknown values are not achieved results.
-
-A pilot additionally needs roles/action audit, personal-data policy, monitoring/recovery/limits/source-use review. A public startup, pricing, and specific customer scenarios are not approved scope.
+The user performs Git operations. Public release still depends on unresolved
+audit findings and publication policy; packaging is not release approval.

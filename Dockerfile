@@ -21,9 +21,9 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --no-install-project
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-install-project
 COPY . .
-RUN uv sync --frozen --no-dev --no-editable
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-editable
 # Vite outputs browser assets only; Node and npm dependencies stay in the build stage.
 COPY --from=frontend-build /build/static/frontend /app/static/frontend
 # Build-only nonproduction key: no ENV/ARG secret persists in the image.
@@ -32,4 +32,4 @@ RUN useradd --create-home --uid 10001 app && mkdir -p logs && chown app:app logs
 USER app
 
 EXPOSE 8000
-CMD ["sh", "-c", "exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120"]
+CMD ["gunicorn", "--config", "python:config.gunicorn", "config.wsgi:application"]

@@ -44,6 +44,6 @@ celerybeat.pid
 /frontend/coverage/
 *.tsbuildinfo
 
-# Standalone accidental Next.js experiment; IZ2 uses frontend/.
+# Removed standalone experiment; keep it ignored if accidentally recreated.
 /next-app/
 /.playwright-mcp/

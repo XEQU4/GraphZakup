@@ -1,0 +1,255 @@
+/* A continuous navy palette: softer surface steps, clear blue actions. */
+:root {
+  --bg: #0b1220;
+  --panel: #111e32;
+  --border: #2b4262;
+  --text: #e4ebf5;
+  --muted: #a3b2c9;
+  --blue: #5797f0;
+  --cyan: #a5c6f4;
+  --surface-card: linear-gradient(145deg, #152840, #122238);
+  --surface-card-hover: linear-gradient(145deg, #1b3250, #172b45);
+  --surface-inset: #102036;
+  --surface-row: #172c46;
+  --surface-row-hover: #1b3250;
+  --surface-border: #304b6c;
+  --surface-border-hover: #52769e;
+  --surface-shadow: inset 0 1px 0 #b6d4ff08, 0 12px 30px #00000018;
+}
+body {
+  background:
+    radial-gradient(ellipse at 65% 0, #1c3b652b, transparent 60%), var(--bg);
+}
+.app-shell .sidebar,
+.mobile-drawer {
+  background: linear-gradient(180deg, #101b2c, #0b1423 70%);
+  border-color: #243752;
+}
+.app-shell .topbar {
+  background: #0e192beb;
+  border-color: #263b57;
+}
+.app-shell .panel {
+  background: var(--surface-card);
+  border-color: var(--surface-border);
+  box-shadow: var(--surface-shadow);
+}
+/* Cards share one blue surface, independent of their position or content. */
+.app-shell .stat-card,
+.app-shell .home-group-card,
+.app-shell .sidebar-note,
+.mobile-drawer .sidebar-note,
+.app-shell .coverage-card,
+.app-shell .group-directory-card,
+.app-shell .profile-overview,
+.app-shell .profile-panel,
+.app-shell .profile-view-card,
+.app-shell .profile-views-empty,
+.app-shell .entity-detail-head,
+.app-shell .entity-group-card,
+.app-shell .mobile-contract,
+.app-shell .about-audience-card,
+.app-shell .about-step,
+.app-shell .about-scope-card,
+.app-shell .about-principles,
+.app-shell .footer-contact-panel {
+  background: var(--surface-card);
+  border-color: var(--surface-border);
+  box-shadow: var(--surface-shadow);
+}
+.app-shell .stat-card:hover,
+.app-shell .home-group-card:hover,
+.app-shell .entity-group-card:hover,
+.app-shell .group-directory-card:hover {
+  background: var(--surface-card-hover);
+  border-color: var(--surface-border-hover);
+  box-shadow: var(--surface-shadow);
+}
+.app-shell .stat-card .stat-icon,
+.app-shell .profile-panel-icon,
+.app-shell .about-card-icon,
+.app-shell .group-card-emblem {
+  background: #203a5a;
+  border-color: #446387;
+  color: #d2e5fd;
+}
+.app-shell .group-card-metrics,
+.app-shell .entity-match-counts > div,
+.app-shell .about-evidence-flow {
+  background: var(--surface-inset);
+  border-color: var(--surface-border);
+}
+.app-shell .entity-page .entity-directory,
+.app-shell .group-directory-tools,
+.app-shell
+  .cluster-detail-page
+  .cluster-review-layout
+  .cluster-analysis-summary,
+.app-shell .cluster-detail-page .cluster-review-layout .cluster-explanation {
+  background: var(--surface-card);
+  border-color: var(--surface-border);
+  box-shadow: var(--surface-shadow);
+}
+.app-shell .entity-page .entity-toolbar,
+.app-shell .entity-page .entity-pagination {
+  background: var(--surface-inset);
+  border-color: var(--surface-border);
+}
+.app-shell .entity-page .entity-search,
+.app-shell .entity-role-filter select,
+.app-shell .entity-section-nav a,
+.app-shell .group-directory-search,
+.app-shell .group-directory-filters select {
+  background: #0e1c30;
+  border-color: var(--surface-border);
+}
+.app-shell .home-contract-table tbody tr:hover,
+.app-shell .entity-page .entity-table tbody tr:hover {
+  background: var(--surface-row-hover);
+}
+.account-dialog.login-dialog {
+  background: var(--surface-card);
+  border-color: var(--surface-border);
+}
+.account-dialog .account-story {
+  background:
+    radial-gradient(ellipse at 40% 42%, #31558430, transparent 64%),
+    var(--surface-inset);
+  border-color: var(--surface-border);
+}
+.app-shell .nav-link.active,
+.mobile-drawer .nav-link.active {
+  background: #193255;
+  border-color: #4773aa80;
+}
+.app-shell .nav-active-surface,
+.mobile-drawer .nav-active-surface {
+  background: linear-gradient(105deg, #27549165, #17325340);
+}
+.app-shell .nav-link:hover,
+.mobile-drawer .nav-link:hover {
+  background-color: #162b46;
+}
+.app-shell .nav-link.active svg,
+.mobile-drawer .nav-link.active svg {
+  color: #85b6fa;
+}
+.app-shell .focus-corner,
+.mobile-drawer .focus-corner {
+  border-color: #8ab8f5;
+  box-shadow: none;
+}
+.app-shell .hero-rich {
+  background: linear-gradient(120deg, #182d49, #13233b 48%, #1c3152);
+}
+.app-shell .brand-symbol {
+  background: linear-gradient(145deg, #193255, #0e1b2e);
+  border-color: #3b6089;
+  border-radius: 13px;
+  box-shadow:
+    inset 0 1px #ffffff14,
+    0 6px 18px #0003;
+}
+.app-shell .brand-wordmark {
+  font-weight: 600;
+  letter-spacing: -0.065em;
+}
+.app-shell .brand-caption {
+  letter-spacing: 0.2em;
+  color: #a3b2c9;
+}
+.app-shell .hero-rich h2 > .tech-heading__line {
+  display: block;
+}
+.app-shell .hero-visual {
+  filter: saturate(0.85);
+}
+.app-shell .aurora-atmosphere {
+  filter: saturate(0.75);
+}
+.app-shell .graph-workspace {
+  background: var(--surface-card);
+  border-color: var(--surface-border);
+}
+.app-shell .graph-workspace .graph-canvas {
+  background:
+    radial-gradient(ellipse at 30% 20%, #1c3d6440, transparent 65%), #0d192b;
+  border-color: #304969;
+  box-shadow:
+    inset 0 0 90px #060d1830,
+    0 14px 36px #00000012;
+}
+.app-shell .graph-workspace .graph-inspector {
+  background: linear-gradient(145deg, #192d48, #122138);
+  border-color: #304969;
+}
+.app-shell .graph-workspace .graph-search-input {
+  background: #0e1b2f;
+  border-color: #345273;
+}
+.app-shell .graph-workspace .graph-metrics span {
+  background: #192f4b;
+  border-color: #345273;
+}
+.app-shell .profile-view-notice {
+  margin: 18px 0;
+  color: var(--text);
+}
+.app-shell .button-primary,
+.account-dialog .button-primary {
+  background: linear-gradient(140deg, #285994, #214b7e);
+  color: #eef4fc;
+  border-color: #5487bd;
+  box-shadow:
+    inset 0 1px #b6d4ff24,
+    0 4px 18px #0002;
+}
+.app-shell .button-primary:hover,
+.account-dialog .button-primary:hover {
+  background: #3063a0;
+  color: #ffffff;
+}
+.app-shell :is(.button, .icon-button, .nav-link, input, select) {
+  transition:
+    background-color 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    color 0.22s ease;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html[data-motion="on"]
+    .app-shell
+    :is(.panel, .cluster-card, .profile-view-card) {
+    animation: surface-enter 0.4s ease-out both;
+  }
+  html[data-motion="on"] .app-shell .entity-table td {
+    transition:
+      background-color 0.24s ease,
+      border-color 0.24s ease,
+      box-shadow 0.24s ease;
+  }
+  html[data-motion="on"] .brand:hover .brand-symbol svg {
+    transform: translateY(-1px);
+    transition: transform 0.25s ease;
+  }
+}
+@keyframes surface-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+html[data-motion="off"]
+  .app-shell
+  :is(.button, .icon-button, .nav-link, input, select) {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell :is(.button, .icon-button, .nav-link, input, select) {
+    transition: none;
+  }
+}

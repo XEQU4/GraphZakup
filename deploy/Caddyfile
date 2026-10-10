@@ -1,0 +1,17 @@
+{
+	email {$ACME_EMAIL}
+	admin 127.0.0.1:2019
+}
+
+{$SITE_DOMAIN} {
+	encode zstd gzip
+	header -Server
+	reverse_proxy web:8000 {
+		# This deployment has one public edge, without a CDN/load balancer.
+		# Discard client-supplied identity and forwarding assertions.
+		header_up X-IZ2-Client-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up -Forwarded
+	}
+}

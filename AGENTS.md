@@ -625,3 +625,57 @@ collectstatic and browser GET/filter/320-1920px checks with a retained Russian
 workspace preference. Only the API template/helper/styles and continuity docs
 changed. No Git, collection, deployment or model job was run.
 
+Authorised Linux preparation, 10 October 2026: base/full/server/GPU Compose now
+has operational bounds, health checks, independent model/ingestion startup and
+coherent provider settings. Shared Redis authentication and explicit trusted
+proxy peer policy/framing are implemented; native local quotas remain available
+with a deployment warning. Generated .env.docker uses 180s/2048 model limits,
+keeps collection/automatic prose off and never replaces .env. Preserve legacy
+namespace/volumes. Caddy has distinct static proxy/web edge addresses; no CDN
+trust is configured. Recovery tools verify native/Compose transfers into empty
+targets, require stopped writers and never clean/drop target data. Details and
+current commands: DEPLOY.md, docs/DEPLOYMENT_CHECK.md, docs/RECOVERY.md.
+624 PostgreSQL tests passed; final 10 runtime/env and 26 recovery tests passed.
+Real Docker restore/backup, 81 HTTP and 15 HTTPS/restart/outage checks, bounded
+browser checks and a synthetic Redis/AI-worker/Qwen CPU job passed (101.655s).
+Old copied evidence/texts and all 51 native tables/31 protected files remained.
+Owned test projects/volumes were removed. Native processes were not changed;
+final Status showed worker/AI-worker running and beat stopped (last saved cycle
+9 October). Do not assume the schedule is active or call Start while workers
+already exist; use owned Stop then Start when collection is to be resumed.
+No Git/public deployment/source collection/paid inference ran. AUD-002 prose,
+AUD-010 dependencies and remaining audit/publication gates stay open. No host is
+selected. Do not enable automatic prose or start another audit/source phase
+solely because full-stack packaging passed.
+
+
+## Repository consolidation, 10 October 2026
+
+The user explicitly authorised removal of next-app and unused files, superseding
+all earlier next-app preservation requirements. Its 25 source files were archived
+under ignored artifacts/repository-cleanup/removed/next-app; dependencies were
+not archived. The backend stays in domain apps and the only frontend is React in
+frontend/. Global styles now live in frontend/src/styles with preserved cascade.
+Unused scaffolds/wrappers/effects and generated root metadata were removed;
+legacy routes, migrations, licences, learning files and operational state remain.
+See docs/REPOSITORY_AUDIT.md for the usage inventory and verification boundaries.
+
+One docker-compose.yml now replaces full/server/GPU overlays. prepare_deploy.py
+--ai cpu|gpu|template optionally --domain/--acme-email writes coherent profiles
+and settings; normal startup uses docker compose --env-file .env.docker up --build -d.
+Keep existing namespace/volumes and private secrets. CPU/GPU are alternative
+profiles; HTTPS validates its matching security configuration. AI worker startup
+checks local model metadata because Compose optional dependencies do not guarantee
+successful model initialization. Collection and automatic prose remain off in
+new Docker environments. Native collector processes are not changed by cleanup.
+README/ARCHITECTURE/DEPLOY are current instructions; historical overlay references
+in dated reports describe their original checks. No Git commands are authorised
+by the cleanup task; provide commands for the user to review and run.
+Cleanup validation: 640 isolated PostgreSQL tests (no skips), 141 React tests,
+unchanged runtime frontend bundles, both legacy JS suites, eight Compose variants
+and ten Linux HTTPS guard cases passed. Rebuilt base/HTTPS stacks became healthy;
+23 HTTP and 23 HTTPS reads passed. A real missing-model startup refused to consume
+tasks without inference/download. Owned test containers/volumes/networks removed;
+Docker Desktop was started for verification and remains available. Protected
+native environment/learning/dependency files unchanged. Shell entrypoints retain
+LF on Windows Git checkouts. No working database/collector or Git action ran.

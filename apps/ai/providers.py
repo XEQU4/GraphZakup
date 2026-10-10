@@ -55,7 +55,7 @@ def configuration(provider_override=None):
             raise ProviderError('provider_url_invalid')
         if provider == 'ollama':
             if parts.scheme not in {'http', 'https'} or parts.hostname not in {
-                    '127.0.0.1', 'localhost', '::1', 'ollama', 'host.docker.internal'}:
+                    '127.0.0.1', 'localhost', '::1', 'ollama', 'ollama-gpu', 'host.docker.internal'}:
                 raise ProviderError('local_endpoint_required')
             if ':cloud' in model or '-cloud' in model:
                 raise ProviderError('local_model_required')

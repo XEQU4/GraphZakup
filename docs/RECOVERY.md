@@ -389,3 +389,56 @@ dates. This is a bounded assessment, not permission to rewrite old results.
 Private reports: `artifacts/timezone-fix/`. Worker, AI-worker and beat were already
 stopped at audit entry and remain stopped; earlier running-status entries above
 describe their historical checks.
+
+## Native-to-Linux Compose recovery, 10 October 2026
+
+The latest verified transfer point is
+`artifacts/deployment/native-recovery/database_20261010T075914Z_1e2a44ae.dump`.
+Its native verification report has the same basename with `.json`; the portable
+manifest uses `.deployment.json`. SHA-256:
+`af961b8a203d7a6ee542ab7fb57d515f675bdfd203039c9d8fde586e318782d5`.
+The 1,451,943-byte dump used an exported `REPEATABLE READ READ ONLY` snapshot
+shared with its table fingerprints. Data and schema fingerprints remained equal
+before and after collection of the backup. Native independent restoration passed;
+the owned temporary database was dropped and its absence verified.
+
+Restoration into an empty, isolated Linux Compose PostgreSQL 17 also passed:
+`artifacts/deployment/recovery/restore_a75f071185e14d1ba37e1aeb72fa64c8.json`.
+Both environments matched 51 tables, 18,891 rows, 49 sequence definitions/states,
+198 indexes and 188 constraints, including column/default metadata and migration
+history. Fingerprints use platform-independent ordering and narrowly normalise
+PostgreSQL's equivalent literal-array index casts while preserving literal values.
+The source database, original histories and native `.env` were not modified.
+This recovery ran no live source collection or working explanation jobs.
+
+`backup_database.py --verify-restore --deployment-manifest` prepares a native
+transfer. `deploy_database.py` manages Compose backups and empty-target restores,
+with explicit environment/project selection. It refuses active, paused or
+restarting application services, verifies the dump checksum, restores in one
+transaction without cleaning existing objects, then compares the full manifest.
+Metadata inspection uses a dependency-free one-off Python container. A backup
+without a successful independent restore remains unverified. A post-restore
+comparison failure leaves the target intact for inspection, never auto-deleting it.
+
+The target deployment user receives ownership; original role names and grants
+are intentionally not copied. External media, custom schemas/routines and
+cross-major PostgreSQL upgrades require a separate recovery procedure. The native
+source and Docker copy are independent databases and do not synchronise. Commands
+and maintenance-window requirements are in the root `DEPLOY.md`.
+
+The stopped Docker rehearsal was also backed up and independently restored into
+a second empty, internal-network project. That copy contained 18,902 rows after
+rehearsal writes; all 51 tables, 49 sequences, 198 indexes and 188 constraints
+matched. Backup:
+`artifacts/deployment/container-backup/database_20261010T081656Z_4e121a09.dump`,
+SHA-256 `c56d39f8f5ac0f600192299be9b8d46b97319b1e0463922f547cd09dc590d0d3`.
+Verification and cleanup are recorded in `artifacts/deployment/recovery2/summary.json`
+and `restore_128639a0844941a794e72522b7f6db3c.json` in the same directory. Only the
+second project's containers, volume and network were removed; their absence was
+verified. The main rehearsal and native database were untouched by this check.
+
+The subsequent single-file Compose cleanup preserves these recovery tools and
+volume identifiers. Current profile selection is stored in .env.docker; use the
+same private environment and project name for backup/restore. Historical overlay
+filenames above refer to earlier rehearsals, not additional current requirements.
+No working database schema or saved-data algorithm changed during that cleanup.

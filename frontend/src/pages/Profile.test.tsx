@@ -176,7 +176,7 @@ describe("personal account profile", () => {
   });
 
   it("rejects mismatched confirmation before a password write and clears all submitted secrets after a server rejection", async () => {
-    const fetcher = vi.fn(async (path: string, options: RequestInit) =>
+    const fetcher = vi.fn(async (path: string, _options: RequestInit) =>
       path === "/api/v1/session/"
         ? response(session)
         : path === "/api/v1/account/password/"
@@ -227,7 +227,7 @@ describe("personal account profile", () => {
 
   it("keeps the current session after a password change and signs out with its newly rotated CSRF", async () => {
     let signedIn = true;
-    const fetcher = vi.fn(async (path: string, options: RequestInit) => {
+    const fetcher = vi.fn(async (path: string, _options: RequestInit) => {
       if (path === "/api/v1/session/")
         return response(
           signedIn
@@ -407,7 +407,7 @@ describe("saved account graph views", () => {
   });
 
   it("paginates private views with bounded reads and labels archived groups without implying new features", async () => {
-    const fetcher = vi.fn(async (path: string, options: RequestInit) => {
+    const fetcher = vi.fn(async (path: string, _options: RequestInit) => {
       if (path === "/api/v1/session/") return response(session);
       if (path === "/api/v1/account/profile/") return response(account);
       return response({
