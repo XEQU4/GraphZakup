@@ -14,7 +14,7 @@ from .transport import HttpTransport
 class SourceProviders:
     """One connection pool and pacing policy per run, shared by all adapters."""
     COMPANY_SOURCES = ('goszakup_supplier', 'adata')
-    VERSION = '2.3'
+    VERSION = '2.4'
 
     def __init__(self, heartbeat=None, transport=None):
         self.transport = transport or HttpTransport(

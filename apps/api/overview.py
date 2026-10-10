@@ -10,13 +10,16 @@ from apps.ingestion.models import SourceObservation, CompanyKgdState
 from apps.owners.models import PersonIdentity
 from apps.graph.models import RiskCluster, GraphSnapshot
 from .common import ApiView, EmptyQuerySerializer
+from .catalogue import company_profile_scope, person_role_scope
 
 class OverviewSerializer(serializers.Serializer):
-    company_count = serializers.IntegerField()
+    company_count = serializers.IntegerField(help_text='All saved company records, including pending profiles.')
+    checked_company_count = serializers.IntegerField(help_text='Source-checked profiles shown by the default Companies directory.')
     supplier_count = serializers.IntegerField()
     customer_count = serializers.IntegerField()
     contract_count = serializers.IntegerField()
-    people_count = serializers.IntegerField()
+    people_count = serializers.IntegerField(help_text='All saved identity records, including unverified and historical records; not a unique person count.')
+    current_verified_people_count = serializers.IntegerField(help_text='Verified saved identities with an observed current role, as shown by the default People directory.')
     verified_people_count = serializers.IntegerField()
     active_group_count = serializers.IntegerField()
     snapshot_count = serializers.IntegerField()
@@ -36,10 +39,12 @@ class OverviewView(ApiView):
         observations = SourceObservation.objects
         values = {
             'company_count':Supplier.objects.count(),
+            'checked_company_count':company_profile_scope(Supplier.objects.all()).count(),
             'supplier_count':Supplier.objects.filter(is_supplier=True).count(),
             'customer_count':Supplier.objects.filter(is_customer=True).count(),
             'contract_count':Contract.objects.count(),
             'people_count':PersonIdentity.objects.count(),
+            'current_verified_people_count':person_role_scope(PersonIdentity.objects.filter(is_verified=True)).count(),
             'verified_people_count':PersonIdentity.objects.filter(is_verified=True).exclude(iin='').count(),
             'active_group_count':RiskCluster.objects.filter(is_active=True).count(),
             'snapshot_count':GraphSnapshot.objects.count(),

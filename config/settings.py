@@ -33,6 +33,11 @@ CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
 # English is the project baseline; Russian website localisation is planned later.
 LANGUAGE_CODE = "en-us"
 
+# Kazakhstan civil dates govern legal periods and source-reporting freshness.
+# Persist aware instants in UTC; language selection does not change this policy.
+TIME_ZONE = "Asia/Qyzylorda"
+USE_TZ = True
+
 # Enable this only behind a proxy that replaces the incoming forwarded header.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https") if env_bool("TRUST_PROXY_SSL_HEADER") else None
 SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT")
@@ -131,7 +136,7 @@ CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TIMEZONE = "Asia/Almaty"
+CELERY_TIMEZONE = TIME_ZONE
 CELERY_ENABLE_UTC = True
 
 ENABLE_SCHEDULED_IMPORT = env_bool("ENABLE_SCHEDULED_IMPORT")

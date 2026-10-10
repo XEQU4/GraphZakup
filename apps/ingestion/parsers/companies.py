@@ -181,10 +181,12 @@ class SupplierRegistryParser:
             result["name"] = h1.get_text(strip=True)
 
         participant_ids = set()
+        director_identities = set()
         for table in soup.find_all("table"):
             if table.find_parent(["header", "footer", "nav"]):
                 continue
             director_section = self._is_director_table(table)
+            section_names, section_ids = set(), set()
             for row in table.find_all("tr"):
                 th = row.find("th")
                 td = row.find("td")
@@ -222,6 +224,14 @@ class SupplierRegistryParser:
                     if result["director"] not in (None, "", value):
                         raise SourceError("supplier_director_fields_invalid")
                     result["director"] = value or None
+                    if director_section and value:
+                        section_names.add(value)
+
+                elif director_section and key == "ИИН":
+                    # Only the explicitly labelled director's identifier is evidence.
+                    # Participant IIN, RNN, contact people and masked values are not substitutes.
+                    if re.fullmatch(r"[0-9]{12}", value) and value != '000000000000':
+                        section_ids.add(value)
 
                 elif "E-Mail" in key:
                     result["email"] = value
@@ -246,6 +256,19 @@ class SupplierRegistryParser:
 
                 elif "Вебсайт" in key or "Веб-сайт" in key:
                     result["website"] = value
+
+            if len(section_ids) > 1 or len(section_names) > 1:
+                raise SourceError('supplier_director_identity_invalid')
+            if section_names and section_ids:
+                director_identities.add((next(iter(section_names)), next(iter(section_ids))))
+
+        if len(director_identities) > 1:
+            raise SourceError('supplier_director_identity_invalid')
+        if director_identities:
+            name, identifier = next(iter(director_identities))
+            if name != result['director']:
+                raise SourceError('supplier_director_identity_invalid')
+            result.update(director_iin=identifier, director_iin_verified=True)
 
         contact_header = soup.find(
             "h4",

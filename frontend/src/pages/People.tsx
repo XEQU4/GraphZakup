@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -17,17 +18,20 @@ import "./entities.css";
 import "./directory.css";
 
 export function People() {
+  const { t } = useI18n();
   const decoration = useDecorationActive<HTMLDivElement>();
   const [params, setParams] = useSearchParams();
   const search = (params.get("search") || "").slice(0, 100);
   const [draft, setDraft] = useState(search);
   useEffect(() => setDraft(search), [search]);
   const page = validPage(params.get("page"));
-  const verification = ["true", "false"].includes(
-    params.get("is_verified") || "",
-  )
-    ? params.get("is_verified")!
-    : "";
+  const roleScope = params.get("roles") === "all" ? "all" : "current";
+  const verification =
+    params.get("is_verified") === "all"
+      ? ""
+      : params.get("is_verified") === "false"
+        ? "false"
+        : "true";
   const ordering = ["full_name", "-full_name"].includes(
     params.get("ordering") || "",
   )
@@ -40,6 +44,7 @@ export function People() {
   });
   if (search) query.set("search", search);
   if (verification) query.set("is_verified", verification);
+  if (roleScope === "current") query.set("has_current_role", "true");
   const { data, loading, error, reload } = useApi<Paginated<Person>>(
     `people/?${query}`,
   );
@@ -57,11 +62,15 @@ export function People() {
     >
       <header className="page-head entity-page-head">
         <div>
-          <span className="eyebrow">PEOPLE & ROLES</span>
-          <TechHeading as="h1" text="Follow the people behind the companies." />
+          <span className="eyebrow">{t("PEOPLE & ROLES")}</span>
+          <TechHeading
+            as="h1"
+            text={t("Follow the people behind the companies.")}
+          />
           <p className="muted">
-            Inspect saved identities and their directorship or ownership
-            records.
+            {t(
+              "Inspect people named in company records and the evidence behind their roles.",
+            )}
           </p>
         </div>
         <SectionEmblem kind="people" />
@@ -70,14 +79,17 @@ export function People() {
         <div className="entity-section-head">
           <div>
             <h2>
-              People <CountUp className="entity-count" value={data?.count} />
+              {t("People")}{" "}
+              <CountUp className="entity-count" value={data?.count} />
             </h2>
             <p className="muted">
-              Identity evidence is distinct from a person’s history.
+              {t(
+                "Verified identities with current roles appear by default. Unverified names and earlier source records remain available through the filters.",
+              )}
             </p>
           </div>
           <span className="entity-data-label">
-            <i /> SAVED IDENTITIES
+            <i /> {t("SAVED IDENTITIES")}
           </span>
         </div>
         <div className="toolbar entity-toolbar">
@@ -89,7 +101,7 @@ export function People() {
             }}
           >
             <label className="sr-only" htmlFor="person-search">
-              Search people by name
+              {t("Search people by name")}
             </label>
             <MagnifyingGlassIcon aria-hidden="true" />
             <input
@@ -97,53 +109,80 @@ export function People() {
               value={draft}
               maxLength={100}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="Search a saved name"
+              placeholder={t("Search a saved name")}
             />
             <button className="button entity-search-button" type="submit">
-              Search
+              {t("Search")}
             </button>
           </form>
           <label className="entity-select-label">
+            <span className="directory-control-label">{t("Role records")}</span>
+            <select
+              className="field"
+              value={roleScope}
+              onChange={(e) =>
+                update("roles", e.target.value === "all" ? "all" : "")
+              }
+            >
+              <option value="current">{t("Current people")}</option>
+              <option value="all">
+                {t("Source history (includes repeats)")}
+              </option>
+            </select>
+          </label>
+          <label className="entity-select-label">
             <span className="directory-control-label">
-              Identity verification filter
+              {t("Identity verification filter")}
             </span>
             <select
               className="field"
               value={verification}
-              onChange={(e) => update("is_verified", e.target.value)}
+              onChange={(e) => update("is_verified", e.target.value || "all")}
             >
-              <option value="">All identities</option>
-              <option value="true">Verified records</option>
-              <option value="false">Unverified records</option>
+              <option value="">{t("All identities")}</option>
+              <option value="true">{t("Verified records")}</option>
+              <option value="false">{t("Unverified records")}</option>
             </select>
           </label>
           <label className="entity-select-label">
-            <span className="directory-control-label">People ordering</span>
+            <span className="directory-control-label">
+              {t("People ordering")}
+            </span>
             <select
               className="field"
               value={ordering}
               onChange={(e) => update("ordering", e.target.value)}
             >
-              <option value="full_name">Name A–Z</option>
-              <option value="-full_name">Name Z–A</option>
+              <option value="full_name">{t("Name A–Z")}</option>
+              <option value="-full_name">{t("Name Z–A")}</option>
             </select>
           </label>
-          {(search || verification || page > 1) && (
+          {(search ||
+            verification !== "true" ||
+            roleScope === "all" ||
+            page > 1) && (
             <button
               className="button entity-clear"
               onClick={() => setParams({})}
             >
-              <Cross2Icon /> Clear
+              <Cross2Icon /> {t("Clear")}
             </button>
           )}
         </div>
+        {roleScope === "all" && (
+          <p className="entity-footnote muted" role="status">
+            {t(
+              "You are viewing source history. Repeated names can be earlier records for the same company, not additional people. Select Current people to return to the main list.",
+            )}
+          </p>
+        )}
         <EntityState
           loading={loading}
           error={error}
           empty={!!data && !data.results.length}
           onRetry={reload}
-          emptyTitle="No saved identities match"
-          emptyText="Try another name or clear the identity filter."
+          emptyTitle={t("No saved identities match")}
+          emptyText={t("Try another name or clear the identity filter.")}
         />
         {!loading && !error && !!data?.results.length && (
           <>
@@ -151,29 +190,26 @@ export function People() {
               className="table-scroll directory-results"
               tabIndex={0}
               role="region"
-              aria-label="People results"
+              aria-label={t("People results")}
             >
               <table className="data-table entity-table" role="table">
                 <thead role="rowgroup">
                   <tr role="row">
                     <th scope="col" role="columnheader">
-                      Person
+                      {t("Person")}
                     </th>
                     <th scope="col" role="columnheader">
-                      Identity evidence
+                      {t("Identity evidence")}
                     </th>
                     <th scope="col" role="columnheader">
-                      History coverage
-                    </th>
-                    <th scope="col" role="columnheader">
-                      <span className="sr-only">Open person</span>
+                      <span className="sr-only">{t("Open person")}</span>
                     </th>
                   </tr>
                 </thead>
                 <tbody role="rowgroup">
                   {data.results.map((person) => (
                     <tr role="row" key={person.id}>
-                      <td role="cell" data-label="Person">
+                      <td role="cell" data-label={t("Person")}>
                         <Link
                           className="entity-name-link"
                           to={`/people/${person.id}`}
@@ -186,36 +222,51 @@ export function People() {
                           </span>
                           <span className="directory-identity">
                             <strong>
-                              {person.full_name || "Unnamed identity"}
+                              {person.full_name || t("Unnamed identity")}
                             </strong>
                             <span className="entity-subline">
-                              Saved identity record
+                              {person.role_context?.companies.length
+                                ? person.role_context.companies
+                                    .map((company) => company.name)
+                                    .join(" · ")
+                                : t("Company context not recorded")}
+                              {!!person.role_context &&
+                              person.role_context.company_count > 2
+                                ? t(" · +{count} more", {
+                                    count:
+                                      person.role_context.company_count - 2,
+                                  })
+                                : ""}
                             </span>
+                            {roleScope === "all" && (
+                              <span className="entity-subline">
+                                {person.role_context?.has_current_role
+                                  ? t("Current role record")
+                                  : t("Historical source record")}
+                              </span>
+                            )}
                           </span>
                         </Link>
                       </td>
-                      <td role="cell" data-label="Identity evidence">
+                      <td role="cell" data-label={t("Identity evidence")}>
                         <span
                           className={`badge ${person.identity_status === "identifier_verified" ? "entity-badge-cyan" : "entity-badge-amber"}`}
                         >
                           {person.identity_status === "identifier_verified"
-                            ? "Identifier verified"
-                            : "Unverified identity"}
-                        </span>
-                      </td>
-                      <td role="cell" data-label="History coverage">
-                        <span className="muted">
-                          Verified history not integrated
+                            ? t("Identifier verified")
+                            : t("Unverified identity")}
                         </span>
                       </td>
                       <td role="cell" className="directory-action-cell">
                         <Link
                           className="entity-row-open"
                           to={`/people/${person.id}`}
-                          aria-label={`Open ${person.full_name}`}
+                          aria-label={t("Open {name}", {
+                            name: person.full_name,
+                          })}
                         >
                           <span className="directory-open-label">
-                            Open person
+                            {t("Open person")}
                           </span>
                           <ArrowRightIcon aria-hidden="true" />
                         </Link>
@@ -239,8 +290,9 @@ export function People() {
         )}
       </section>
       <p className="entity-footnote muted">
-        Matching names do not establish that two records describe the same
-        person. Personal identifiers are not exposed in this directory.
+        {t(
+          "Matching names do not establish that two records describe the same person. Personal identifiers are not exposed in this directory.",
+        )}
       </p>
     </div>
   );

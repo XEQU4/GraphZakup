@@ -5,5 +5,5 @@
 
 :is(.app-shell, .mobile-drawer, .login-dialog, .dialog-content)
   :is(input, textarea, [contenteditable=""], [contenteditable="true"]) {
-  caret-color: #b5d8ff;
+  caret-color: #c5d8ef;
 }

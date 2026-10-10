@@ -1,3 +1,4 @@
+import { translate as t, useI18n } from "../i18n";
 import {
   createContext,
   useCallback,
@@ -24,7 +25,11 @@ import type {
   Session,
   SessionUser,
 } from "../lib/types";
-import { accountErrors, type FieldErrors } from "../lib/accountForms";
+import {
+  accountErrors,
+  translateAccountMessage,
+  type FieldErrors,
+} from "../lib/accountForms";
 import "./AccountDialog.css";
 import { useDecorationActive } from "./motion/useDecorationActive";
 
@@ -59,6 +64,7 @@ interface SessionContextValue {
 const SessionContext = createContext<SessionContextValue | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
+  useI18n();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
@@ -250,6 +256,7 @@ export function useSession(): SessionContextValue {
 }
 
 function AccountStory() {
+  useI18n();
   const { ref, active } = useDecorationActive<HTMLDivElement>();
   return (
     <div
@@ -258,23 +265,24 @@ function AccountStory() {
       aria-hidden="true"
       data-active={active}
     >
-      <span className="account-story-label">YOUR IZ2 WORKSPACE</span>
+      <span className="account-story-label">{t("YOUR IZ2 WORKSPACE")}</span>
       <div className="account-orbit">
         <span />
         <span />
         <span />
         <LayersIcon />
       </div>
-      <h2>Your view, saved.</h2>
+      <h2>{t("Your view, saved.")}</h2>
       <p>
-        Keep your graph layout in your account and reopen it on another browser
-        or device.
+        {t(
+          "Keep your graph layout in your account and reopen it on another browser or device.",
+        )}
       </p>
       <span className="account-story-note">
-        <CheckIcon /> Node positions and zoom
+        <CheckIcon /> {t("Node positions and zoom")}
       </span>
       <span className="account-story-note">
-        <CheckIcon /> Selected nodes and relationship filters
+        <CheckIcon /> {t("Selected nodes and relationship filters")}
       </span>
     </div>
   );
@@ -291,6 +299,7 @@ export function LoginDialog({
   onOpenChange: (open: boolean) => void;
   initialMode?: AccountMode;
 }) {
+  useI18n();
   const { login, register, loading } = useSession();
   const [mode, setMode] = useState<AccountMode>(initialMode);
   const [username, setUsername] = useState("");
@@ -388,7 +397,7 @@ export function LoginDialog({
   const fieldError = (name: string) =>
     fields[name] ? (
       <span className="account-field-error" id={"account-" + name + "-error"}>
-        {fields[name]}
+        {translateAccountMessage(fields[name])}
       </span>
     ) : null;
 
@@ -424,7 +433,9 @@ export function LoginDialog({
               <Dialog.Close
                 className="icon-button"
                 aria-label={
-                  registering ? "Close sign-up dialog" : "Close sign-in dialog"
+                  registering
+                    ? t("Close sign-up dialog")
+                    : t("Close sign-in dialog")
                 }
               >
                 <Cross2Icon aria-hidden="true" />
@@ -433,7 +444,7 @@ export function LoginDialog({
             <div
               className="account-tabs"
               role="tablist"
-              aria-label="Account access"
+              aria-label={t("Account access")}
             >
               {(["login", "register"] as const).map((tab) => (
                 <button
@@ -466,19 +477,23 @@ export function LoginDialog({
                     }
                   }}
                 >
-                  {tab === "login" ? "Sign in" : "Sign up"}
+                  {tab === "login" ? t("Sign in") : t("Sign up")}
                 </button>
               ))}
             </div>
             <Dialog.Title>
               {registering
-                ? "Create your IZ2 account"
-                : "Sign in to your workspace"}
+                ? t("Create your IZ2 account")
+                : t("Sign in to your workspace")}
             </Dialog.Title>
             <Dialog.Description>
               {registering
-                ? "Save graph layouts to your account and reopen them on another browser or device."
-                : "Restore your saved node positions, selection and relationship filters across browsers and devices."}
+                ? t(
+                    "Save graph layouts to your account and reopen them on another browser or device.",
+                  )
+                : t(
+                    "Restore your saved node positions, selection and relationship filters across browsers and devices.",
+                  )}
             </Dialog.Description>
             <div
               id="account-form-panel"
@@ -491,7 +506,7 @@ export function LoginDialog({
                 aria-busy={busy}
               >
                 <label className="field" htmlFor="account-username">
-                  Username
+                  {t("Username")}
                 </label>
                 <input
                   id="account-username"
@@ -507,13 +522,13 @@ export function LoginDialog({
                   aria-describedby={
                     fields.username ? "account-username-error" : undefined
                   }
-                  placeholder="Your username"
+                  placeholder={t("Your username")}
                 />
                 {fieldError("username")}
                 {registering && (
                   <>
                     <label className="field" htmlFor="account-email">
-                      Email
+                      {t("Email")}
                     </label>
                     <input
                       id="account-email"
@@ -531,19 +546,21 @@ export function LoginDialog({
                           ? "account-email-error"
                           : "account-email-note"
                       }
-                      placeholder="you@example.com"
+                      placeholder={t("you@example.com")}
                     />
                     <span
                       className="account-field-note"
                       id="account-email-note"
                     >
-                      Your email stays private and cannot be changed here.
+                      {t(
+                        "Your email stays private and cannot be changed here.",
+                      )}
                     </span>
                     {fieldError("email")}
                   </>
                 )}
                 <label className="field" htmlFor="account-password">
-                  Password
+                  {t("Password")}
                 </label>
                 <input
                   id="account-password"
@@ -568,8 +585,8 @@ export function LoginDialog({
                   }
                   placeholder={
                     registering
-                      ? "Choose a strong password"
-                      : "Enter your password"
+                      ? t("Choose a strong password")
+                      : t("Enter your password")
                   }
                 />
                 {registering && (
@@ -577,15 +594,16 @@ export function LoginDialog({
                     id="account-password-note"
                     className="account-field-note"
                   >
-                    Use at least 8 characters. Avoid common passwords and
-                    personal details.
+                    {t(
+                      "Use at least 8 characters. Avoid common passwords and personal details.",
+                    )}
                   </span>
                 )}
                 {fieldError("password")}
                 {registering && (
                   <>
                     <label className="field" htmlFor="account-password-confirm">
-                      Confirm password
+                      {t("Confirm password")}
                     </label>
                     <input
                       id="account-password-confirm"
@@ -604,14 +622,14 @@ export function LoginDialog({
                           ? "account-password_confirm-error"
                           : undefined
                       }
-                      placeholder="Enter your password again"
+                      placeholder={t("Enter your password again")}
                     />
                     {fieldError("password_confirm")}
                   </>
                 )}
                 {error && (
                   <p className="form-error" role="alert">
-                    {error}
+                    {translateAccountMessage(error)}
                   </p>
                 )}
                 <button
@@ -620,10 +638,10 @@ export function LoginDialog({
                   disabled={busy}
                 >
                   {busy
-                    ? "Connecting…"
+                    ? t("Connecting…")
                     : registering
-                      ? "Create account"
-                      : "Sign in"}
+                      ? t("Create account")
+                      : t("Sign in")}
                   <ArrowRightIcon aria-hidden="true" />
                 </button>
               </form>
@@ -631,8 +649,12 @@ export function LoginDialog({
             <p className="dialog-footnote">
               <PersonIcon aria-hidden="true" />{" "}
               {registering
-                ? "Creating an account signs you in automatically. Guest views stay only in this browser."
-                : "Without an account, saved graph views stay only in this browser. Sign up to keep them with your account."}
+                ? t(
+                    "Creating an account signs you in automatically. Guest views stay only in this browser.",
+                  )
+                : t(
+                    "Without an account, saved graph views stay only in this browser. Sign up to keep them with your account.",
+                  )}
             </p>
           </div>
         </Dialog.Content>

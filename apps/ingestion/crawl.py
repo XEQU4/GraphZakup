@@ -37,7 +37,7 @@ def recently_unchanged(record):
     previous = SourceObservation.objects.filter(source='goszakup_contracts',
         subject_key=f'contract:{record["contract_gos_id"]}', status='success',
         observed_at__gte=timezone.now() - timedelta(days=settings.BACKGROUND_REFRESH_DAYS),
-        parser_version='2.3').order_by('-observed_at', '-pk').first()
+        parser_version__in=['2.3', '2.4']).order_by('-observed_at', '-pk').first()
     if not previous:
         return False
     fields = ('contract_number', 'contract_gos_id', 'supplier_name', 'customer_name', 'subject', 'purchase_number')

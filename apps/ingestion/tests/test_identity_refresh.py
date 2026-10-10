@@ -182,3 +182,31 @@ class IdentityRefreshTests(TestCase):
         self.assertEqual(repeated.pk, person.pk)
         self.assertEqual(IdentityCandidate.objects.count(), count)
         self.assertEqual(PersonSourceIdentity.objects.count(), 13)
+
+    def test_newer_name_only_source_does_not_downgrade_matching_verified_director(self):
+        verified = self.observation(**self.director_facts())
+        apply_company_facts(self.company)
+        self.observation(source='adata', when=self.earlier + timedelta(days=1), director_name='Synthetic person')
+        apply_company_facts(self.company)
+        role = Directorship.objects.get(is_current=True)
+        self.assertEqual(role.source_observation_id, verified.pk)
+        self.assertTrue(is_confirmed_role(role))
+        self.assertEqual(Directorship.objects.count(), 1)
+
+    def test_newer_changed_director_updates_both_company_field_and_current_role(self):
+        self.observation(**self.director_facts())
+        apply_company_facts(self.company)
+        latest = self.observation(source='adata', when=self.earlier + timedelta(days=1), director_name='Synthetic successor')
+        apply_company_facts(self.company)
+        self.company.refresh_from_db()
+        self.assertEqual(self.company.director_name, 'Synthetic successor')
+        self.assertEqual(Directorship.objects.get(is_current=True).source_observation_id, latest.pk)
+        self.assertFalse(is_confirmed_role(Directorship.objects.get(is_current=True)))
+
+    def test_contract_payload_cannot_be_selected_as_a_company_profile(self):
+        from apps.ingestion.models import SourceObservation
+        bad = self.observation(source='goszakup_supplier', name='Synthetic unrelated value')
+        SourceObservation.objects.filter(pk=bad.pk).update(subject_key='contract:99')
+        apply_company_facts(self.company)
+        self.company.refresh_from_db()
+        self.assertEqual(self.company.name, 'Synthetic company')

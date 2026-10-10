@@ -4,7 +4,8 @@ from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Exists, OuterRef, Subquery
+from django.db.models import Exists, OuterRef, Subquery, Value
+from django.db.models.functions import Concat
 from django.utils import timezone
 
 from apps.ai.services import refresh_graph_analysis
@@ -25,7 +26,8 @@ def enrichment_backlog():
     companies = Supplier.objects.all()
     for source in SourceProviders.COMPANY_SOURCES:
         companies = companies.annotate(**{source: Exists(SourceObservation.objects.filter(
-            supplier_id=OuterRef('pk'), source=source))})
+            supplier_id=OuterRef('pk'), source=source,
+            subject_key=Concat(Value('company:'), OuterRef('bin'))))})
     return companies.exclude(goszakup_supplier=True, adata=True).count()
 
 
@@ -34,11 +36,12 @@ def eligible_kgd(provider, source, now):
     client = provider.kgd_client()
     ready, refresh = [], []
     candidates = due_companies(source, version=KgdParser.VERSION, now=now)
-    successful = SourceObservation.objects.filter(supplier_id=OuterRef('pk'), status='success').order_by('-observed_at', '-pk')
+    successful = SourceObservation.objects.filter(supplier_id=OuterRef('pk'), status='success',
+        subject_key=Concat(Value('company:'), OuterRef('bin'))).order_by('-observed_at', '-pk')
     candidates = candidates.annotate(
         saved_kgd=Subquery(successful.filter(source=TAXPAYER_SOURCE).values('normalized_values')[:1]),
         saved_registry=Subquery(successful.filter(source='goszakup_supplier',
-            parser_version__in=['2.2', SourceProviders.VERSION], observed_at__gte=now - timedelta(days=7))
+            parser_version__in=['2.2', '2.3', SourceProviders.VERSION], observed_at__gte=now - timedelta(days=7))
             .values('normalized_values')[:1]))
     for company in candidates:
         kind = registered_subject_type(company)

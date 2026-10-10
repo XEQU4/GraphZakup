@@ -1,3 +1,5 @@
+import { translate as t, useI18n, LanguageSwitch } from "./i18n";
+import { BrandMark } from "./components/BrandMark";
 import { lazy, Suspense, useEffect, useState, type FormEvent } from "react";
 import {
   Link,
@@ -65,27 +67,19 @@ const navigation = [
   { path: "/about", name: "About Us", icon: InfoCircledIcon },
 ];
 function Brand() {
+  useI18n();
   return (
-    <Link to="/" className="brand" aria-label="IZ2 overview">
+    <Link to="/" className="brand" aria-label={t("IZ2 overview")}>
       <span className="brand-symbol">
-        <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
-          <path
-            d="M8 8H13V32H8Z M18 8H33V13L24 27H33V32H18V27L27 13H18Z"
-            fill="currentColor"
-          />
-          <path
-            d="M3 3H12M3 3V12M37 28V37H28"
-            stroke="#4b84ff"
-            strokeWidth="2"
-          />
-        </svg>
+        <BrandMark />
       </span>
-      <GlitchText text="IZ2" className="brand-wordmark" />
-      <span className="brand-caption">INTELLIGENCE</span>
+      <GlitchText text={t("IZ2")} className="brand-wordmark" period={18} />
+      <span className="brand-caption">{t("INTELLIGENCE")}</span>
     </Link>
   );
 }
 function SideNav({ close }: { close?: () => void }) {
+  useI18n();
   const { enabled } = useMotionPreferences();
   const [hoverPath, setHoverPath] = useState<string | null>(null);
   const [focusedPath, setFocusedPath] = useState<string | null>(null);
@@ -97,9 +91,10 @@ function SideNav({ close }: { close?: () => void }) {
         <Brand />
       </div>
       <div className="nav-label">
-        WORKSPACE <span>01 / {String(navigation.length).padStart(2, "0")}</span>
+        {t("WORKSPACE")}{" "}
+        <span>01 / {String(navigation.length).padStart(2, "0")}</span>
       </div>
-      <nav className="primary-nav" aria-label="Main navigation">
+      <nav className="primary-nav" aria-label={t("Main navigation")}>
         {navigation.map(({ path, name, icon: Icon }, i) => (
           <NavLink
             key={path}
@@ -135,7 +130,7 @@ function SideNav({ close }: { close?: () => void }) {
                   <FocusFrame scope={scope} />
                 )}
                 <Icon aria-hidden="true" />
-                <span className="nav-name">{name}</span>
+                <span className="nav-name">{t(name)}</span>
                 <small>0{i + 1}</small>
               </>
             )}
@@ -148,9 +143,9 @@ function SideNav({ close }: { close?: () => void }) {
             <LockClosedIcon aria-hidden="true" />
           </span>
           <p>
-            Evidence first.
+            {t("Evidence first.")}
             <br />
-            <span>Every connection has a source.</span>
+            <span>{t("Every connection has a source.")}</span>
           </p>
         </div>
         <a
@@ -159,18 +154,19 @@ function SideNav({ close }: { close?: () => void }) {
           rel="noreferrer"
           className="sidebar-external"
         >
-          <FileTextIcon aria-hidden="true" /> API documentation{" "}
+          <FileTextIcon aria-hidden="true" /> {t("API documentation")}{" "}
           <ArrowTopRightIcon aria-hidden="true" />
         </a>
         <div className="sidebar-version">
-          <span>IZ2 WORKSPACE</span>
-          <span>V1.0</span>
+          <span>{t("IZ2 WORKSPACE")}</span>
+          <span>{t("V1.0")}</span>
         </div>
       </div>
     </>
   );
 }
 function Layout() {
+  const { language } = useI18n();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -182,12 +178,14 @@ function Layout() {
   useEffect(() => {
     setMobile(false);
     window.scrollTo({ top: 0, behavior: "instant" });
+  }, [pathname]);
+  useEffect(() => {
     const title =
       navigation.find((item) =>
         item.path === "/" ? pathname === "/" : pathname.startsWith(item.path),
       )?.name ?? (pathname === "/profile" ? "Profile" : "Workspace");
-    document.title = title + " · IZ2";
-  }, [pathname]);
+    document.title = t(title) + " · IZ2";
+  }, [pathname, language]);
   function submit(event: FormEvent) {
     event.preventDefault();
     navigate(
@@ -200,7 +198,7 @@ function Layout() {
     <div className="app-shell">
       <Particles />
       <a href="#main-content" className="skip-link">
-        Skip to content
+        {t("Skip to content")}
       </a>
       <aside className="sidebar">
         <SideNav />
@@ -213,7 +211,7 @@ function Layout() {
           <Dialog.Root open={mobile} onOpenChange={setMobile}>
             <Dialog.Trigger
               className="icon-button mobile-menu"
-              aria-label="Open navigation"
+              aria-label={t("Open navigation")}
             >
               <HamburgerMenuIcon />
             </Dialog.Trigger>
@@ -221,14 +219,14 @@ function Layout() {
               <Dialog.Overlay className="nav-overlay" />
               <Dialog.Content className="mobile-drawer">
                 <Dialog.Title className="sr-only">
-                  Workspace navigation
+                  {t("Workspace navigation")}
                 </Dialog.Title>
                 <Dialog.Description className="sr-only">
-                  Explore companies, relationships, people and contracts.
+                  {t("Explore companies, relationships, people and contracts.")}
                 </Dialog.Description>
                 <Dialog.Close
                   className="drawer-close icon-button"
-                  aria-label="Close navigation"
+                  aria-label={t("Close navigation")}
                 >
                   <Cross2Icon />
                 </Dialog.Close>
@@ -237,13 +235,15 @@ function Layout() {
             </Dialog.Portal>
           </Dialog.Root>
           <div className="topbar-location">
-            Workspace <span>/</span>{" "}
+            {t("Workspace")} <span>/</span>{" "}
             <strong>
-              {navigation.find((item) =>
-                item.path === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(item.path),
-              )?.name ?? (pathname === "/profile" ? "Profile" : "Overview")}
+              {t(
+                navigation.find((item) =>
+                  item.path === "/"
+                    ? pathname === "/"
+                    : pathname.startsWith(item.path),
+                )?.name ?? (pathname === "/profile" ? "Profile" : "Overview"),
+              )}
             </strong>
           </div>
           <form className="global-search" role="search" onSubmit={submit}>
@@ -252,20 +252,23 @@ function Layout() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               maxLength={100}
-              placeholder="Search company or BIN"
-              aria-label="Search companies"
+              placeholder={t("Search company or BIN")}
+              aria-label={t("Search companies")}
             />
           </form>
           <div className="topbar-actions">
+            <LanguageSwitch />
             <span
               className={"connection-status " + (session ? "connected" : "")}
             >
               <i />
-              {session
-                ? "API connected"
-                : loading
-                  ? "Connecting"
-                  : "API unavailable"}
+              {t(
+                session
+                  ? "API connected"
+                  : loading
+                    ? "Connecting"
+                    : "API unavailable",
+              )}
             </span>
             <button
               type="button"
@@ -273,20 +276,20 @@ function Layout() {
                 "icon-button motion-toggle " + (enabled ? "is-on" : "")
               }
               onClick={toggle}
-              aria-label={
+              aria-label={t(
                 enabled
                   ? "Pause decorative animations"
-                  : "Enable decorative animations"
-              }
+                  : "Enable decorative animations",
+              )}
               aria-pressed={enabled}
               disabled={reduced}
-              title={
+              title={t(
                 reduced
                   ? "Reduced motion follows your device settings"
                   : enabled
                     ? "Pause animations"
-                    : "Enable animations"
-              }
+                    : "Enable animations",
+              )}
             >
               <LightningBoltIcon aria-hidden="true" />
             </button>
@@ -301,7 +304,7 @@ function Layout() {
                   }}
                 >
                   <PersonIcon aria-hidden="true" />
-                  <span>Sign in</span>
+                  <span>{t("Sign in")}</span>
                 </button>
                 <button
                   className="button button-primary account-signup"
@@ -311,14 +314,16 @@ function Layout() {
                     setLogin(true);
                   }}
                 >
-                  Sign up
+                  {t("Sign up")}
                 </button>
               </>
             ) : (
               <Link
                 className="button account-button account-profile-link"
                 to="/profile"
-                aria-label={"Open profile for " + user.username}
+                aria-label={t("Open profile for {username}", {
+                  username: user.username ?? "",
+                })}
               >
                 <PersonIcon aria-hidden="true" />
                 <span>{user.username}</span>
@@ -342,20 +347,22 @@ function Layout() {
   );
 }
 function NotFound() {
+  useI18n();
   return (
     <div className="not-found">
-      <span className="eyebrow">404 / UNCHARTED TERRITORY</span>
-      <h1>This page is outside the network.</h1>
+      <span className="eyebrow">{t("404 / UNCHARTED TERRITORY")}</span>
+      <h1>{t("This page is outside the network.")}</h1>
       <p className="muted">
-        Return to the workspace to continue exploring saved evidence.
+        {t("Return to the workspace to continue exploring saved evidence.")}
       </p>
       <Link className="button button-primary" to="/">
-        Back to overview <ArrowRightIcon />
+        {t("Back to overview")} <ArrowRightIcon />
       </Link>
     </div>
   );
 }
 export default function App() {
+  useI18n();
   return (
     <Routes>
       <Route element={<Layout />}>

@@ -339,3 +339,53 @@ Before adding safe transport diagnostics, a further graceful stop and independen
 restore passed: `artifacts/collection-v2/recovery-diagnostics/database_20261009T062729Z_6f01e3d2.json`.
 The collector was subsequently restarted. This is the latest recorded recovery
 point, not a static baseline for the now-running collector.
+
+## Director source audit, 9 October 2026
+
+Owned collection was gracefully stopped before parser/selection changes.
+`artifacts/parser-final-audit/recovery/database_20261009T102120Z_3a298b8a.json`
+records a successful independent restore across all 51 tables and migrations.
+Four captured registry observations were rehearsed on an owned restored copy;
+original immutable rows and 809 unrelated companies remained unchanged. The copy
+was dropped. Identical frozen evidence was then published atomically, with no
+network/inference and no additional versions on repeat refresh. Thirty-eight
+public GETs preserved the resulting domain tables.
+
+Post-publication recovery independently passed:
+`artifacts/parser-final-audit/recovery-after/database_20261009T104602Z_b09c838d.json`.
+Reports contain checksums and exact comparisons; the source database was never
+restored/deleted. Collection then resumed, so this is a recovery point rather than
+a static expectation for the running database. See PARSER_AUDIT_2026_10_09.md.
+
+## Directory readiness, 9 October 2026
+
+After stopping owned collection, a fresh dump was independently restored:
+artifacts/readiness/recovery/database_20261009T112032Z_d986d012.json.
+All 51 working tables matched before and after offline implementation/tests and
+read-only readiness checks. No schema or working-domain migration was required.
+Collection resumes afterwards; subsequent changes are expected. Details in
+DATA_READINESS.md and ignored artifacts/readiness/.
+
+## Final-audit recovery and date-policy follow-up, 10 October 2026
+
+Fresh recovery was independently verified during the final audit:
+`artifacts/final-audit/recovery/database_20261010T044152Z_7c0230ad.json`.
+The dump and comparison shared one exported `REPEATABLE READ READ ONLY` snapshot.
+All 51 public tables matched by columns, row counts and multiset row hashes:
+18,890 rows including 70 migration records. The owned restored database was
+dropped and its absence verified. Dump SHA-256:
+`3e4f202950117e3953cb997ab0d954b3605c4f07671325603f8ee4d6050e68ff`.
+Summary: `artifacts/final-audit/recovery/summary.json`. This verifies saved table
+contents; it does not certify sequence values, grants, indexes, external media or
+a complete target-host Compose recovery.
+
+This recovery point was checked before the authorised timezone correction.
+The correction requires no schema migration, source recollection or history
+rewrite. Its tests used an owned PostgreSQL database, removed afterwards.
+A separate repeatable-read read-only assessment found no creation-day mismatch
+candidates in the 57 graph snapshots, 44 analyses or 47 analysis jobs, and no
+current role/graph/KGD projection differences between the two relevant civil
+dates. This is a bounded assessment, not permission to rewrite old results.
+Private reports: `artifacts/timezone-fix/`. Worker, AI-worker and beat were already
+stopped at audit entry and remain stopped; earlier running-status entries above
+describe their historical checks.

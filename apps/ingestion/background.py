@@ -3,7 +3,8 @@ import json
 from datetime import timedelta
 
 from django.conf import settings
-from django.db.models import F, OuterRef, Q, Subquery
+from django.db.models import F, OuterRef, Q, Subquery, Value
+from django.db.models.functions import Concat
 from django.utils import timezone
 
 from apps.companies.models import Supplier
@@ -53,7 +54,8 @@ def collection_status():
 
 def due_companies(source, *, version, now, limit=None):
     """Oldest attempted first; failures wait before retry and never starve new IDs."""
-    latest = SourceObservation.objects.filter(supplier_id=OuterRef('pk'), source=source).order_by('-observed_at', '-pk')
+    latest = SourceObservation.objects.filter(supplier_id=OuterRef('pk'), source=source,
+        subject_key=Concat(Value('company:'), OuterRef('bin'))).order_by('-observed_at', '-pk')
     companies = Supplier.objects.annotate(
         attempt_time=Subquery(latest.values('observed_at')[:1]),
         attempt_status=Subquery(latest.values('status')[:1]),
@@ -62,6 +64,7 @@ def due_companies(source, *, version, now, limit=None):
     fresh_cutoff = now - timedelta(days=settings.BACKGROUND_REFRESH_DAYS)
     retry_cutoff = now - timedelta(seconds=settings.BACKGROUND_RETRY_SECONDS)
     eligible = (Q(attempt_time__isnull=True)
+                | Q(attempt_status='success') & ~Q(attempt_version=version)
                 | Q(attempt_time__lt=retry_cutoff) & (
                     ~Q(attempt_status__in=['success', 'not_found'])
                     | Q(attempt_time__lt=fresh_cutoff) | ~Q(attempt_version=version)))
@@ -83,11 +86,17 @@ def registered_subject_type(company):
         prior_data = company.saved_kgd or {}
         registry_data = company.saved_registry or {}
     else:
-        prior = company.source_observations.filter(source=TAXPAYER_SOURCE, status='success').order_by('-observed_at', '-pk').first()
+        prior = company.source_observations.filter(source=TAXPAYER_SOURCE, status='success',
+            subject_key=f'company:{company.bin}').order_by('-observed_at', '-pk').first()
         prior_data = prior.normalized_values if prior else {}
         registry = company.source_observations.filter(source='goszakup_supplier', status='success',
-            parser_version__in=['2.2', SourceProviders.VERSION], observed_at__gte=timezone.now() - timedelta(days=7)).order_by('-observed_at', '-pk').first()
+            subject_key=f'company:{company.bin}',
+            parser_version__in=['2.2', '2.3', SourceProviders.VERSION], observed_at__gte=timezone.now() - timedelta(days=7)).order_by('-observed_at', '-pk').first()
         registry_data = registry.normalized_values if registry else {}
+    if prior_data.get('bin') != company.bin:
+        prior_data = {}
+    if registry_data.get('bin') != company.bin:
+        registry_data = {}
     if prior_data.get('kgd_taxpayer_type') in LEGAL_TYPES | {'IP'}:
         return prior_data['kgd_taxpayer_type']
     if not registry_data:

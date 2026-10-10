@@ -364,3 +364,12 @@ total. Registry still has two ambiguous identities. Discovery is intentionally
 held at 813 companies/525 contracts while 729 await first profile attempts.
 Host/numerical-curl diagnostics exclude exception messages and credentials; five
 transport/privacy tests passed. Final report: artifacts/collection-v2/final-verification.json.
+
+## Director identity audit, 9 October 2026
+
+Parser 2.4 now reads the public registry's explicitly labelled director IIN,
+previously ignored. Four live cards (two entrepreneurs/two legal entities) were
+rehearsed and published with history intact; 563 PostgreSQL tests passed. Company
+facts/roles now agree chronologically, and compatible contract caches are retained.
+Collection resumed with source failures/entitlement gaps still explicit. See
+[PARSER_AUDIT_2026_10_09.md](PARSER_AUDIT_2026_10_09.md) for scope, evidence and limits.

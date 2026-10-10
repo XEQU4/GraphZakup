@@ -12,18 +12,23 @@ import "./identity.css";
 import "./layout-fixes.css";
 import "./control-motion.css";
 import "./input-focus.css";
+import "./refinement.css";
+import "./i18n/localization.css";
+import { LanguageProvider } from "./i18n";
 import { SessionProvider } from "./components/Session";
 import { MotionPreferences } from "./components/MotionPreferences";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <BrowserRouter basename={import.meta.env.DEV ? "" : "/app"}>
-      <MotionConfig reducedMotion="user">
-        <MotionPreferences>
-          <SessionProvider>
-            <App />
-          </SessionProvider>
-        </MotionPreferences>
-      </MotionConfig>
-    </BrowserRouter>
+    <LanguageProvider>
+      <BrowserRouter basename={import.meta.env.DEV ? "" : "/app"}>
+        <MotionConfig reducedMotion="user">
+          <MotionPreferences>
+            <SessionProvider>
+              <App />
+            </SessionProvider>
+          </MotionPreferences>
+        </MotionConfig>
+      </BrowserRouter>
+    </LanguageProvider>
   </React.StrictMode>,
 );

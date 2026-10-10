@@ -1,9 +1,11 @@
+import { translate as t, useI18n } from "../../i18n";
 import { useEffect, useId, useRef, useState } from "react";
 import { useInView } from "motion/react";
 import { CubeIcon, FileTextIcon, PersonIcon } from "@radix-ui/react-icons";
 
 /** Decorative illustration of the workspace's three record types, not a graph. */
 export function EvidenceSculpture({ enabled }: { enabled: boolean }) {
+  useI18n();
   const ref = useRef<HTMLDivElement>(null);
   const visible = useInView(ref);
   const [pageVisible, setPageVisible] = useState(!document.hidden);
@@ -165,8 +167,8 @@ export function EvidenceSculpture({ enabled }: { enabled: boolean }) {
           <CubeIcon />
         </span>
         <div>
-          <small>THE ORGANISATIONS</small>
-          <strong>Companies</strong>
+          <small>{t("THE ORGANISATIONS")}</small>
+          <strong>{t("Companies")}</strong>
         </div>
         <i />
       </div>
@@ -175,8 +177,8 @@ export function EvidenceSculpture({ enabled }: { enabled: boolean }) {
           <PersonIcon />
         </span>
         <div>
-          <small>THE CONNECTIONS</small>
-          <strong>People</strong>
+          <small>{t("THE CONNECTIONS")}</small>
+          <strong>{t("People")}</strong>
         </div>
         <i />
       </div>
@@ -185,8 +187,8 @@ export function EvidenceSculpture({ enabled }: { enabled: boolean }) {
           <FileTextIcon />
         </span>
         <div>
-          <small>THE CONTEXT</small>
-          <strong>Contracts</strong>
+          <small>{t("THE CONTEXT")}</small>
+          <strong>{t("Contracts")}</strong>
         </div>
         <i />
       </div>

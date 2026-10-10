@@ -1,5 +1,6 @@
 import { useId } from "react";
 import { formatCount, cx } from "../../lib/utils";
+import { useI18n } from "../../i18n";
 import "./EvidenceMeter.css";
 
 interface EvidenceMeterProps {
@@ -18,6 +19,7 @@ export function EvidenceMeter({
   description,
   className,
 }: EvidenceMeterProps) {
+  const { t } = useI18n();
   const id = useId();
   const valid =
     value !== null &&
@@ -28,8 +30,11 @@ export function EvidenceMeter({
     total >= value;
   const fraction = valid && total > 0 ? value / total : 0;
   const countText = valid
-    ? `${formatCount(value)} of ${formatCount(total)} records`
-    : "Saved counts are unavailable";
+    ? t("{value} of {total} records", {
+        value: formatCount(value),
+        total: formatCount(total),
+      })
+    : t("Saved counts are unavailable");
 
   return (
     <div className={cx("iz2-evidence-meter", className)}>
@@ -43,7 +48,7 @@ export function EvidenceMeter({
               <span>{formatCount(total)}</span>
             </>
           ) : (
-            "Not available"
+            t("Not available")
           )}
         </span>
       </div>
@@ -64,7 +69,9 @@ export function EvidenceMeter({
         />
       </div>
       {valid && total === 0 ? (
-        <p className="iz2-evidence-meter-empty">No saved records to assess</p>
+        <p className="iz2-evidence-meter-empty">
+          {t("No saved records to assess")}
+        </p>
       ) : null}
       {description ? (
         <p id={id + "-description"} className="iz2-evidence-meter-description">

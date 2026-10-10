@@ -96,6 +96,7 @@ def build_data_quality_report(*, days=7, now=None):
     if isinstance(days, bool) or not isinstance(days, int) or not 1 <= days <= 3650:
         raise ValueError('quality_days_must_be_between_1_and_3650')
     now = now or timezone.now()
+    today = timezone.localdate(now)
     cutoff = now - timedelta(days=days)
     companies = Supplier.objects.all()
     total = companies.count()
@@ -143,7 +144,7 @@ def build_data_quality_report(*, days=7, now=None):
             'missing_customer_link': Contract.objects.filter(customer=None).count(),
             'customer_identifier_mismatch': Contract.objects.filter(customer__isnull=False).exclude(
                 customer_bin=F('customer__bin')).count(),
-            'future_contract_date': Contract.objects.filter(contract_date__gt=now.date()).count(),
+            'future_contract_date': Contract.objects.filter(contract_date__gt=today).count(),
         },
         'observations': {
             'total': observations.count(),
@@ -161,8 +162,8 @@ def build_data_quality_report(*, days=7, now=None):
             'same_company_name_groups_with_multiple_identities': name_scopes.filter(companies=1, identities__gt=1).count(),
             'matching_candidates': {row['status']: row['count'] for row in IdentityCandidate.objects.values('status').annotate(count=Count('pk'))},
         },
-        'roles': {'directors': _role_quality(Directorship, is_confirmed_role, now.date()),
-                  'owners': _role_quality(Ownership, confirmed_owner, now.date())},
+        'roles': {'directors': _role_quality(Directorship, is_confirmed_role, today),
+                  'owners': _role_quality(Ownership, confirmed_owner, today)},
         'kgd': {'states': kgd, 'configuration': _kgd_configuration()},
         'interpretation': [
             'This report reads saved data only; it does not verify current source availability.',

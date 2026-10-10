@@ -1,8 +1,15 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MotionPreferences } from "../MotionPreferences";
 import { EvidenceMeter } from "./EvidenceMeter";
 import { SpotlightSurface, useSpotlight } from "./SpotlightSurface";
+import { setLanguage } from "../../i18n";
 
 class TestPointerEvent extends MouseEvent {
   pointerType: string;
@@ -13,6 +20,8 @@ class TestPointerEvent extends MouseEvent {
 }
 
 afterEach(() => {
+  cleanup();
+  setLanguage("en");
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   localStorage.clear();
@@ -77,6 +86,26 @@ describe("decorative spotlight", () => {
 });
 
 describe("saved evidence coverage", () => {
+  it("updates localized accessible counts and empty states while retaining the saved denominator", () => {
+    const { rerender } = render(
+      <EvidenceMeter label="Identity verification" value={2} total={1100} />,
+    );
+    const meter = screen.getByRole("meter");
+    act(() => setLanguage("ru"));
+    expect(screen.getByRole("meter")).toBe(meter);
+    expect(meter).toHaveAttribute("aria-valuetext", "2 из 1\u00a0100 записей");
+    expect(meter).toHaveAttribute("aria-valuemax", "1100");
+    expect(meter).toHaveAttribute("aria-valuenow", "2");
+    rerender(
+      <EvidenceMeter label="Identity verification" value={0} total={0} />,
+    );
+    expect(
+      screen.getByText("Нет сохранённых записей для оценки"),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("meter")).not.toBeInTheDocument();
+    act(() => setLanguage("en"));
+    expect(screen.getByText("No saved records to assess")).toBeInTheDocument();
+  });
   it("represents confirmed zero coverage as a meter with the saved denominator", () => {
     render(
       <EvidenceMeter label="Identity verification" value={0} total={768} />,

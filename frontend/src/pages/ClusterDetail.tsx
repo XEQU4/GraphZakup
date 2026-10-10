@@ -1,3 +1,4 @@
+import { useI18n, translate, type MessageValues } from "../i18n";
 import { useEffect, useRef, useState } from "react";
 import {
   Link,
@@ -50,10 +51,16 @@ function StaffActions({
   historical: boolean;
   onRefresh: () => void;
 }) {
+  useI18n();
   const { capabilities, csrfToken } = useSession();
   const [pending, setPending] = useState(false),
     [job, setJob] = useState<Job | null>(null),
-    [message, setMessage] = useState("");
+    [message, setMessageState] = useState<{
+      key: string;
+      values?: MessageValues;
+    }>({ key: "" });
+  const setMessage = (key: string, values?: MessageValues) =>
+    setMessageState({ key, values });
   const [action, setAction] = useState<"graph" | "analysis" | null>(null);
   const active = useRef<AbortController | null>(null),
     timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,9 +87,10 @@ function StaffActions({
         const result = await getJson<Job>(`jobs/${kind}/${id}/`, abort.signal);
         if (abort.signal.aborted) return;
         setJob(result);
-        setMessage(
-          `Background task: ${result.status.replaceAll("_", " ")}${result.error_code ? ` · ${result.error_code}` : ""}.`,
-        );
+        setMessage("Background task: {status}{error}.", {
+          status: result.status,
+          error: result.error_code ? ` · ${result.error_code}` : "",
+        });
         if (["pending", "running"].includes(result.status))
           timer.current = setTimeout(() => void poll(id), 2000);
         else setPending(false);
@@ -137,13 +145,13 @@ function StaffActions({
   return (
     <details className="panel cluster-operations">
       <summary>
-        <ReloadIcon />
-        Staff actions
-        <ChevronDownIcon />
+        <ReloadIcon /> {translate("Staff actions")} <ChevronDownIcon />
       </summary>
       <p>
-        These actions use saved data. They do not start source collection or
-        paid model inference.
+        {" "}
+        {translate(
+          "These actions use saved data. They do not start source collection or paid model inference.",
+        )}{" "}
       </p>
       <div className="toolbar">
         <button
@@ -151,40 +159,61 @@ function StaffActions({
           disabled={pending || historical}
           onClick={() => setAction("graph")}
         >
-          Recalculate saved relationships
+          {" "}
+          {translate("Recalculate saved relationships")}{" "}
         </button>
         <button
           className="button button-quiet"
           disabled={pending || historical}
           onClick={() => setAction("analysis")}
         >
-          Prepare template explanation
+          {" "}
+          {translate("Prepare template explanation")}{" "}
         </button>
       </div>
       {action && (
         <div className="cluster-action-confirm">
           <p>
             {action === "graph"
-              ? "Recalculate relationships using saved facts? A changed result can publish a new graph and analysis version."
-              : "Prepare the saved template explanation for the current graph? Existing published text remains in its history."}
+              ? translate(
+                  "Recalculate relationships using saved facts? A changed result can publish a new graph and analysis version.",
+                )
+              : translate(
+                  "Prepare the saved template explanation for the current graph? Existing published text remains in its history.",
+                )}
           </p>
           <button className="button" onClick={() => void start(action)}>
-            Start background task
+            {" "}
+            {translate("Start background task")}{" "}
           </button>
           <button
             className="button button-quiet"
             onClick={() => setAction(null)}
           >
-            Cancel
+            {" "}
+            {translate("Cancel")}{" "}
           </button>
         </div>
       )}
-      {historical && <p>Open the current graph version to start a task.</p>}
-      {message && <p role="status">{message}</p>}
+      {historical && (
+        <p>{translate("Open the current graph version to start a task.")}</p>
+      )}
+      {message.key && (
+        <p role="status">
+          {translate(
+            message.key,
+            message.values && {
+              ...message.values,
+              ...(typeof message.values.status === "string"
+                ? { status: translate(message.values.status) }
+                : {}),
+            },
+          )}
+        </p>
+      )}
       {job?.status === "succeeded" && (
         <button className="button" onClick={onRefresh}>
-          <CheckCircledIcon />
-          Open updated saved results
+          <CheckCircledIcon /> {translate("Open updated saved results")}{" "}
         </button>
       )}
     </details>
@@ -192,6 +221,7 @@ function StaffActions({
 }
 
 function EvidenceRecords({ snapshot }: { snapshot: number }) {
+  useI18n();
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string | null>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
@@ -207,13 +237,15 @@ function EvidenceRecords({ snapshot }: { snapshot: number }) {
     <section className="panel cluster-evidence">
       <div className="cluster-section-heading">
         <div>
-          <span className="eyebrow">Traceable sources</span>
-          <h2>Saved evidence</h2>
+          <span className="eyebrow">{translate("Traceable sources")}</span>
+          <h2>{translate("Saved evidence")}</h2>
         </div>
         <Badge>
           {records.data
-            ? `${formatCount(records.data.count)} records`
-            : "Snapshot evidence"}
+            ? translate("{count} records", {
+                count: formatCount(records.data.count),
+              })
+            : translate("Snapshot evidence")}
         </Badge>
       </div>
       <PageState
@@ -221,7 +253,7 @@ function EvidenceRecords({ snapshot }: { snapshot: number }) {
         error={records.error}
         onRetry={records.reload}
         empty={records.data?.count === 0}
-        emptyTitle="No evidence records in this snapshot"
+        emptyTitle={translate("No evidence records in this snapshot")}
       />
       {records.data && !records.error && (
         <>
@@ -234,26 +266,33 @@ function EvidenceRecords({ snapshot }: { snapshot: number }) {
                 <div>
                   <strong>
                     {record.graph_edge
-                      ? `${record.graph_edge.type}: ${record.graph_edge.value}`
-                      : record.source || record.kind.replaceAll("_", " ")}
+                      ? `${translate(record.graph_edge.type)}: ${record.graph_edge.value}`
+                      : record.source ||
+                        translate(record.kind.replaceAll("_", " "))}
                   </strong>
                   <small>
-                    {record.quality ||
-                      record.graph_edge?.confidence ||
-                      record.kind.replaceAll("_", " ")}
+                    {translate(
+                      record.quality ||
+                        record.graph_edge?.confidence ||
+                        record.kind.replaceAll("_", " "),
+                    )}
                     {record.observed_at
-                      ? ` · observed ${formatDate(record.observed_at)}`
+                      ? translate(" · observed {date}", {
+                          date: formatDate(record.observed_at),
+                        })
                       : ""}
-                    {record.status ? ` · ${record.status}` : ""}
+                    {record.status ? ` · ${translate(record.status)}` : ""}
                   </small>
                 </div>
                 <button
                   className="button button-quiet"
                   onClick={() => setSelected(record.id)}
-                  aria-label={`Inspect saved evidence ${record.id}`}
+                  aria-label={translate("Inspect saved evidence {id}", {
+                    id: record.id,
+                  })}
                 >
-                  Inspect
-                  <ArrowTopRightIcon />
+                  {" "}
+                  {translate("Inspect")} <ArrowTopRightIcon />
                 </button>
                 {record.url && safeGraphLink(record.url) && (
                   <a
@@ -262,8 +301,8 @@ function EvidenceRecords({ snapshot }: { snapshot: number }) {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Source
-                    <ArrowTopRightIcon />
+                    {" "}
+                    {translate("Source")} <ArrowTopRightIcon />
                   </a>
                 )}
               </div>
@@ -300,15 +339,17 @@ function EvidenceRecords({ snapshot }: { snapshot: number }) {
           >
             <Dialog.Close
               className="icon-button dialog-close"
-              aria-label="Close saved evidence"
+              aria-label={translate("Close saved evidence")}
             >
               <Cross2Icon />
             </Dialog.Close>
-            <span className="eyebrow">Snapshot evidence</span>
-            <Dialog.Title>Saved evidence record</Dialog.Title>
+            <span className="eyebrow">{translate("Snapshot evidence")}</span>
+            <Dialog.Title>{translate("Saved evidence record")}</Dialog.Title>
             <Dialog.Description>
-              This record belongs to the selected saved graph. Its original
-              source and dates remain unchanged.
+              {" "}
+              {translate(
+                "This record belongs to the selected saved graph. Its original source and dates remain unchanged.",
+              )}{" "}
             </Dialog.Description>
             <PageState
               loading={evidence.loading}
@@ -319,31 +360,33 @@ function EvidenceRecords({ snapshot }: { snapshot: number }) {
               <>
                 <dl>
                   <div>
-                    <dt>Kind</dt>
-                    <dd>{evidence.data.kind.replaceAll("_", " ")}</dd>
+                    <dt>{translate("Kind")}</dt>
+                    <dd>
+                      {translate(evidence.data.kind.replaceAll("_", " "))}
+                    </dd>
                   </div>
                   {evidence.data.source && (
                     <div>
-                      <dt>Source</dt>
+                      <dt>{translate("Source")}</dt>
                       <dd>{evidence.data.source}</dd>
                     </div>
                   )}
                   {evidence.data.observed_at && (
                     <div>
-                      <dt>Observed</dt>
+                      <dt>{translate("Observed")}</dt>
                       <dd>{formatDateTime(evidence.data.observed_at)}</dd>
                     </div>
                   )}
                   {evidence.data.quality && (
                     <div>
-                      <dt>Quality</dt>
-                      <dd>{evidence.data.quality}</dd>
+                      <dt>{translate("Quality")}</dt>
+                      <dd>{translate(evidence.data.quality)}</dd>
                     </div>
                   )}
                   {evidence.data.status && (
                     <div>
-                      <dt>Source status</dt>
-                      <dd>{evidence.data.status}</dd>
+                      <dt>{translate("Source status")}</dt>
+                      <dd>{translate(evidence.data.status)}</dd>
                     </div>
                   )}
                 </dl>
@@ -353,23 +396,30 @@ function EvidenceRecords({ snapshot }: { snapshot: number }) {
                     <p>{evidence.data.graph_edge.value}</p>
                     <dl>
                       <div>
-                        <dt>Evidence confidence</dt>
+                        <dt>{translate("Evidence confidence")}</dt>
                         <dd>{evidence.data.graph_edge.confidence}</dd>
                       </div>
                       <div>
-                        <dt>Legal interval</dt>
+                        <dt>{translate("Legal interval")}</dt>
                         <dd>
-                          {formatDate(evidence.data.graph_edge.valid_from)} to{" "}
-                          {formatDate(evidence.data.graph_edge.valid_until)}{" "}
-                          (exclusive end)
+                          {translate("{from} to {until} (exclusive end)", {
+                            from: formatDate(
+                              evidence.data.graph_edge.valid_from,
+                            ),
+                            until: formatDate(
+                              evidence.data.graph_edge.valid_until,
+                            ),
+                          })}
                         </dd>
                       </div>
                       <div>
-                        <dt>Temporal status</dt>
+                        <dt>{translate("Temporal status")}</dt>
                         <dd>
-                          {evidence.data.graph_edge.temporal_status.replaceAll(
-                            "_",
-                            " ",
+                          {translate(
+                            evidence.data.graph_edge.temporal_status.replaceAll(
+                              "_",
+                              " ",
+                            ),
                           )}
                         </dd>
                       </div>
@@ -381,8 +431,12 @@ function EvidenceRecords({ snapshot }: { snapshot: number }) {
                       <div className="evidence-dialog-source" key={index}>
                         <strong>{ref.source}</strong>
                         <p>
-                          {ref.quality || "Unknown quality"} · observed{" "}
-                          {formatDateTime(ref.observed_at)}
+                          {translate("{quality} · observed {date}", {
+                            quality: translate(
+                              ref.quality || "Unknown quality",
+                            ),
+                            date: formatDateTime(ref.observed_at),
+                          })}
                         </p>
                         {safeGraphLink(ref.url) && (
                           <a
@@ -390,7 +444,8 @@ function EvidenceRecords({ snapshot }: { snapshot: number }) {
                             target="_blank"
                             rel="noopener noreferrer"
                           >
-                            Open original source
+                            {" "}
+                            {translate("Open original source")}{" "}
                             <ArrowTopRightIcon />
                           </a>
                         )}
@@ -405,24 +460,24 @@ function EvidenceRecords({ snapshot }: { snapshot: number }) {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Open original source
-                    <ArrowTopRightIcon />
+                    {" "}
+                    {translate("Open original source")} <ArrowTopRightIcon />
                   </a>
                 )}
                 <details>
-                  <summary>Record identifiers</summary>
+                  <summary>{translate("Record identifiers")}</summary>
                   <dl>
                     <div>
-                      <dt>Evidence</dt>
+                      <dt>{translate("Evidence")}</dt>
                       <dd>{evidence.data.id}</dd>
                     </div>
                     <div>
-                      <dt>Graph snapshot</dt>
+                      <dt>{translate("Graph snapshot")}</dt>
                       <dd>{evidence.data.graph_snapshot_id}</dd>
                     </div>
                     {evidence.data.parser_version && (
                       <div>
-                        <dt>Parser version</dt>
+                        <dt>{translate("Parser version")}</dt>
                         <dd>{evidence.data.parser_version}</dd>
                       </div>
                     )}
@@ -438,6 +493,7 @@ function EvidenceRecords({ snapshot }: { snapshot: number }) {
 }
 
 export function ClusterDetail() {
+  useI18n();
   const location = useLocation();
   const route = useParams<{ uuid?: string; id?: string }>(),
     uuid = route.uuid ?? route.id ?? "";
@@ -531,9 +587,14 @@ export function ClusterDetail() {
     ? currentTitleApplies
       ? clusterDisplayTitle(cluster.data)
       : graph.data
-        ? `Historical group · ${formatCount(companies.length)} ${companies.length === 1 ? "company" : "companies"}`
-        : "Historical relationship group"
-    : cluster.data?.name || "Relationship group";
+        ? translate(
+            companies.length === 1
+              ? "Historical group · {count} company"
+              : "Historical group · {count} companies",
+            { count: formatCount(companies.length) },
+          )
+        : translate("Historical relationship group")
+    : cluster.data?.name || translate("Relationship group");
   const headingCompanies = graph.data
     ? companies.slice(0, 3).map((company) => ({
         id: company.company_id,
@@ -554,11 +615,15 @@ export function ClusterDetail() {
         to={originSearch ? `/clusters?${originSearch}` : "/clusters"}
       >
         <ArrowLeftIcon />
-        {originSearch ? "Back to results" : "All relationship groups"}
+        {originSearch
+          ? translate("Back to results")
+          : translate("All relationship groups")}
       </Link>
       <header className="page-head">
         <div>
-          <span className="eyebrow">Saved relationship group</span>
+          <span className="eyebrow">
+            {translate("Saved relationship group")}
+          </span>
           <TechHeading
             key={`${uuid}:${displayTitle}`}
             as="h1"
@@ -567,7 +632,7 @@ export function ClusterDetail() {
           {headingCompanies.length > 0 && (
             <div
               className="cluster-heading-companies"
-              aria-label="Companies in this saved group"
+              aria-label={translate("Companies in this saved group")}
             >
               {headingCompanies.map((company, index) =>
                 company.id ? (
@@ -580,41 +645,50 @@ export function ClusterDetail() {
               )}
               {companies.length > 3 && (
                 <span className="cluster-heading-more">
-                  +{companies.length - 3} more
+                  {translate("+{count} more", { count: companies.length - 3 })}
                 </span>
               )}
             </div>
           )}
           <p>
-            Inspect saved relationships and their evidence. Group membership
-            does not establish a violation.
+            {" "}
+            {translate(
+              "Inspect saved relationships and their evidence. Group membership does not establish a violation.",
+            )}{" "}
           </p>
         </div>
         <div className="cluster-version-select">
           <label className="field">
-            <span>Graph version</span>
+            <span>{translate("Graph version")}</span>
             <select
-              aria-label="Graph version"
+              aria-label={translate("Graph version")}
               value={version ?? ""}
               onChange={(event) => update("version", event.target.value)}
             >
-              <option value="">Current saved version</option>
+              <option value="">{translate("Current saved version")}</option>
               {version &&
                 !history.data?.results.some(
                   (item) => String(item.version) === version,
-                ) && <option value={version}>Graph v{version}</option>}
+                ) && (
+                  <option value={version}>
+                    {translate("Graph v{version}", { version })}
+                  </option>
+                )}
               {history.data?.results.map((item) => (
                 <option key={item.id} value={item.version}>
-                  v{item.version} · {item.state} · {formatDate(item.as_of)}
+                  v{item.version} · {translate(item.state)} ·{" "}
+                  {formatDate(item.as_of)}
                 </option>
               ))}
             </select>
           </label>
           {history.error && (
             <small role="alert">
-              Version history unavailable.{" "}
+              {" "}
+              {translate("Version history unavailable.")}{" "}
               <button className="button button-quiet" onClick={history.reload}>
-                Retry
+                {" "}
+                {translate("Retry")}{" "}
               </button>
             </small>
           )}
@@ -633,18 +707,22 @@ export function ClusterDetail() {
           <div className="cluster-version-strip">
             <Badge tone={graph.data.historical ? "amber" : "cyan"}>
               {graph.data.historical
-                ? "Historical saved version"
-                : "Current saved version"}
+                ? translate("Historical saved version")
+                : translate("Current saved version")}
             </Badge>
             <span>
               <ClockIcon />
-              Graph v{graph.data.version ?? "—"}
+              {translate("Graph v{version}", {
+                version: graph.data.version ?? "—",
+              })}
               {detail.data
-                ? ` · evidence ${formatDate(detail.data.as_of)}`
+                ? translate(" · evidence {date}", {
+                    date: formatDate(detail.data.as_of),
+                  })
                 : ""}
             </span>
             {!cluster.data?.is_active && cluster.data && (
-              <Badge>Archived group</Badge>
+              <Badge>{translate("Archived group")}</Badge>
             )}
           </div>
           <GraphExplorer
@@ -663,20 +741,26 @@ export function ClusterDetail() {
                 }
               >
                 {analysis.loading || selectedExplanation.loading
-                  ? "Loading saved analysis"
+                  ? translate("Loading saved analysis")
                   : analysis.error || selectedExplanation.error
-                    ? "Saved analysis unavailable"
+                    ? translate("Saved analysis unavailable")
                     : analysis.data?.status === "stale"
-                      ? "Saved analysis needs refresh"
+                      ? translate("Saved analysis needs refresh")
                       : analysis.data?.status === "ready"
-                        ? "Analysis v" + currentAnalysis?.version
-                        : "No saved analysis"}
+                        ? translate("Analysis v{version}", {
+                            version: currentAnalysis?.version ?? "—",
+                          })
+                        : translate("No saved analysis")}
               </Badge>
-              {analysis.data?.historical && <Badge>Historical analysis</Badge>}
+              {analysis.data?.historical && (
+                <Badge>{translate("Historical analysis")}</Badge>
+              )}
               {currentAnalysis && (
                 <span className="cluster-review-status-note">
-                  Graph v{currentAnalysis.graph_version} · evidence{" "}
-                  {formatDate(currentAnalysis.as_of)}
+                  {translate("Graph v{version} · evidence {date}", {
+                    version: currentAnalysis.graph_version,
+                    date: formatDate(currentAnalysis.as_of),
+                  })}
                 </span>
               )}
             </div>
@@ -688,18 +772,18 @@ export function ClusterDetail() {
               unavailable={Boolean(analysis.error)}
             >
               <details className="cluster-technical">
-                <summary>Method and version history</summary>
+                <summary>{translate("Method and version history")}</summary>
                 {currentAnalysis && (
                   <dl>
                     <div>
-                      <dt>Analysis</dt>
+                      <dt>{translate("Analysis")}</dt>
                       <dd>
                         v{currentAnalysis.version} ·{" "}
                         {currentAnalysis.rules_version}
                       </dd>
                     </div>
                     <div>
-                      <dt>Analysis hash</dt>
+                      <dt>{translate("Analysis hash")}</dt>
                       <dd>
                         <code>
                           {currentAnalysis.analysis_hash.slice(0, 12)}
@@ -709,32 +793,41 @@ export function ClusterDetail() {
                   </dl>
                 )}
                 <label className="field">
-                  <span>Analysis version</span>
+                  <span>{translate("Analysis version")}</span>
                   <select
-                    aria-label="Analysis version"
+                    aria-label={translate("Analysis version")}
                     value={analysisVersion ?? ""}
                     onChange={(event) =>
                       update("analysis_version", event.target.value)
                     }
                   >
-                    <option value="">Published analysis for this graph</option>
+                    <option value="">
+                      {translate("Published analysis for this graph")}
+                    </option>
                     {analysisVersion &&
                       !graphAnalyses.some(
                         (item) => String(item.version) === analysisVersion,
                       ) && (
                         <option value={analysisVersion}>
-                          Analysis v{analysisVersion}
+                          {translate("Analysis v{version}", {
+                            version: analysisVersion,
+                          })}
                         </option>
                       )}
                     {graphAnalyses.map((item) => (
                       <option key={item.id} value={item.version}>
-                        Analysis v{item.version} · {formatDate(item.as_of)}
+                        {translate("Analysis v{version}", {
+                          version: item.version,
+                        })}{" "}
+                        · {formatDate(item.as_of)}
                       </option>
                     ))}
                   </select>
                 </label>
                 {analyses.error && (
-                  <p role="alert">Analysis history unavailable.</p>
+                  <p role="alert">
+                    {translate("Analysis history unavailable.")}
+                  </p>
                 )}
                 {analyses.data && analyses.data.count > 100 && (
                   <Pagination
@@ -745,33 +838,39 @@ export function ClusterDetail() {
                   />
                 )}
                 <label className="field">
-                  <span>Explanation history</span>
+                  <span>{translate("Explanation history")}</span>
                   <select
-                    aria-label="Explanation history"
+                    aria-label={translate("Explanation history")}
                     value={explanationId ?? ""}
                     onChange={(event) =>
                       update("explanation", event.target.value)
                     }
                   >
-                    <option value="">Published explanation</option>
+                    <option value="">
+                      {translate("Published explanation")}
+                    </option>
                     {explanationId &&
                       !explanations.data?.results.some(
                         (item) => String(item.id) === explanationId,
                       ) && (
                         <option value={explanationId}>
-                          Explanation #{explanationId}
+                          {translate("Explanation #{id}", {
+                            id: explanationId,
+                          })}
                         </option>
                       )}
                     {explanations.data?.results.map((item) => (
                       <option key={item.id} value={item.id}>
-                        {item.provider} · {item.status} ·{" "}
+                        {item.provider} · {translate(item.status)} ·{" "}
                         {formatDateTime(item.created_at)}
                       </option>
                     ))}
                   </select>
                 </label>
                 {explanations.error && (
-                  <p role="alert">Explanation history unavailable.</p>
+                  <p role="alert">
+                    {translate("Explanation history unavailable.")}
+                  </p>
                 )}
                 {explanations.data && explanations.data.count > 100 && (
                   <Pagination
@@ -783,19 +882,22 @@ export function ClusterDetail() {
                 )}
                 <dl>
                   <div>
-                    <dt>Graph hash</dt>
+                    <dt>{translate("Graph hash")}</dt>
                     <dd>
                       <code>
-                        {graph.data.graph_hash?.slice(0, 12) ?? "Unavailable"}
+                        {graph.data.graph_hash?.slice(0, 12) ??
+                          translate("Unavailable")}
                       </code>
                     </dd>
                   </div>
                   <div>
-                    <dt>Changes</dt>
+                    <dt>{translate("Changes")}</dt>
                     <dd>
-                      {detail.data?.changes.added_members?.length ?? 0} added ·{" "}
-                      {detail.data?.changes.removed_members?.length ?? 0}{" "}
-                      removed
+                      {translate("{added} added · {removed} removed", {
+                        added: detail.data?.changes.added_members?.length ?? 0,
+                        removed:
+                          detail.data?.changes.removed_members?.length ?? 0,
+                      })}
                     </dd>
                   </div>
                 </dl>
@@ -824,7 +926,7 @@ export function ClusterDetail() {
                       >
                         v{item.target_version}
                       </Link>{" "}
-                      · {item.kind}
+                      · {translate(item.kind)}
                     </p>
                   ))}
               </details>

@@ -66,6 +66,34 @@ class ClusterDirectoryTests(TestCase):
     def detail(self, cluster):
         return self.get(f'/api/v1/clusters/{cluster.uuid}/')
 
+    def test_entity_filters_use_frozen_members_before_pagination(self):
+        target = self.group(members=[42, 43])
+        self.group(members=[420, 430])
+        rows = self.get(company_id=42, page_size=1)
+        self.assertEqual(rows['count'], 1)
+        self.assertEqual(rows['results'][0]['uuid'], str(target.uuid))
+        self.assertEqual(self.get(company_id=4)['count'], 0)
+        self.assertEqual(self.get(person_id=42)['count'], 0)
+        self.assertEqual(self.client.get('/api/v1/clusters/', {'company_id': 'x'}).status_code, 400)
+
+    def test_person_groups_require_exact_verified_node_and_role_evidence(self):
+        target = self.group(kind='director', members=[42, 43])
+        old = target.current_snapshot
+        payload = deepcopy(old.payload)
+        payload['nodes'][-1]['id'] = 'person:71'
+        for edge in payload['links']:
+            edge['target'] = 'person:71'
+        for version, verified, evidence, expected in ((2, True, True, 1), (3, False, True, 0), (4, True, False, 0)):
+            payload['nodes'][-1]['identity_verified'] = verified
+            for edge in payload['links']:
+                edge['evidence'] = [{'source': 'synthetic'}] if evidence else []
+            snapshot = GraphSnapshot.objects.create(cluster=target, version=version, graph_hash=str(version) * 64,
+                algorithm_version='synthetic', state='active', as_of=old.as_of, member_ids=old.member_ids, payload=payload)
+            target.current_snapshot = snapshot
+            target.save(update_fields=['current_snapshot'])
+            self.assertEqual(self.get(person_id=71)['count'], expected)
+            self.assertEqual(self.get(person_id=7)['count'], 0)
+
     def test_title_companies_reasons_and_scores_use_saved_evidence(self):
         cluster = self.group(kind='phone', count=5)
         data = self.detail(cluster)

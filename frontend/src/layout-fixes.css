@@ -71,7 +71,7 @@
 
 .app-shell .cluster-analysis-summary,
 .app-shell .cluster-explanation {
-  scroll-margin-top: 24px;
+  scroll-margin-top: 100px;
 }
 
 @media (max-width: 1000px) {

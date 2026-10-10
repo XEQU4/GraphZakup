@@ -216,12 +216,12 @@
   white-space: nowrap;
 }
 .entity-badge-blue {
-  color: #8cbcff;
+  color: #a5c0e6;
   background: rgba(77, 143, 248, 0.09);
   border-color: rgba(77, 143, 248, 0.22);
 }
 .entity-badge-cyan {
-  color: #74dfea;
+  color: #8dcad1;
   background: rgba(41, 198, 214, 0.07);
   border-color: rgba(41, 198, 214, 0.2);
 }
@@ -332,6 +332,248 @@
 .entity-detail-head h1 {
   font-size: clamp(25px, 3vw, 40px);
   overflow-wrap: anywhere;
+}
+.entity-person-overview.entity-person-focused {
+  grid-template-columns: minmax(0, 1fr);
+}
+.entity-coverage-note {
+  margin: 0 0 26px;
+  padding: 16px 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.entity-coverage-note summary {
+  cursor: pointer;
+  color: var(--text);
+  min-height: 28px;
+}
+.entity-coverage-note p {
+  max-width: 85ch;
+}
+.entity-detail-head {
+  padding: clamp(22px, 3vw, 40px);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background:
+    radial-gradient(ellipse at 100% 0, #283d6266, transparent 65%),
+    linear-gradient(135deg, #18202ed9, #0b1015e8);
+}
+.entity-section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 22px 0;
+}
+.entity-section-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 15px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--muted);
+  background: #121722b3;
+  transition:
+    color 0.2s,
+    border-color 0.2s;
+}
+.entity-section-nav a:hover {
+  color: var(--text);
+  border-color: var(--blue);
+}
+.entity-page section[id] {
+  scroll-margin-top: 110px;
+}
+.entity-section-intro {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.8;
+  margin: -12px 0 24px;
+}
+.entity-fact-source {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 10px;
+  line-height: 1.7;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.entity-fact-source > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.entity-fact-source svg {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+}
+.entity-fact-unconfirmed {
+  color: #bbac8e;
+}
+.entity-fact-grid > div {
+  padding-bottom: 16px;
+  border-bottom: 1px solid #343f5166;
+}
+.entity-detail-panel .eyebrow {
+  display: block;
+  margin-bottom: 12px;
+}
+.entity-check-purpose {
+  color: var(--muted);
+}
+.entity-role-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 0;
+}
+.entity-role-filter select {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #121722;
+  color: var(--text);
+}
+.entity-role-section .entity-section-head,
+.entity-contract-preview .entity-section-head {
+  flex-wrap: wrap;
+}
+.entity-identity-explainer {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.entity-identity-explainer p,
+.entity-identity-explainer small {
+  color: var(--muted);
+}
+.entity-identity-explainer small {
+  display: block;
+  margin-top: 10px;
+}
+.entity-match-counts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.entity-match-counts > div {
+  background: #0e131ea8;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+.entity-match-counts dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+.entity-match-counts dd {
+  margin: 8px 0 0;
+  font-size: 25px;
+  color: var(--text);
+}
+.entity-check-list {
+  list-style: none;
+  padding: 0;
+  margin: 24px 0;
+}
+.entity-check-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.entity-related {
+  margin-bottom: 28px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.entity-related-empty {
+  margin: 0;
+  padding: 0 clamp(20px, 2.5vw, 32px) 24px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.entity-section-symbol {
+  width: 25px;
+  height: 25px;
+  color: var(--blue);
+  flex-shrink: 0;
+}
+.entity-group-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: 0 24px 24px;
+}
+.entity-group-card {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: linear-gradient(130deg, #1b263bb3, #0e131b);
+  text-decoration: none;
+  color: var(--text);
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+.entity-group-card:hover {
+  border-color: var(--blue);
+  background: #1e2c41;
+}
+.entity-group-card h3 {
+  font-size: 17px;
+  margin: 14px 0 10px;
+}
+.entity-group-card p {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.entity-group-bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--cyan);
+}
+@media (max-width: 640px) {
+  .entity-fact-grid,
+  .entity-match-counts,
+  .entity-group-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .entity-group-grid {
+    padding: 0 16px 16px;
+  }
+  .entity-kgd-top {
+    flex-wrap: wrap;
+  }
+  .entity-section-nav a {
+    font-size: 11px;
+    padding: 8px 11px;
+  }
 }
 .entity-detail-head .entity-identity-row {
   display: flex;
@@ -687,5 +929,56 @@
 @media (prefers-reduced-motion: reduce) {
   .entity-table tbody tr {
     transition: none;
+  }
+}
+@media (max-width: 760px) {
+  .entity-role-table,
+  .entity-contract-preview .entity-contract-table {
+    display: block;
+    min-width: 0;
+    width: 100%;
+  }
+  .entity-role-table thead,
+  .entity-contract-preview thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .entity-role-table tbody,
+  .entity-contract-preview tbody {
+    display: block;
+    padding: 0 16px;
+  }
+  .entity-role-table tr,
+  .entity-contract-preview tr {
+    display: block;
+    padding: 12px 0;
+    margin: 12px 0;
+    background: var(--surface-row);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  .entity-role-table td,
+  .entity-contract-preview .entity-contract-table td {
+    display: block;
+    min-width: 0;
+    max-width: none;
+    width: auto;
+    padding: 10px 16px;
+    border: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .entity-role-table td::before,
+  .entity-contract-preview td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--muted);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 6px;
   }
 }

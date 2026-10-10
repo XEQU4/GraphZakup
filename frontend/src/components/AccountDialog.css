@@ -6,12 +6,12 @@
   max-height: min(850px, calc(100dvh - 36px));
   padding: 0;
   overflow-y: auto;
-  border: 1px solid #315080;
+  border: 1px solid #42556f;
   border-radius: 24px;
-  background: #060d1b;
+  background: #0a0f17;
   box-shadow:
     0 32px 130px #000b,
-    0 0 70px #235dd51c;
+    0 0 70px #496aaf1c;
 }
 .account-story {
   position: relative;
@@ -21,10 +21,10 @@
   overflow: hidden;
   padding: 36px 28px;
   min-width: 0;
-  border-right: 1px solid #284369;
+  border-right: 1px solid #35455c;
   background:
-    radial-gradient(ellipse at 40% 42%, #1242a344, transparent 64%),
-    linear-gradient(145deg, #0d2248, #050a14);
+    radial-gradient(ellipse at 40% 42%, #314c8444, transparent 64%),
+    linear-gradient(145deg, #19273c, #090b10);
 }
 .account-story::before {
   content: "";
@@ -33,8 +33,8 @@
   pointer-events: none;
   opacity: 0.24;
   background-image:
-    linear-gradient(#74a4ff19 1px, transparent 1px),
-    linear-gradient(90deg, #74a4ff19 1px, transparent 1px);
+    linear-gradient(#91ade219 1px, transparent 1px),
+    linear-gradient(90deg, #91ade219 1px, transparent 1px);
   background-size: 32px 32px;
   mask-image: linear-gradient(transparent, #000, transparent);
 }
@@ -42,7 +42,7 @@
   position: relative;
 }
 .account-story-label {
-  color: #8db4ff;
+  color: #a4bce8;
   font:
     9px "IBM Plex Mono",
     monospace;
@@ -55,28 +55,28 @@
   width: 160px;
   height: 160px;
   margin: 38px auto;
-  color: #b9d5ff;
+  color: #c7d7f1;
 }
 .account-orbit > svg {
   width: 50px;
   height: 50px;
-  filter: drop-shadow(0 0 22px #3e7bff77);
+  filter: drop-shadow(0 0 22px #678ad677);
 }
 .account-orbit > span {
   position: absolute;
   inset: 0;
-  border: 1px solid #4e87e866;
+  border: 1px solid #6e90c866;
   border-radius: 50%;
 }
 .account-orbit > span:nth-child(2) {
   inset: 16px;
   border-style: dashed;
-  border-color: #88c2ff77;
+  border-color: #a1c3e677;
   transform: rotate(20deg);
 }
 .account-orbit > span:nth-child(3) {
   inset: 35px;
-  border-color: #3d69af66;
+  border-color: #546e9866;
 }
 .account-orbit > span:first-child::after {
   content: "";
@@ -84,10 +84,10 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #d8eaff;
+  background: #e0ebf7;
   left: calc(50% - 3px);
   top: -3px;
-  box-shadow: 0 0 12px #72aeff;
+  box-shadow: 0 0 12px #90b3e1;
 }
 html[data-motion="on"]
   .account-story[data-active="true"]
@@ -104,20 +104,20 @@ html[data-motion="on"]
 }
 .account-story p {
   font-size: 12px;
-  color: #a7b8d4;
+  color: #b0bbcb;
   line-height: 1.85;
   margin: 0 0 26px;
 }
 .account-story-note {
   font-size: 11px;
-  color: #bbcfed;
+  color: #c6d1e2;
   margin: 8px 0;
   display: flex;
   gap: 9px;
   align-items: center;
 }
 .account-story-note svg {
-  color: #80b6ff;
+  color: #9bbae4;
   width: 15px;
   height: 15px;
 }
@@ -128,6 +128,10 @@ html[data-motion="on"]
 .account-dialog-body .dialog-header {
   margin-bottom: 24px;
 }
+.account-dialog-body .dialog-header > .icon-button {
+  min-width: 44px;
+  min-height: 44px;
+}
 .account-dialog-body h2 {
   font-size: 25px;
   margin: 23px 0 9px;
@@ -137,35 +141,35 @@ html[data-motion="on"]
 .account-dialog-body > p {
   font-size: 12px;
   line-height: 1.8;
-  color: #9caecc;
+  color: #a6b1c2;
   margin-bottom: 20px;
 }
 .account-tabs {
   display: flex;
-  border: 1px solid #20385d;
+  border: 1px solid #2d3b50;
   border-radius: 12px;
   padding: 4px;
   gap: 4px;
-  background: #050b16;
+  background: #0a0c11;
 }
 .account-tabs button {
   flex: 1;
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
-  color: #97abca;
-  min-height: 40px;
+  color: #a1aec0;
+  min-height: 44px;
   cursor: pointer;
   font-size: 12px;
 }
 .account-tabs button[aria-selected="true"] {
-  background: linear-gradient(120deg, #1743a2, #112548);
-  color: #f1f6ff;
-  border-color: #426fbc;
-  box-shadow: inset 0 1px 0 #96bbff26;
+  background: linear-gradient(120deg, #334e86, #1b293e);
+  color: #ebf0fa;
+  border-color: #5c75a2;
+  box-shadow: inset 0 1px 0 #adc2e826;
 }
 .account-tabs button:focus-visible {
-  outline: 2px solid #8fb8ff;
+  outline: 2px solid #a7bfe7;
   outline-offset: 2px;
 }
 .account-tabs button:disabled {
@@ -177,25 +181,25 @@ html[data-motion="on"]
 .account-form .field {
   margin-top: 8px;
   font-size: 11px;
-  color: #c5d5f0;
+  color: #ced8e7;
 }
 .account-form input,
 .profile-field input {
   width: 100%;
   height: 46px;
-  border: 1px solid #294063;
+  border: 1px solid #364356;
   border-radius: 10px;
   padding: 0 13px;
-  color: #edf4ff;
-  background: #040a15;
-  caret-color: #b1d3ff;
+  color: #ebf0fa;
+  background: #090b10;
+  caret-color: #c2d5ee;
   outline: none;
   min-width: 0;
 }
 .account-form input:focus,
 .profile-field input:focus {
-  border-color: #6a9aef;
-  box-shadow: 0 0 0 3px #4682ef18;
+  border-color: #87a2d2;
+  box-shadow: 0 0 0 3px #6a8dcb18;
 }
 .account-form input[aria-invalid="true"],
 .profile-field input[aria-invalid="true"] {
@@ -211,7 +215,7 @@ html[data-motion="on"]
   justify-content: space-between;
 }
 .account-field-note {
-  color: #8399bd;
+  color: #909bb0;
   font-size: 10px;
   line-height: 1.6;
 }
@@ -226,7 +230,7 @@ html[data-motion="on"]
   gap: 8px;
   font-size: 10px;
   line-height: 1.6;
-  color: #8195b6;
+  color: #8c98ab;
 }
 .account-dialog-body .dialog-footnote svg {
   flex: 0 0 14px;

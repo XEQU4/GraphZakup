@@ -1,3 +1,4 @@
+import { translate as t, useI18n } from "../i18n";
 import type { CSSProperties, ReactNode } from "react";
 import {
   ArrowLeftIcon,
@@ -17,6 +18,7 @@ export function Badge({
   tone?: "neutral" | "blue" | "cyan" | "amber" | "danger" | "success";
   className?: string;
 }) {
+  useI18n();
   return (
     <span className={cx("badge", "badge-" + tone, className)}>{children}</span>
   );
@@ -29,6 +31,7 @@ export function Skeleton({
   className?: string;
   style?: CSSProperties;
 }) {
+  useI18n();
   return (
     <span
       aria-hidden="true"
@@ -45,14 +48,17 @@ export function EmptyState({
   title?: string;
   children?: ReactNode;
 }) {
+  useI18n();
   return (
     <div className="page-state" role="status">
       <span className="state-icon">
         <MagnifyingGlassIcon aria-hidden="true" />
       </span>
-      <h3 className="state-title">{title}</h3>
+      <h3 className="state-title">{t(title)}</h3>
       <div className="state-copy">
-        {children ?? "Try a different search or adjust the filters."}
+        {typeof children === "string"
+          ? t(children)
+          : (children ?? t("Try a different search or adjust the filters."))}
       </div>
     </div>
   );
@@ -73,19 +79,20 @@ export function PageState({
   emptyTitle?: string;
   emptyMessage?: ReactNode;
 }) {
+  useI18n();
   if (loading)
     return (
       <div
         className="page-state page-state-loading"
         role="status"
-        aria-label="Loading saved data"
+        aria-label={t("Loading saved data")}
       >
         <div className="loading-bars" aria-hidden="true">
           <Skeleton />
           <Skeleton />
           <Skeleton />
         </div>
-        <span className="sr-only">Loading saved data…</span>
+        <span className="sr-only">{t("Loading saved data…")}</span>
       </div>
     );
   if (error)
@@ -94,9 +101,9 @@ export function PageState({
         <span className="state-icon">
           <ExclamationTriangleIcon aria-hidden="true" />
         </span>
-        <h3 className="state-title">Saved data could not be loaded</h3>
+        <h3 className="state-title">{t("Saved data could not be loaded")}</h3>
         <p className="state-copy">
-          {typeof error === "string" ? error : error.message}
+          {t(typeof error === "string" ? error : error.message)}
         </p>
         {onRetry && (
           <button
@@ -104,7 +111,7 @@ export function PageState({
             type="button"
             onClick={onRetry}
           >
-            <ReloadIcon aria-hidden="true" /> Try again
+            <ReloadIcon aria-hidden="true" /> {t("Try again")}
           </button>
         )}
       </div>
@@ -125,31 +132,39 @@ export function Pagination({
   pageSize?: number;
   onPage: (page: number) => void;
 }) {
+  useI18n();
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const first = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const last = Math.min(page * pageSize, total);
   return (
-    <nav className="pagination" aria-label="Results pagination">
+    <nav className="pagination" aria-label={t("Results pagination")}>
       <span className="pagination-info">
-        {formatCount(first)}–{formatCount(last)} of {formatCount(total)}
+        {t("{first}–{last} of {total}", {
+          first: formatCount(first),
+          last: formatCount(last),
+          total: formatCount(total),
+        })}
       </span>
       <div className="pagination-controls">
         <button
           className="icon-button"
           type="button"
-          aria-label="Previous page"
+          aria-label={t("Previous page")}
           disabled={page <= 1}
           onClick={() => onPage(Math.max(1, page - 1))}
         >
           <ArrowLeftIcon aria-hidden="true" />
         </button>
         <span>
-          Page {formatCount(page)} of {formatCount(pages)}
+          {t("Page {page} of {pages}", {
+            page: formatCount(page),
+            pages: formatCount(pages),
+          })}
         </span>
         <button
           className="icon-button"
           type="button"
-          aria-label="Next page"
+          aria-label={t("Next page")}
           disabled={page >= pages}
           onClick={() => onPage(Math.min(pages, page + 1))}
         >

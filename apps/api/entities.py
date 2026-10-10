@@ -10,15 +10,18 @@ from rest_framework import serializers
 from apps.companies.models import Supplier
 from apps.contracts.models import Contract
 from apps.graph.evidence import confirmed_owner
-from apps.ingestion.models import CompanyKgdState, SourceObservation
+from apps.ingestion.models import CompanyKgdState, SourceObservation, SelectedFact, IdentityCandidate
 from apps.ingestion.parsers.kgd import DEBT_SOURCE, KgdParser, TAXPAYER_SOURCE, validate_facts
 from apps.owners.models import Directorship, Ownership, PersonIdentity
 from apps.owners.querysets import is_confirmed_role
 
 from .common import ApiDetailView, ApiListView, EmptyQuerySerializer, ListQuerySerializer, safe_source_url
+from .catalogue import company_profile_scope, person_role_scope
 
 
 class CompanyQuerySerializer(ListQuerySerializer):
+    profile_status = serializers.ChoiceField(choices=['checked', 'pending'], required=False,
+        help_text='Checked means the displayed company name/BIN has accepted registry or Adata profile evidence; not complete checks.')
     bin = serializers.RegexField(r'\A[0-9]{12}\Z', required=False, trim_whitespace=False)
     is_supplier = serializers.BooleanField(required=False)
     is_customer = serializers.BooleanField(required=False)
@@ -27,6 +30,7 @@ class CompanyQuerySerializer(ListQuerySerializer):
 
 class PersonQuerySerializer(ListQuerySerializer):
     is_verified = serializers.BooleanField(required=False)
+    has_current_role = serializers.BooleanField(required=False, help_text='Has a role marked current in saved observations; not a confirmed legal period.')
     ordering = serializers.ChoiceField(choices=['full_name', '-full_name', 'id', '-id'], default='full_name')
 
 
@@ -145,14 +149,23 @@ def saved_kgd_summaries(company):
     return summaries
 
 
+class FieldEvidenceSerializer(serializers.Serializer):
+    field = serializers.CharField()
+    source = serializers.CharField(allow_null=True)
+    status = serializers.ChoiceField(choices=['source_backed', 'legacy', 'unconfirmed'])
+    observed_at = serializers.DateTimeField(allow_null=True)
+    url = serializers.URLField(allow_null=True)
+
+
 class CompanyDetailSerializer(CompanySerializer):
     kgd_checks = serializers.SerializerMethodField()
     website = serializers.SerializerMethodField()
+    field_evidence = serializers.SerializerMethodField()
 
     class Meta(CompanySerializer.Meta):
         fields = CompanySerializer.Meta.fields + ['oked', 'company_status', 'registration_date', 'address', 'phone', 'email',
                  'description', 'resident_status', 'company_size', 'kopf', 'economic_sector', 'website',
-                 'created_at', 'updated_at', 'adata_updated_at', 'kgd_checks']
+                 'created_at', 'updated_at', 'adata_updated_at', 'kgd_checks', 'field_evidence']
         read_only_fields = fields
 
     @extend_schema_field(KgdSummarySerializer(many=True))
@@ -162,6 +175,24 @@ class CompanyDetailSerializer(CompanySerializer):
     @extend_schema_field(serializers.URLField(allow_null=True))
     def get_website(self, company):
         return safe_source_url(company.website)
+
+    @extend_schema_field(FieldEvidenceSerializer(many=True))
+    def get_field_evidence(self, company):
+        selected = {row.field: row.observation for row in company._api_selected_facts}
+        result = []
+        for field in ('name', 'registration_date', 'company_status', 'region', 'city', 'address',
+                      'oked', 'phone', 'email', 'company_size', 'economic_sector', 'description', 'website'):
+            obs = selected.get(field)
+            bound = bool(obs and obs.supplier_id == company.pk and obs.subject_key == f'company:{company.bin}')
+            legacy = bound and obs.source == 'legacy'
+            values = obs.normalized_values if bound and isinstance(obs.normalized_values, dict) else {}
+            confirmed = bool(bound and not legacy and obs.status == 'success' and field in values
+                             and str(values[field]) == str(getattr(company, field)))
+            result.append({'field': field, 'source': obs.source if bound else None,
+                'status': 'source_backed' if confirmed else 'legacy' if legacy else 'unconfirmed',
+                'observed_at': obs.observed_at if confirmed else None,
+                'url': safe_source_url(obs.source_url) if bound and not legacy else None})
+        return FieldEvidenceSerializer(result, many=True).data
 
 
 class PersonSerializer(serializers.ModelSerializer):
@@ -182,18 +213,64 @@ class PersonSerializer(serializers.ModelSerializer):
         return 'verified_history_not_integrated'
 
 
+class PersonDetailSerializer(PersonSerializer):
+    same_name_count = serializers.SerializerMethodField()
+    pending_match_count = serializers.SerializerMethodField()
+
+    class Meta(PersonSerializer.Meta):
+        fields = PersonSerializer.Meta.fields + ['same_name_count', 'pending_match_count']
+
+    @extend_schema_field(serializers.IntegerField())
+    def get_same_name_count(self, person):
+        if not person.full_name.strip():
+            return 0
+        return PersonIdentity.objects.filter(full_name__iexact=person.full_name).exclude(pk=person.pk).count()
+
+    @extend_schema_field(serializers.IntegerField())
+    def get_pending_match_count(self, person):
+        return IdentityCandidate.objects.filter(Q(left__person=person) | Q(right__person=person), status='pending').count()
+
+
+class PersonCompanyPreviewSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+
+
+class PersonRoleContextSerializer(serializers.Serializer):
+    has_current_role = serializers.BooleanField()
+    company_count = serializers.IntegerField()
+    companies = PersonCompanyPreviewSerializer(many=True)
+
+
+class PersonDirectorySerializer(PersonSerializer):
+    role_context = serializers.SerializerMethodField()
+
+    class Meta(PersonSerializer.Meta):
+        fields = PersonSerializer.Meta.fields + ['role_context']
+
+    @extend_schema_field(PersonRoleContextSerializer)
+    def get_role_context(self, person):
+        roles = [*person._directory_directorships, *person._directory_ownerships]
+        current = [role for role in roles if role.is_current]
+        companies = {role.supplier_id: role.supplier.name for role in (current or roles)}
+        ordered = sorted(companies.items(), key=lambda pair: (pair[1], pair[0]))
+        return {'has_current_role': bool(current), 'company_count': len(companies),
+                'companies': [{'id': pk, 'name': name} for pk, name in ordered[:2]]}
+
+
 class ContractSerializer(serializers.ModelSerializer):
     supplier = CompanySerializer(read_only=True)
     customer = CompanySerializer(read_only=True, allow_null=True)
     amount = serializers.DecimalField(max_digits=20, decimal_places=2, coerce_to_string=True, read_only=True)
     source_url = serializers.URLField(source='goszakup_url', read_only=True, allow_null=True)
     source_observation_id = serializers.IntegerField(source='_api_observation_id', read_only=True, allow_null=True)
+    source_observed_at = serializers.DateTimeField(source='_api_observed_at', read_only=True, allow_null=True)
 
     class Meta:
         model = Contract
         fields = ['id', 'contract_number', 'contract_gos_id', 'tender_id', 'title', 'amount',
                   'contract_date', 'winner', 'supplier', 'customer', 'customer_name', 'customer_bin',
-                  'source_url', 'source_observation_id', 'created_at']
+                  'source_url', 'source_observation_id', 'source_observed_at', 'created_at']
         read_only_fields = fields
 
 
@@ -201,7 +278,7 @@ class EntitySourceReferenceSerializer(serializers.Serializer):
     observation_id = serializers.IntegerField()
     source = serializers.CharField()
     status = serializers.CharField()
-    observed_at = serializers.DateTimeField()
+    observed_at = serializers.DateTimeField(allow_null=True)
     parser_version = serializers.CharField()
     url = serializers.URLField(allow_null=True)
 
@@ -210,7 +287,8 @@ def observation_reference(observation, company_id):
     if observation is None or observation.supplier_id != company_id:
         return None
     return {'observation_id': observation.pk, 'source': observation.source, 'status': observation.status,
-            'observed_at': observation.observed_at, 'parser_version': observation.parser_version,
+            'observed_at': observation.observed_at if observation.source != 'legacy' else None,
+            'parser_version': observation.parser_version,
             'url': safe_source_url(observation.source_url)}
 
 
@@ -283,6 +361,8 @@ class CompanyListView(ApiListView):
     def get_queryset(self):
         query = getattr(self, 'query', {})
         queryset = Supplier.objects.all()
+        if 'profile_status' in query:
+            queryset = company_profile_scope(queryset, checked=query['profile_status'] == 'checked')
         for field in ('bin', 'is_supplier', 'is_customer'):
             if field in query:
                 queryset = queryset.filter(**{field: query[field]})
@@ -296,12 +376,13 @@ class CompanyDetailView(ApiDetailView):
     serializer_class = CompanyDetailSerializer
     query_serializer_class = EmptyQuerySerializer
     queryset = Supplier.objects.prefetch_related(Prefetch('kgd_states', queryset=CompanyKgdState.objects.select_related(
-        'latest_observation', 'last_successful_observation'), to_attr='_api_kgd_states'))
+        'latest_observation', 'last_successful_observation'), to_attr='_api_kgd_states'),
+        Prefetch('selected_facts', queryset=SelectedFact.objects.select_related('observation'), to_attr='_api_selected_facts'))
 
 
 @extend_schema_view(get=extend_schema(parameters=[PersonQuerySerializer], tags=['People']))
 class PersonListView(ApiListView):
-    serializer_class = PersonSerializer
+    serializer_class = PersonDirectorySerializer
     query_serializer_class = PersonQuerySerializer
 
     def get_queryset(self):
@@ -309,14 +390,20 @@ class PersonListView(ApiListView):
         queryset = PersonIdentity.objects.all()
         if 'is_verified' in query:
             queryset = queryset.filter(is_verified=query['is_verified'])
+        if 'has_current_role' in query:
+            queryset = person_role_scope(queryset, current=query['has_current_role'])
         if query.get('search'):
             queryset = queryset.filter(full_name__icontains=query['search'])
-        return queryset.order_by(query.get('ordering', 'full_name'), 'pk')
+        return queryset.order_by(query.get('ordering', 'full_name'), 'pk').prefetch_related(
+            Prefetch('directorship_set', queryset=Directorship.objects.select_related('supplier'),
+                     to_attr='_directory_directorships'),
+            Prefetch('ownership_set', queryset=Ownership.objects.select_related('supplier'),
+                     to_attr='_directory_ownerships'))
 
 
 @extend_schema_view(get=extend_schema(tags=['People']))
 class PersonDetailView(ApiDetailView):
-    serializer_class = PersonSerializer
+    serializer_class = PersonDetailSerializer
     query_serializer_class = EmptyQuerySerializer
     queryset = PersonIdentity.objects.all()
 
@@ -324,7 +411,9 @@ class PersonDetailView(ApiDetailView):
 def contract_queryset():
     latest = SourceObservation.objects.filter(contract_id=OuterRef('pk'), supplier_id=OuterRef('supplier_id'),
         status='success', subject_key__startswith='contract:').order_by('-observed_at', '-pk')
-    return Contract.objects.select_related('supplier', 'customer').annotate(_api_observation_id=Subquery(latest.values('pk')[:1]))
+    return Contract.objects.select_related('supplier', 'customer').annotate(
+        _api_observation_id=Subquery(latest.values('pk')[:1]),
+        _api_observed_at=Subquery(latest.exclude(source='legacy').values('observed_at')[:1]))
 
 
 @extend_schema_view(get=extend_schema(parameters=[ContractQuerySerializer], tags=['Contracts']))

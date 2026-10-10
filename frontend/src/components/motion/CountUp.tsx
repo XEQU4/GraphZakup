@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { useMotionValue } from "motion/react";
 import { formatCount } from "../../lib/utils";
+import { useI18n } from "../../i18n";
 import { useMotionPreferences } from "../MotionPreferences";
 import { useDecorationActive } from "./useDecorationActive";
 
@@ -25,6 +26,7 @@ export default function CountUp({
   className,
   duration = 1.1,
 }: CountUpProps) {
+  const { language } = useI18n();
   const target =
     typeof value === "number" && Number.isSafeInteger(value) && value >= 0
       ? value
@@ -79,7 +81,7 @@ export default function CountUp({
       visual.current.textContent =
         target === null ? "—" : formatCount(Math.round(motionValue.get()));
     }
-  }, [target, enabled, milliseconds, motionValue]);
+  }, [target, enabled, milliseconds, motionValue, language]);
 
   useEffect(() => {
     const run = animation.current;

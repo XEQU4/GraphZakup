@@ -57,6 +57,8 @@ def saved_view(user, cluster, snapshot):
     state = GraphViewState.objects.filter(user=user, cluster=cluster).first()
     if not state:
         return {'revision': 0, 'payload': None}
+    if not state.payload:
+        return {'revision': state.revision, 'payload': None}
     payload = dict(state.payload)
     ids = {node['id'] for node in snapshot.payload['nodes']}
     payload['positions'] = {key: value for key, value in payload.get('positions', {}).items() if key in ids}
@@ -83,3 +85,21 @@ def save_view(user, cluster_id, snapshot_id, graph_digest, revision, payload):
         state.payload, state.snapshot, state.revision = cleaned, cluster.current_snapshot, state.revision + 1
         state.save(update_fields=['payload', 'snapshot', 'revision', 'updated_at'])
     return {'revision': state.revision, 'payload': state.payload}
+
+
+@transaction.atomic
+def remove_view(user, cluster_id, revision):
+    """Clear a personal layout while retaining its revision against stale writes.
+
+    An empty object is a tombstone: validate_view always stores a complete,
+    nonempty object, even when the input is empty. No graph data is deleted.
+    """
+    get_user_model().objects.select_for_update().get(pk=user.pk)
+    state = GraphViewState.objects.select_for_update().filter(user=user, cluster_id=cluster_id).first()
+    if revision != (state.revision if state else 0):
+        raise ViewConflict('This view was changed in another tab. Reload before removing it.')
+    if state and state.payload:
+        state.payload = {}
+        state.revision += 1
+        state.save(update_fields=['payload', 'revision', 'updated_at'])
+    return {'revision': state.revision if state else 0, 'payload': None}

@@ -34,7 +34,52 @@
   position: absolute;
   display: block;
   border-radius: 50%;
-  box-shadow: 0 0 3px #9abaff24;
+  box-shadow: 0 0 4px #9abaff45;
+  opacity: calc(var(--particle-opacity) * 0.6);
+  animation: iz2-particle-twinkle var(--particle-duration) ease-in-out
+    var(--particle-delay) infinite;
+}
+
+.iz2-particles[data-active="false"] .iz2-particles-fallback > i {
+  animation-play-state: paused;
+}
+
+@keyframes iz2-particle-twinkle {
+  0%,
+  100% {
+    opacity: calc(var(--particle-opacity) * 0.14);
+  }
+  50% {
+    opacity: var(--particle-opacity);
+  }
+}
+
+/* The small moon occupies the outer gutter, behind every content surface. */
+.iz2-moon {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  top: 106px;
+  right: 1px;
+  opacity: 0.72;
+  transform: rotate(-18deg);
+  filter: drop-shadow(0 0 9px #91b9ee22);
+}
+
+:root[data-motion="off"] .iz2-particles-fallback > i {
+  animation: none;
+}
+
+@media (max-width: 767px) {
+  .iz2-moon {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iz2-particles-fallback > i {
+    animation: none;
+  }
 }
 
 @media (forced-colors: active) {

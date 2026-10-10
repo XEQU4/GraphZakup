@@ -14,7 +14,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_field
 from apps.ai.models import AnalysisSnapshot, AnalysisState, Explanation
 from apps.ai.services import saved_analysis, historical_explanation
 from apps.graph.models import GraphSnapshot, RiskCluster
-from apps.graph.view_states import saved_view, save_view, ViewConflict
+from apps.graph.view_states import saved_view, save_view, remove_view, ViewConflict
 from apps.ingestion.models import SourceObservation
 from .common import (ApiListView, ApiView, EmptyQuerySerializer, ListQuerySerializer,
                      PaginationQuerySerializer, safe_source_url as _safe_source_url)
@@ -51,6 +51,8 @@ class HistoryQuerySerializer(PaginationQuerySerializer):
 
 
 class ClusterQuerySerializer(ListQuerySerializer):
+    company_id = serializers.IntegerField(min_value=1, required=False, help_text='Company in the current saved snapshot.')
+    person_id = serializers.IntegerField(min_value=1, required=False, help_text='Exact verified person node with saved role evidence.')
     active = serializers.BooleanField(required=False, default=True)
     relationship = serializers.ChoiceField(choices=list(REASONS), required=False,
         help_text='Shared, evidenced relationship between distinct members of the saved graph.')
@@ -203,6 +205,9 @@ class ClusterListView(ApiListView):
             return RiskCluster.objects.none()
         query = self.query
         qs = cluster_queryset().filter(is_active=query['active'])
+        for field in ('company_id', 'person_id'):
+            if field in query:
+                qs = qs.filter(SnapshotJSONPredicate(**{field: query[field]}))
         if query.get('search'):
             qs = qs.annotate(directory_search=SnapshotJSONPredicate(search=query['search']))
             title_label = Case(*[When(SnapshotJSONPredicate(relationship=kind), then=Value(label))
@@ -660,6 +665,15 @@ class ViewReadSerializer(serializers.Serializer):
     schema_version = serializers.IntegerField(required=False)
 
 
+class ViewRemoveSerializer(serializers.Serializer):
+    revision = serializers.IntegerField(min_value=0)
+
+    def to_internal_value(self, data):
+        if not isinstance(data, dict) or set(data) != {'revision'} or type(data.get('revision')) is not int:
+            raise ValidationError({'non_field_errors': ['Exactly one JSON integer revision is required.']})
+        return super().to_internal_value(data)
+
+
 class ViewConflictError(APIException):
     status_code = 409
     default_code = 'view_conflict'
@@ -669,7 +683,20 @@ class ViewConflictError(APIException):
 class PersonalGraphView(ApiView):
     permission_classes = [IsAuthenticated]
     query_serializer_class = VersionQuerySerializer
-    query_serializer_classes = {'GET': VersionQuerySerializer, 'PUT': EmptyQuerySerializer}
+    query_serializer_classes = {'GET': VersionQuerySerializer, 'PUT': EmptyQuerySerializer, 'DELETE': EmptyQuerySerializer}
+
+    @extend_schema(request=ViewRemoveSerializer, responses={200: ViewReadSerializer, 409: ErrorEnvelopeSerializer},
+        description='Remove only your saved layout, including an archived graph view. '
+        'The revision is retained to reject stale saves. Does not delete the graph.')
+    def delete(self, request, uuid):
+        cluster = cluster_for(uuid)
+        serializer = ViewRemoveSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            result = remove_view(request.user, cluster.pk, serializer.validated_data['revision'])
+        except ViewConflict as error:
+            raise ViewConflictError(str(error)) from error
+        return Response(ViewReadSerializer(result).data)
 
     @extend_schema(parameters=[VersionQuerySerializer], responses=ViewReadSerializer)
     def get(self, request, uuid):

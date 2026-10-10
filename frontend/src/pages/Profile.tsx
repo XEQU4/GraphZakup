@@ -1,3 +1,4 @@
+import { translate as t, useI18n } from "../i18n";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -10,12 +11,17 @@ import {
   PersonIcon,
   ReloadIcon,
   BookmarkIcon,
+  Cross2Icon,
 } from "@radix-ui/react-icons";
 import { useSession } from "../components/Session";
 import { BorderGlow } from "../components/design/BorderGlow";
 import { TechHeading } from "../components/motion/TechHeading";
 import { PageState, Pagination } from "../components/ui";
-import { accountErrors, type FieldErrors } from "../lib/accountForms";
+import {
+  accountErrors,
+  translateAccountMessage,
+  type FieldErrors,
+} from "../lib/accountForms";
 import {
   apiFetch,
   formatCount,
@@ -28,10 +34,52 @@ import type { AccountProfile, AccountSavedView, Paginated } from "../lib/types";
 import "./Profile.css";
 
 function SavedGraphViews() {
+  useI18n();
+  const { csrfToken, user } = useSession();
   const [page, setPage] = useState(1);
+  const [removing, setRemoving] = useState<string | null>(null);
+  const [notice, setNotice] = useState("");
+  const pending = useRef<AbortController | null>(null);
+  useEffect(
+    () => () => {
+      pending.current?.abort();
+    },
+    [user.id],
+  );
   const views = useApi<Paginated<AccountSavedView>>(
     queryPath("account/views/", { page, page_size: 6 }),
   );
+  async function remove(view: AccountSavedView) {
+    if (pending.current) return;
+    const abort = new AbortController();
+    pending.current = abort;
+    setRemoving(view.cluster_uuid);
+    setNotice("");
+    try {
+      await apiFetch("clusters/" + view.cluster_uuid + "/view/", {
+        method: "DELETE",
+        csrfToken,
+        signal: abort.signal,
+        body: { revision: view.revision },
+      });
+      if (abort.signal.aborted) return;
+      setNotice(
+        "Saved view removed. The group is still available in Relationship groups.",
+      );
+      if (page > 1 && views.data?.results.length === 1) setPage(page - 1);
+      else views.reload();
+    } catch (error) {
+      if (!abort.signal.aborted)
+        setNotice(
+          error instanceof Error
+            ? error.message + " Refresh saved views before trying again."
+            : "Could not remove this view. Refresh and try again.",
+        );
+    } finally {
+      if (pending.current === abort) pending.current = null;
+      if (!abort.signal.aborted) setRemoving(null);
+    }
+  }
   return (
     <section
       className="profile-saved-views"
@@ -39,11 +87,12 @@ function SavedGraphViews() {
     >
       <div className="profile-saved-heading">
         <div>
-          <span className="eyebrow">SAVED TO YOUR ACCOUNT</span>
-          <h2 id="profile-saved-title">Your graph views</h2>
+          <span className="eyebrow">{t("SAVED TO YOUR ACCOUNT")}</span>
+          <h2 id="profile-saved-title">{t("Your graph views")}</h2>
           <p>
-            Reopen the last view you saved for each group, including node
-            positions, zoom, selection and filters.
+            {t(
+              "Reopen the last view you saved for each group, including node positions, zoom, selection and filters.",
+            )}
           </p>
         </div>
         <button
@@ -51,9 +100,9 @@ function SavedGraphViews() {
           type="button"
           onClick={views.reload}
           disabled={views.loading}
-          aria-label="Refresh saved graph views"
+          aria-label={t("Refresh saved graph views")}
         >
-          <ReloadIcon aria-hidden="true" /> Refresh
+          <ReloadIcon aria-hidden="true" /> {t("Refresh")}
         </button>
       </div>
       <PageState
@@ -61,6 +110,11 @@ function SavedGraphViews() {
         error={views.error}
         onRetry={views.reload}
       />
+      {notice && (
+        <p role="status" className="profile-view-notice">
+          {translateAccountMessage(notice)}
+        </p>
+      )}
       {views.data &&
         !views.error &&
         (views.data.count === 0 ? (
@@ -69,14 +123,18 @@ function SavedGraphViews() {
               <BookmarkIcon aria-hidden="true" />
             </span>
             <div>
-              <h3>No graph views saved yet.</h3>
+              <h3>{t("No graph views saved yet.")}</h3>
               <p>
-                Open a relationship group, arrange or pin nodes, choose filters,
-                then click <strong>Save view</strong>. Return here to reopen it
-                on any browser or device where you sign in.
+                {t(
+                  "Open a relationship group, arrange or pin nodes, choose filters, then click",
+                )}{" "}
+                <strong>{t("Save view")}</strong>
+                {t(
+                  ". Return here to reopen it on any browser or device where you sign in.",
+                )}
               </p>
               <Link className="button button-primary" to="/clusters">
-                Explore relationship groups{" "}
+                {t("Explore relationship groups")}{" "}
                 <ArrowRightIcon aria-hidden="true" />
               </Link>
             </div>
@@ -94,24 +152,40 @@ function SavedGraphViews() {
                 >
                   <div className="profile-view-label">
                     <span>
-                      <LayersIcon aria-hidden="true" /> Graph v
+                      <LayersIcon aria-hidden="true" /> {t("Graph v")}
                       {view.saved_snapshot_version}
                     </span>
                     {!view.cluster_is_active ? (
                       <span className="profile-view-status">
-                        Archived group
+                        {t("Archived group")}
                       </span>
                     ) : view.current_snapshot_version !== null &&
                       view.current_snapshot_version !==
                         view.saved_snapshot_version ? (
                       <span className="profile-view-status">
-                        Newer graph available
+                        {t("Newer graph available")}
                       </span>
                     ) : null}
                   </div>
                   <h3>{view.cluster_name}</h3>
-                  <p>Saved {formatDateTime(view.updated_at)}</p>
+                  <p>
+                    {t("Saved")} {formatDateTime(view.updated_at)}
+                  </p>
                   <div className="profile-view-actions">
+                    <button
+                      type="button"
+                      className="button button-quiet"
+                      disabled={removing !== null || views.loading}
+                      aria-label={t("Remove saved view for {name}", {
+                        name: view.cluster_name,
+                      })}
+                      onClick={() => void remove(view)}
+                    >
+                      <Cross2Icon aria-hidden="true" />
+                      {removing === view.cluster_uuid
+                        ? t("Removing…")
+                        : t("Remove")}
+                    </button>
                     <Link
                       className="button button-secondary"
                       to={
@@ -121,7 +195,8 @@ function SavedGraphViews() {
                         view.saved_snapshot_version
                       }
                     >
-                      Open saved view <ArrowRightIcon aria-hidden="true" />
+                      {t("Open saved view")}{" "}
+                      <ArrowRightIcon aria-hidden="true" />
                     </Link>
                     {view.current_snapshot_version !== null &&
                       view.current_snapshot_version !==
@@ -130,7 +205,7 @@ function SavedGraphViews() {
                           className="profile-current-graph"
                           to={"/clusters/" + view.cluster_uuid}
                         >
-                          Open current graph{" "}
+                          {t("Open current graph")}{" "}
                           <ArrowRightIcon aria-hidden="true" />
                         </Link>
                       )}
@@ -140,8 +215,12 @@ function SavedGraphViews() {
             </div>
             <div className="profile-view-pagination">
               <span>
-                {formatCount(views.data.count)} saved{" "}
-                {views.data.count === 1 ? "view" : "views"}
+                {t(
+                  views.data.count === 1
+                    ? "{count} saved view"
+                    : "{count} saved views",
+                  { count: formatCount(views.data.count) },
+                )}
               </span>
               {views.data.count > 6 && (
                 <Pagination
@@ -159,6 +238,7 @@ function SavedGraphViews() {
 }
 
 export function Profile() {
+  useI18n();
   const { user, loading, csrfToken, refresh, changePassword, logout } =
     useSession();
   const profile = useApi<AccountProfile>(
@@ -286,15 +366,15 @@ export function Profile() {
   if (user.role === "anonymous")
     return (
       <div className="profile-page profile-signed-out">
-        <span className="eyebrow">PERSONAL WORKSPACE</span>
-        <TechHeading as="h1" text="Your account starts here." />
+        <span className="eyebrow">{t("PERSONAL WORKSPACE")}</span>
+        <TechHeading as="h1" text={t("Your account starts here.")} />
         <p>
-          Sign in or create an account to keep graph positions, selected nodes
-          and relationship filters across browsers and devices. Guest views stay
-          only in this browser.
+          {t(
+            "Sign in or create an account to keep graph positions, selected nodes and relationship filters across browsers and devices. Guest views stay only in this browser.",
+          )}
         </p>
         <Link to="/" className="button button-secondary">
-          Back to overview <ArrowRightIcon aria-hidden="true" />
+          {t("Back to overview")} <ArrowRightIcon aria-hidden="true" />
         </Link>
       </div>
     );
@@ -310,7 +390,7 @@ export function Profile() {
   const passwordErrorNote = (name: string) =>
     passwordFields[name] ? (
       <span className="account-field-error" id={"profile-" + name + "-error"}>
-        {passwordFields[name]}
+        {translateAccountMessage(passwordFields[name])}
       </span>
     ) : null;
 
@@ -318,26 +398,31 @@ export function Profile() {
     <div className="profile-page">
       <div className="profile-heading">
         <div>
-          <span className="eyebrow">PERSONAL WORKSPACE</span>
-          <TechHeading as="h1" text="Your saved workspace." />
+          <span className="eyebrow">{t("PERSONAL WORKSPACE")}</span>
+          <TechHeading as="h1" text={t("Your saved workspace.")} />
           <p>
-            Save a graph view once. Reopen its positions, selected node and
-            filters on another browser or device.
+            {t(
+              "Save a graph view once. Reopen its positions, selected node and filters on another browser or device.",
+            )}
           </p>
         </div>
         <span className="profile-account-label">
           <PersonIcon aria-hidden="true" />{" "}
-          {account.role === "staff" ? "Staff account" : "Personal account"}
+          {account.role === "staff"
+            ? t("Staff account")
+            : t("Personal account")}
         </span>
       </div>
       <div className="profile-overview">
         <span className="profile-current-name">{user.username}</span>
         <span>
-          <CheckCircledIcon aria-hidden="true" /> Signed in
+          <CheckCircledIcon aria-hidden="true" /> {t("Signed in")}
         </span>
-        <span>Joined {formatDate(account.date_joined)}</span>
+        <span>
+          {t("Joined")} {formatDate(account.date_joined)}
+        </span>
         <Link to="/clusters">
-          <LayersIcon aria-hidden="true" /> Explore saved groups{" "}
+          <LayersIcon aria-hidden="true" /> {t("Explore saved groups")}{" "}
           <ArrowRightIcon aria-hidden="true" />
         </Link>
       </div>
@@ -354,8 +439,10 @@ export function Profile() {
               <Pencil1Icon aria-hidden="true" />
             </span>
             <div>
-              <h2>Account details</h2>
-              <p>A name for your workspace. An email for your account.</p>
+              <h2>{t("Account details")}</h2>
+              <p>
+                {t("A name for your workspace. An email for your account.")}
+              </p>
             </div>
           </div>
           <form
@@ -364,7 +451,7 @@ export function Profile() {
             aria-busy={pending === "username"}
           >
             <label className="profile-field" htmlFor="profile-username">
-              <span>Username</span>
+              <span>{t("Username")}</span>
               <input
                 id="profile-username"
                 name="username"
@@ -385,34 +472,36 @@ export function Profile() {
             </label>
             {nameFields.username && (
               <span className="account-field-error" id="profile-username-error">
-                {nameFields.username}
+                {translateAccountMessage(nameFields.username)}
               </span>
             )}
             <label className="profile-field" htmlFor="profile-email">
               <span>
-                Email <LockClosedIcon aria-hidden="true" />
+                {t("Email")} <LockClosedIcon aria-hidden="true" />
               </span>
               <input
                 id="profile-email"
                 value={account.email}
                 type={account.email ? "email" : "text"}
-                placeholder="No email recorded for this account"
+                placeholder={t("No email recorded for this account")}
                 readOnly
                 aria-describedby="profile-email-note"
               />
             </label>
             <span id="profile-email-note" className="profile-helper">
-              Your email is read-only. Only your username can be updated here.
+              {t(
+                "Your email is read-only. Only your username can be updated here.",
+              )}
             </span>
             {nameError && (
               <p className="form-error" role="alert">
-                {nameError}
+                {translateAccountMessage(nameError)}
               </p>
             )}
             {nameSaved && (
               <p className="profile-success" role="status">
-                <CheckCircledIcon aria-hidden="true" /> Your username has been
-                saved.
+                <CheckCircledIcon aria-hidden="true" />{" "}
+                {t("Your username has been saved.")}
               </p>
             )}
             <button
@@ -420,7 +509,7 @@ export function Profile() {
               type="submit"
               disabled={busy || username.trim() === account.username}
             >
-              {pending === "username" ? "Saving…" : "Save username"}
+              {pending === "username" ? t("Saving…") : t("Save username")}
               <ArrowRightIcon aria-hidden="true" />
             </button>
           </form>
@@ -436,8 +525,8 @@ export function Profile() {
               <LockClosedIcon aria-hidden="true" />
             </span>
             <div>
-              <h2>Password</h2>
-              <p>Choose a strong password that you use only here.</p>
+              <h2>{t("Password")}</h2>
+              <p>{t("Choose a strong password that you use only here.")}</p>
             </div>
           </div>
           <form
@@ -446,7 +535,7 @@ export function Profile() {
             aria-busy={pending === "password"}
           >
             <label className="profile-field" htmlFor="profile-current-password">
-              <span>Current password</span>
+              <span>{t("Current password")}</span>
               <input
                 id="profile-current-password"
                 name="current_password"
@@ -470,7 +559,7 @@ export function Profile() {
             </label>
             {passwordErrorNote("current_password")}
             <label className="profile-field" htmlFor="profile-new-password">
-              <span>New password</span>
+              <span>{t("New password")}</span>
               <input
                 id="profile-new-password"
                 name="new_password"
@@ -495,11 +584,12 @@ export function Profile() {
             </label>
             {passwordErrorNote("new_password")}
             <span id="profile-password-note" className="profile-helper">
-              At least 8 characters. Avoid common passwords and personal
-              details.
+              {t(
+                "At least 8 characters. Avoid common passwords and personal details.",
+              )}
             </span>
             <label className="profile-field" htmlFor="profile-confirm-password">
-              <span>Confirm new password</span>
+              <span>{t("Confirm new password")}</span>
               <input
                 id="profile-confirm-password"
                 name="new_password_confirm"
@@ -525,13 +615,13 @@ export function Profile() {
             {passwordErrorNote("new_password_confirm")}
             {passwordError && (
               <p className="form-error" role="alert">
-                {passwordError}
+                {translateAccountMessage(passwordError)}
               </p>
             )}
             {passwordSaved && (
               <p className="profile-success" role="status">
-                <CheckCircledIcon aria-hidden="true" /> Password changed. You
-                are still signed in here.
+                <CheckCircledIcon aria-hidden="true" />{" "}
+                {t("Password changed. You are still signed in here.")}
               </p>
             )}
             <button
@@ -539,7 +629,7 @@ export function Profile() {
               type="submit"
               disabled={busy}
             >
-              {pending === "password" ? "Updating…" : "Change password"}
+              {pending === "password" ? t("Updating…") : t("Change password")}
               <ArrowRightIcon aria-hidden="true" />
             </button>
           </form>
@@ -551,10 +641,11 @@ export function Profile() {
             <ExitIcon aria-hidden="true" />
           </span>
           <div>
-            <h2>Leave this workspace</h2>
+            <h2>{t("Leave this workspace")}</h2>
             <p>
-              Sign out when you have finished. Your saved views stay with your
-              account.
+              {t(
+                "Sign out when you have finished. Your saved views stay with your account.",
+              )}
             </p>
           </div>
         </div>
@@ -564,12 +655,12 @@ export function Profile() {
           disabled={busy}
           onClick={() => void signOut()}
         >
-          {pending === "logout" ? "Signing out…" : "Sign out"}
+          {pending === "logout" ? t("Signing out…") : t("Sign out")}
           <ExitIcon aria-hidden="true" />
         </button>
         {logoutError && (
           <p className="form-error" role="alert">
-            {logoutError}
+            {translateAccountMessage(logoutError)}
           </p>
         )}
       </div>

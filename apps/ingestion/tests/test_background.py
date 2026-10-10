@@ -70,6 +70,23 @@ class BackgroundTests(TestCase):
         self.observe(self.first, status='invalid', hours=10)
         self.assertEqual(list(due_companies('adata', version='2.0', now=timezone.now(), limit=2)), [self.second, self.first])
 
+    def test_successful_parser_upgrade_is_due_without_bypassing_failure_backoff(self):
+        self.observe(self.first, hours=1, version='2.3')
+        self.observe(self.second, hours=1, version='2.3', status='unavailable')
+        self.assertEqual(list(due_companies('adata', version='2.4', now=timezone.now())), [self.first])
+
+    def test_wrong_subject_cannot_delay_profiles_or_satisfy_backlog(self):
+        from apps.ingestion.collection import enrichment_backlog
+        for source in ('adata', 'goszakup_supplier'):
+            obs = self.observe(self.first, source=source)
+            type(obs).objects.filter(pk=obs.pk).update(subject_key='contract:123')
+        self.assertEqual(enrichment_backlog(), 2)
+        self.assertIn(self.first, due_companies('adata', version='2.0', now=timezone.now()))
+
+    def test_foreign_registration_facts_cannot_establish_subject_type(self):
+        self.observe(self.first, source='kgd_taxpayer', data={'bin': self.second.bin, 'kgd_taxpayer_type': 'UL'})
+        self.assertIsNone(registered_subject_type(self.first))
+
     def test_expired_results_keep_capacity_while_new_companies_arrive(self):
         self.observe(self.first, hours=200)
         Supplier.objects.create(bin='000000000003', name='Another new company')

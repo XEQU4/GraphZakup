@@ -1,7 +1,14 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { ReviewPriority, SavedExplanation } from "./ClusterAnalysis";
+import { setLanguage } from "../i18n";
 import type {
   AnalysisSnapshot,
   Explanation,
@@ -91,6 +98,7 @@ const analysis: AnalysisSnapshot = {
 };
 afterEach(() => {
   cleanup();
+  setLanguage("en");
   vi.unstubAllGlobals();
 });
 const show = (value: Explanation) =>
@@ -101,6 +109,37 @@ const show = (value: Explanation) =>
   );
 
 describe("saved explanation presentation", () => {
+  it("localizes controls while preserving immutable model prose, source names and open evidence", () => {
+    const fetcher = vi.fn();
+    vi.stubGlobal("fetch", fetcher);
+    const original = structuredClone(document);
+    show({ ...explanation, document });
+    fireEvent.click(screen.getByText("Saved evidence and facts"));
+    act(() => setLanguage("ru"));
+    expect(
+      screen.getByRole("heading", { name: "Сохранённое резюме" }),
+    ).toBeVisible();
+    expect(
+      screen.getByText(/Это объяснение сохранено на английском языке/),
+    ).toBeVisible();
+    expect(screen.getByText("Generic saved summary.")).toBeVisible();
+    expect(
+      screen.getByText("Two companies list the same verified director."),
+    ).toBeVisible();
+    expect(screen.getByText("Source address: Алматы, Достық 12")).toBeVisible();
+    expect(
+      screen.getByRole("link", { name: "Synthetic Riverstone" }),
+    ).toBeVisible();
+    expect(document).toEqual(original);
+    expect(fetcher).not.toHaveBeenCalled();
+    act(() => setLanguage("en"));
+    expect(
+      screen.getByRole("heading", { name: "Saved summary" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(/Это объяснение сохранено/),
+    ).not.toBeInTheDocument();
+  });
   it("identifies a rejected model answer as a saved template fallback", () => {
     show({
       ...explanation,

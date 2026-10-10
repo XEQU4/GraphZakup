@@ -127,11 +127,13 @@ class SnapshotJSONPredicate(Func):
     """JSON array predicates executed before SQL pagination, for PostgreSQL and SQLite."""
     output_field = BooleanField()
 
-    def __init__(self, *, relationship=None, search=None):
+    def __init__(self, *, relationship=None, search=None, company_id=None, person_id=None):
         if relationship is not None and relationship not in REASONS:
             raise ValueError('Unsupported relationship.')
         self.relationship = relationship
         self.search = search
+        self.company_id = company_id
+        self.person_id = person_id
         super().__init__(F('current_snapshot__payload'), F('current_snapshot__member_ids'))
 
     def as_sql(self, compiler, connection, **extra_context):
@@ -158,6 +160,20 @@ class SnapshotJSONPredicate(Func):
         company = text('s', 'company_id')
         source_join = (f"{array(payload, 'nodes')} s JOIN {array(members)} m "
                        f"ON {value('m')} = {company}")
+        if self.company_id is not None:
+            return (f"EXISTS (SELECT 1 FROM {source_join} WHERE {text('s', 'kind')} = 'company' "
+                    f"AND {company} = %s)", [str(self.company_id)])
+        if self.person_id is not None:
+            identity = ("t.value->'identity_verified' = 'true'::jsonb" if pg
+                        else "json_type(t.value, '$.identity_verified') = 'true'")
+            evidence = ("jsonb_array_length(COALESCE(e.value->'evidence', '[]'::jsonb))" if pg
+                        else "json_array_length(e.value, '$.evidence')")
+            return (f"EXISTS (SELECT 1 FROM {source_join} JOIN {array(payload, 'links')} e "
+                    f"ON {text('e', 'source')} = {text('s', 'id')} AND {text('e', 'company_id')} = {company} "
+                    f"JOIN {array(payload, 'nodes')} t ON {text('t', 'id')} = {text('e', 'target')} "
+                    f"WHERE {text('s', 'kind')} = 'company' AND {text('t', 'kind')} = 'person' "
+                    f"AND {identity} AND {evidence} > 0 AND {text('e', 'type')} IN ('director', 'owner') "
+                    f"AND {text('t', 'id')} = %s)", [f'person:{self.person_id}'])
         if self.search is not None:
             # Only company labels/BINs in frozen member nodes are searched; contacts and
             # personal names/identifiers cannot accidentally become a public search index.

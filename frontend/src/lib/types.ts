@@ -44,6 +44,7 @@ export interface KgdSummary {
 }
 
 export interface CompanyDetail extends Company {
+  field_evidence: FieldEvidence[];
   oked: string;
   company_status: string;
   registration_date: string | null;
@@ -62,19 +63,37 @@ export interface CompanyDetail extends Company {
   kgd_checks: KgdSummary[];
 }
 
+export interface FieldEvidence {
+  field: string;
+  source: string | null;
+  status: "source_backed" | "legacy" | "unconfirmed";
+  observed_at: string | null;
+  url: string | null;
+}
+
+export interface PersonDetail extends Person {
+  same_name_count: number;
+  pending_match_count: number;
+}
+
 export interface Person {
   id: number;
   full_name: string;
   is_verified: boolean;
   identity_status: "identifier_verified" | "unverified";
   history_status: string;
+  role_context?: {
+    has_current_role: boolean;
+    company_count: number;
+    companies: { id: number; name: string }[];
+  };
 }
 
 export interface EntitySourceReference {
   observation_id: number;
   source: string;
   status: string;
-  observed_at: string;
+  observed_at: string | null;
   parser_version: string;
   url: string | null;
 }
@@ -117,6 +136,7 @@ export interface Contract {
   customer_bin: string;
   source_url: string | null;
   source_observation_id: number | null;
+  source_observed_at?: string | null;
   created_at: string;
 }
 

@@ -316,6 +316,55 @@ class SavedApiTests(AnalysisFixtures, TestCase):
 
 
 class PersonalGraphApiTests(AnalysisFixtures, TestCase):
+    def test_remove_is_private_revision_fenced_and_can_be_saved_again(self):
+        self.assertEqual(self.client.delete(self.path, {'revision': 0}, format='json').status_code, 403)
+        self.client.force_login(self.user)
+        self.put(self.body)
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.delete(self.path, {'revision': 1}, format='json').status_code, 409)
+        self.assertEqual(GraphViewState.objects.get(user=self.user).revision, 1)
+        self.client.force_login(self.user)
+        response = self.client.delete(self.path, {'revision': 1}, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'revision': 2, 'payload': None})
+        self.assertEqual(self.client.get(self.path).json(), response.json())
+        self.assertEqual(self.client.get('/api/v1/account/views/').json()['count'], 0)
+        # Old tabs must not resurrect the layout, even after removal and re-save.
+        self.put(self.body, 409)
+        self.body['revision'] = 1
+        self.put(self.body, 409)
+        self.assertEqual(self.client.delete(self.path, {'revision': 1}, format='json').status_code, 409)
+        self.assertEqual(self.client.delete(self.path, {'revision': 2}, format='json').json(), response.json())
+        self.body['revision'] = 2
+        self.assertEqual(self.put(self.body)['revision'], 3)
+        self.assertEqual(self.client.get('/api/v1/account/views/').json()['count'], 1)
+        self.assertEqual(self.client.delete(self.path, {'revision': 2}, format='json').status_code, 409)
+
+    def test_remove_requires_csrf_and_exact_revision_body(self):
+        self.client.force_login(self.user)
+        self.put(self.body)
+        for body in ({}, {'revision': True}, {'revision': '1'}, {'revision': -1}, {'revision': 1, 'user': self.other.pk}):
+            self.assertEqual(self.client.delete(self.path, body, format='json').status_code, 400)
+        self.assertEqual(self.client.delete(self.path+'?version=1', {'revision': 1}, format='json').status_code, 400)
+        self.client = APIClient(enforce_csrf_checks=True)
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.delete(self.path, {'revision': 1}, format='json').status_code, 403)
+        token = get_token(RequestFactory().get('/'))
+        self.client.cookies['csrftoken'] = token
+        self.assertEqual(self.client.delete(self.path, {'revision': 1}, format='json', HTTP_X_CSRFTOKEN=token).status_code, 200)
+
+    def test_remove_archived_view_preserves_graph_and_other_account(self):
+        self.client.force_login(self.other)
+        self.put(self.body)
+        self.client.force_login(self.user)
+        self.put(self.body)
+        self.cluster.is_active = False
+        self.cluster.save(update_fields=['is_active'])
+        snapshots = list(GraphSnapshot.objects.values())
+        self.assertEqual(self.client.delete(self.path, {'revision': 1}, format='json').status_code, 200)
+        self.assertEqual(list(GraphSnapshot.objects.values()), snapshots)
+        self.assertEqual(GraphViewState.objects.get(user=self.other).payload, self.body['payload'])
+
     def setUp(self):
         self.client = APIClient()
         self.cluster, _ = self.group()

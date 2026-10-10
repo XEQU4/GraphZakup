@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -24,6 +25,7 @@ function dateValue(value: string | null): string {
 }
 
 export function Contracts() {
+  const { t } = useI18n();
   const decoration = useDecorationActive<HTMLDivElement>();
   const [params, setParams] = useSearchParams();
   const page = validPage(params.get("page"));
@@ -99,11 +101,12 @@ export function Contracts() {
     >
       <header className="page-head entity-page-head">
         <div>
-          <span className="eyebrow">PROCUREMENT RECORDS</span>
-          <TechHeading as="h1" text="Every contract leaves a trail." />
+          <span className="eyebrow">{t("PROCUREMENT RECORDS")}</span>
+          <TechHeading as="h1" text={t("Every contract leaves a trail.")} />
           <p className="muted">
-            Explore saved procurement records, their counterparties, amounts,
-            and sources.
+            {t(
+              "Explore saved procurement records, their counterparties, amounts, and sources.",
+            )}
           </p>
         </div>
         <SectionEmblem kind="contracts" />
@@ -112,15 +115,17 @@ export function Contracts() {
         <div className="entity-section-head">
           <div>
             <h2>
-              Contracts <CountUp className="entity-count" value={data?.count} />
+              {t("Contracts")}{" "}
+              <CountUp className="entity-count" value={data?.count} />
             </h2>
             <p className="muted">
-              Exact saved amounts in Kazakhstani tenge. Source coverage may be
-              incomplete.
+              {t(
+                "Exact saved amounts in Kazakhstani tenge. Source coverage may be incomplete.",
+              )}
             </p>
           </div>
           <span className="entity-data-label">
-            <i /> SAVED CONTRACTS
+            <i /> {t("SAVED CONTRACTS")}
           </span>
         </div>
         {(supplierId || customerId) && (
@@ -129,24 +134,24 @@ export function Contracts() {
             <span>
               {supplierId && (
                 <>
-                  Supplier:{" "}
+                  {t("Supplier:")}{" "}
                   <Link
                     className="entity-inline-link"
                     to={`/companies/${supplierId}`}
                   >
-                    {supplier?.name || `Company #${supplierId}`}
+                    {supplier?.name || t("Company #{id}", { id: supplierId })}
                   </Link>
                 </>
               )}
               {supplierId && customerId && " · "}
               {customerId && (
                 <>
-                  Customer:{" "}
+                  {t("Customer:")}{" "}
                   <Link
                     className="entity-inline-link"
                     to={`/companies/${customerId}`}
                   >
-                    {customer?.name || `Company #${customerId}`}
+                    {customer?.name || t("Company #{id}", { id: customerId })}
                   </Link>
                 </>
               )}
@@ -161,7 +166,7 @@ export function Contracts() {
                 next.delete("page");
                 setParams(next);
               }}
-              aria-label="Clear company filters"
+              aria-label={t("Clear company filters")}
             >
               <Cross2Icon />
             </button>
@@ -176,7 +181,7 @@ export function Contracts() {
             }}
           >
             <label className="sr-only" htmlFor="contract-search">
-              Search contracts by title, contract number or tender ID
+              {t("Search contracts by title, contract number or tender ID")}
             </label>
             <MagnifyingGlassIcon aria-hidden="true" />
             <input
@@ -184,36 +189,40 @@ export function Contracts() {
               value={draft}
               maxLength={100}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="Title, contract number or tender ID"
+              placeholder={t("Title, contract number or tender ID")}
             />
             <button className="button entity-search-button" type="submit">
-              Search
+              {t("Search")}
             </button>
           </form>
           <label className="entity-select-label">
-            <span className="directory-control-label">Contract ordering</span>
+            <span className="directory-control-label">
+              {t("Contract ordering")}
+            </span>
             <select
               className="field"
               value={ordering}
               onChange={(e) => update("ordering", e.target.value)}
             >
-              <option value="-contract_date">Newest first</option>
-              <option value="contract_date">Oldest first</option>
-              <option value="-amount">Highest amount</option>
-              <option value="amount">Lowest amount</option>
-              <option value="contract_number">Contract number A–Z</option>
+              <option value="-contract_date">{t("Newest first")}</option>
+              <option value="contract_date">{t("Oldest first")}</option>
+              <option value="-amount">{t("Highest amount")}</option>
+              <option value="amount">{t("Lowest amount")}</option>
+              <option value="contract_number">
+                {t("Contract number A–Z")}
+              </option>
             </select>
           </label>
           <label className="entity-select-label">
-            <span className="directory-control-label">Winner flag</span>
+            <span className="directory-control-label">{t("Winner flag")}</span>
             <select
               className="field"
               value={winner}
               onChange={(e) => update("winner", e.target.value)}
             >
-              <option value="">All winner flags</option>
-              <option value="true">Flagged as winner</option>
-              <option value="false">Not flagged as winner</option>
+              <option value="">{t("All winner flags")}</option>
+              <option value="true">{t("Flagged as winner")}</option>
+              <option value="false">{t("Not flagged as winner")}</option>
             </select>
           </label>
           {filtered && (
@@ -221,7 +230,7 @@ export function Contracts() {
               className="button entity-clear"
               onClick={() => setParams({})}
             >
-              <Cross2Icon /> Clear
+              <Cross2Icon /> {t("Clear")}
             </button>
           )}
         </div>
@@ -233,7 +242,7 @@ export function Contracts() {
           }}
         >
           <label htmlFor="contract-date-from">
-            Contract date from
+            {t("Contract date from")}
             <input
               id="contract-date-from"
               className="field"
@@ -244,7 +253,7 @@ export function Contracts() {
             />
           </label>
           <label htmlFor="contract-date-to">
-            Contract date to
+            {t("Contract date to")}
             <input
               id="contract-date-to"
               className="field"
@@ -255,7 +264,7 @@ export function Contracts() {
             />
           </label>
           <button className="button" type="submit">
-            Apply dates
+            {t("Apply dates")}
           </button>
         </form>
         <EntityState
@@ -263,8 +272,10 @@ export function Contracts() {
           error={error}
           empty={!!data && !data.results.length}
           onRetry={reload}
-          emptyTitle="No contracts match these filters"
-          emptyText="Try a broader date range or clear the filters. This search only covers saved records."
+          emptyTitle={t("No contracts match these filters")}
+          emptyText={t(
+            "Try a broader date range or clear the filters. This search only covers saved records.",
+          )}
         />
         {!loading && !error && !!data?.results.length && (
           <>
@@ -272,7 +283,7 @@ export function Contracts() {
               className="table-scroll directory-results"
               tabIndex={0}
               role="region"
-              aria-label="Contracts results"
+              aria-label={t("Contracts results")}
             >
               <table
                 className="data-table entity-table entity-contract-table"
@@ -281,16 +292,16 @@ export function Contracts() {
                 <thead role="rowgroup">
                   <tr role="row">
                     <th scope="col" role="columnheader">
-                      Contract / source
+                      {t("Contract / source")}
                     </th>
                     <th scope="col" role="columnheader">
-                      Supplier / customer
+                      {t("Supplier / customer")}
                     </th>
                     <th scope="col" role="columnheader">
-                      Date
+                      {t("Date")}
                     </th>
                     <th scope="col" role="columnheader">
-                      Amount, KZT
+                      {t("Amount, KZT")}
                     </th>
                   </tr>
                 </thead>
@@ -299,7 +310,7 @@ export function Contracts() {
                     <tr role="row" key={contract.id}>
                       <td
                         role="cell"
-                        data-label="Contract / source"
+                        data-label={t("Contract / source")}
                         className="entity-contract-title"
                       >
                         <div className="directory-contract-identity">
@@ -311,41 +322,46 @@ export function Contracts() {
                           </span>
                           <div className="directory-identity">
                             <strong>
-                              {contract.title || "Untitled contract"}
+                              {contract.title || t("Untitled contract")}
                             </strong>
                             <span className="entity-subline entity-mono">
-                              № {contract.contract_number || "not recorded"}
+                              № {contract.contract_number || t("not recorded")}
                             </span>
                           </div>
                         </div>
                         <details>
-                          <summary>Record details</summary>
+                          <summary>{t("Record details")}</summary>
                           <p>
-                            Tender ID:{" "}
+                            {t("Tender ID:")}{" "}
                             <span className="entity-mono">
-                              {contract.tender_id || "not recorded"}
+                              {contract.tender_id || t("not recorded")}
                             </span>
                             <br />
-                            Winner flag: {contract.winner ? "Yes" : "No"}
+                            {t("Winner flag:")}{" "}
+                            {contract.winner ? t("Yes") : t("No")}
                             <br />
                             {contract.source_observation_id
-                              ? `Saved observation #${contract.source_observation_id}`
-                              : "No linked source observation"}
+                              ? t("Saved observation #{id}", {
+                                  id: contract.source_observation_id,
+                                })
+                              : t("No linked source observation")}
                           </p>
                           <ExternalSource url={contract.source_url}>
-                            Procurement source
+                            {t("Procurement source")}
                           </ExternalSource>
                         </details>
                       </td>
-                      <td role="cell" data-label="Supplier / customer">
-                        <span className="directory-party-label">Supplier</span>
+                      <td role="cell" data-label={t("Supplier / customer")}>
+                        <span className="directory-party-label">
+                          {t("Supplier")}
+                        </span>
                         <Link
                           className="entity-inline-link"
                           to={`/companies/${contract.supplier.id}`}
                         >
-                          {contract.supplier.name || "Unnamed supplier"}
+                          {contract.supplier.name || t("Unnamed supplier")}
                         </Link>
-                        <span className="entity-subline">Customer</span>
+                        <span className="entity-subline">{t("Customer")}</span>
                         {contract.customer ? (
                           <Link
                             className="entity-inline-link"
@@ -355,20 +371,20 @@ export function Contracts() {
                           </Link>
                         ) : (
                           <span>
-                            {contract.customer_name || "Not recorded"}
+                            {contract.customer_name || t("Not recorded")}
                           </span>
                         )}
                       </td>
                       <td
                         role="cell"
-                        data-label="Date"
+                        data-label={t("Date")}
                         className="directory-date"
                       >
                         {formatDate(contract.contract_date)}
                       </td>
                       <td
                         role="cell"
-                        data-label="Amount, KZT"
+                        data-label={t("Amount, KZT")}
                         className="entity-money"
                       >
                         {formatMoney(contract.amount, "").trim()}
@@ -392,8 +408,9 @@ export function Contracts() {
         )}
       </section>
       <p className="entity-footnote muted">
-        Contract value is a recorded procurement amount. It does not establish
-        damage, independent bidding, or coordinated conduct.
+        {t(
+          "Contract value is a recorded procurement amount. It does not establish damage, independent bidding, or coordinated conduct.",
+        )}
       </p>
     </div>
   );

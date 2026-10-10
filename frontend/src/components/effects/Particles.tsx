@@ -3,6 +3,7 @@
 import { Camera, Geometry, Mesh, Program, Renderer } from "ogl";
 import {
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -46,7 +47,7 @@ const vertex = /* glsl */ `
 `;
 const fragment = /* glsl */ `
   precision highp float;
-  uniform float uTime;
+  uniform float uTwinkleTime;
   uniform float uAlphaParticles;
   varying vec4 vRandom;
   varying vec3 vColor;
@@ -54,8 +55,10 @@ const fragment = /* glsl */ `
     float d = length(gl_PointCoord.xy - vec2(0.5));
     if (d > 0.5) discard;
     float circle = uAlphaParticles > 0.5 ? 1.0 - smoothstep(0.12, 0.5, d) : 1.0;
-    float twinkle = 0.84 + 0.16 * sin(uTime * 0.6 + vRandom.y * 6.28);
-    float opacity = (0.46 + vRandom.w * 0.26) * twinkle;
+    float period = 3.0 + vRandom.z * 4.0;
+    float wave = 0.5 + 0.5 * sin(uTwinkleTime * 6.283185 / period + vRandom.y * 6.283185);
+    float twinkle = 0.14 + 0.86 * pow(wave, 1.6);
+    float opacity = (0.64 + vRandom.w * 0.3) * twinkle;
     gl_FragColor = vec4(vColor, circle * opacity);
   }
 `;
@@ -150,6 +153,7 @@ export function Particles({
     [count, paletteKey],
   );
   const { ref, active } = useDecorationActive<HTMLDivElement>(enabled);
+  const moonId = useId();
   const runtime = useRef<Runtime | null>(null);
   const activeRef = useRef(false);
   const [mode, setMode] = useState<"pending" | "webgl" | "fallback">("pending");
@@ -176,6 +180,7 @@ export function Particles({
     let frame: number | null = null;
     let disposed = false;
     let elapsed = 0;
+    let twinkleElapsed = 0;
     let previousTime: number | null = null;
     let previousRender: number | null = null;
     const pointer = { x: 0, y: 0 };
@@ -278,6 +283,7 @@ export function Particles({
         fragment,
         uniforms: {
           uTime: { value: 0 },
+          uTwinkleTime: { value: 0 },
           uBounds: { value: [1, 1] },
           uDepth: { value: bounded(particleSpread, 2, 16, 10) * 0.35 },
           uDistance: { value: distance },
@@ -328,7 +334,9 @@ export function Particles({
           previousTime = time;
           previousRender = time;
           elapsed += delta * bounded(speed, 0, 0.4, 0.14);
+          twinkleElapsed += delta;
           program!.uniforms.uTime.value = elapsed * 0.001;
+          program!.uniforms.uTwinkleTime.value = twinkleElapsed * 0.001;
           if (moveParticlesOnHover) {
             const hover = bounded(particleHoverFactor, 0, 0.4, 0.12);
             particles.position.x +=
@@ -414,12 +422,37 @@ export function Particles({
                 width: 1.2 + point.random[0] * 1.1,
                 height: 1.2 + point.random[0] * 1.1,
                 background: point.color,
-                opacity: 0.28 + point.random[3] * 0.2,
+                "--particle-opacity": 0.64 + point.random[3] * 0.3,
+                "--particle-duration": `${3 + point.random[2] * 4}s`,
+                "--particle-delay": `${-point.random[1] * 7}s`,
               } as CSSProperties
             }
           />
         ))}
       </div>
+      <svg className="iz2-moon" viewBox="0 0 100 100" focusable="false">
+        <defs>
+          <radialGradient id={`${moonId}-light`} cx="72%" cy="28%" r="80%">
+            <stop offset="0" stopColor="#e4eeff" />
+            <stop offset="0.6" stopColor="#b0c6e5" />
+            <stop offset="1" stopColor="#637fa8" />
+          </radialGradient>
+          <mask id={`${moonId}-crescent`}>
+            <circle cx="50" cy="50" r="37" fill="white" />
+            <circle cx="33" cy="39" r="37" fill="black" />
+          </mask>
+        </defs>
+        <circle cx="50" cy="50" r="37" fill="#5d7ba0" opacity="0.07" />
+        <g mask={`url(#${moonId}-crescent)`}>
+          <circle cx="50" cy="50" r="37" fill={`url(#${moonId}-light)`} />
+          <g fill="#526d96" opacity="0.22">
+            <circle cx="74" cy="49" r="5" />
+            <circle cx="64" cy="70" r="7" />
+            <circle cx="77" cy="64" r="3" />
+            <circle cx="42" cy="80" r="3" />
+          </g>
+        </g>
+      </svg>
     </div>
   );
 }

@@ -6,6 +6,55 @@
   const status = document.querySelector(".api-docs-status");
   if (!root || !toc || !status) return;
 
+  // Use Swagger's resource-filter hook without replacing its native bootstrap.
+  // https://github.com/swagger-api/swagger-ui/blob/main/docs/customization/plug-points.md#fnopsfilter
+  const initializeSwagger = () => {
+    if (typeof ui === "undefined" || !ui.fn) return;
+    ui.fn.opsFilter = (taggedOps, phrase) => {
+      const query = String(phrase).trim().toLowerCase();
+      return taggedOps.filter((operations, tag) =>
+        [String(tag), labels[tag] || ""].some((label) =>
+          label.toLowerCase().includes(query),
+        ),
+      );
+    };
+    scheduleRefresh();
+  };
+
+  const motionButton = document.querySelector(".api-docs-motion");
+  const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let motionAllowed = true;
+  try {
+    motionAllowed = localStorage.getItem("iz2.motion-enabled.v1") !== "false";
+  } catch {}
+  const applyMotion = () => {
+    const enabled = motionAllowed && !motionQuery.matches;
+    document.documentElement.dataset.apiMotion = enabled ? "on" : "off";
+    if (motionButton) {
+      motionButton.textContent = enabled ? "Motion on" : "Motion off";
+      motionButton.setAttribute("aria-pressed", String(enabled));
+      motionButton.disabled = motionQuery.matches;
+      motionButton.title = motionQuery.matches
+        ? "Reduced motion is enabled on your device"
+        : "Toggle interface animations";
+    }
+  };
+  motionButton?.addEventListener("click", () => {
+    motionAllowed = !motionAllowed;
+    try {
+      localStorage.setItem("iz2.motion-enabled.v1", String(motionAllowed));
+    } catch {}
+    applyMotion();
+  });
+  motionQuery.addEventListener("change", applyMotion);
+  window.addEventListener("storage", (event) => {
+    if (event.key === "iz2.motion-enabled.v1") {
+      motionAllowed = event.newValue !== "false";
+      applyMotion();
+    }
+  });
+  applyMotion();
+
   const labels = {
     account: "Account",
     clusters: "Relationship groups",
@@ -20,7 +69,7 @@
   let headings = [];
   let active = null;
   let frame = null;
-  let signature = "";
+  let signature = null;
   let selectedTag = null;
   let filterValue = "";
   const links = new Map();
@@ -70,7 +119,7 @@
     frame = null;
     headings = [...root.querySelectorAll(".opblock-tag[id]")];
     const filter = root.querySelector(".filter-container input");
-    if (filter && !filter.hasAttribute("aria-label")) {
+    if (filter) {
       filter.setAttribute("aria-label", "Filter API resources");
       filter.setAttribute("placeholder", "Filter resources by name…");
     }
@@ -80,6 +129,11 @@
     } else if (root.querySelector(".errors-wrapper")) {
       status.dataset.state = "error";
       status.textContent = "Reference unavailable";
+    } else {
+      status.textContent =
+        status.dataset.state === "ready"
+          ? "Reference ready"
+          : "Loading reference…";
     }
 
     const nextFilterValue = filter?.value ?? "";
@@ -153,5 +207,12 @@
     },
     { once: true },
   );
-  refresh();
+  scheduleRefresh();
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializeSwagger, {
+      once: true,
+    });
+  } else {
+    initializeSwagger();
+  }
 })();

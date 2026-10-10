@@ -139,6 +139,7 @@ describe("Particles ownership and motion", () => {
     step(0);
     step(100);
     const beforePause = gpu.programs[0].uniforms.uTime.value;
+    const twinkleBeforePause = gpu.programs[0].uniforms.uTwinkleTime.value;
     hidden = true;
     fireEvent(document, new Event("visibilitychange"));
     expect(frames.size).toBe(0);
@@ -146,6 +147,18 @@ describe("Particles ownership and motion", () => {
     fireEvent(document, new Event("visibilitychange"));
     step(9000);
     expect(gpu.programs[0].uniforms.uTime.value).toBe(beforePause);
+    expect(gpu.programs[0].uniforms.uTwinkleTime.value).toBe(
+      twinkleBeforePause,
+    );
+    expect(frames.size).toBe(1);
+  });
+
+  it("keeps twinkling when particle drift is set to zero without another loop", () => {
+    render(<Particles speed={0} />);
+    step(0);
+    step(100);
+    expect(gpu.programs[0].uniforms.uTime.value).toBe(0);
+    expect(gpu.programs[0].uniforms.uTwinkleTime.value).toBeCloseTo(0.1);
     expect(frames.size).toBe(1);
   });
 
@@ -177,7 +190,7 @@ describe("Particles ownership and motion", () => {
     expect(frames.size).toBe(0);
   });
 
-  it("falls back to a visible static field and stops drawing after context loss", () => {
+  it("falls back to a CSS field and stops drawing after context loss", () => {
     const { container } = render(<Particles />);
     const canvas = container.querySelector("canvas")!;
     const event = new Event("webglcontextlost", { cancelable: true });
@@ -196,7 +209,7 @@ describe("Particles ownership and motion", () => {
     expect(gpu.programs[0].remove).toHaveBeenCalledOnce();
   });
 
-  it("uses the static fallback without constructing OGL when WebGL is unsupported", () => {
+  it("uses the CSS fallback without constructing OGL when WebGL is unsupported", () => {
     vi.mocked(HTMLCanvasElement.prototype.getContext).mockReturnValue(null);
     const { container } = render(<Particles />);
     expect(container.querySelector(".iz2-particles")).toHaveAttribute(

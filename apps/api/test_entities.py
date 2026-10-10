@@ -1,6 +1,6 @@
 """Entity reads preserve identifiers, exact money, uncertain checks and bounded SQL."""
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from apps.companies.models import Supplier
 from apps.contracts.models import Contract
-from apps.ingestion.models import CompanyKgdState, IngestionRun, SourceObservation
+from apps.ingestion.models import CompanyKgdState, IngestionRun, SourceObservation, SelectedFact
 from apps.ingestion.tests.helpers import verified_role
 from apps.owners.models import Director, Directorship, Owner, Ownership, PersonIdentity
 
@@ -67,12 +67,131 @@ class EntityApiTests(TestCase):
             self.assertIsNone(row['last_successful'])
             self.assertIsNone(row['latest_observed_at'])
 
+    def test_current_people_filter_keeps_history_and_does_not_duplicate_roles(self):
+        current = PersonIdentity.objects.create(scope_key='synthetic-current', full_name='Synthetic Current')
+        historical = PersonIdentity.objects.create(scope_key='synthetic-history', full_name='Synthetic History')
+        director = Director.objects.create(full_name=current.full_name)
+        for company in (self.company, self.customer):
+            Directorship.objects.create(supplier=company, director=director, person_identity=current)
+        Directorship.objects.create(supplier=self.company, director=Director.objects.create(full_name=historical.full_name),
+            person_identity=historical, is_current=False)
+        owner_person = PersonIdentity.objects.create(scope_key='synthetic-owner', full_name='Synthetic Owner')
+        Ownership.objects.create(supplier=self.company, owner=Owner.objects.create(full_name=owner_person.full_name),
+            person_identity=owner_person)
+        def ids(params):
+            response = self.client.get('/api/v1/people/', params)
+            self.assertEqual(response.status_code, 200)
+            return [row['id'] for row in response.json()['results']]
+        self.assertCountEqual(ids({'has_current_role': 'true'}), [current.pk, owner_person.pk])
+        self.assertEqual(ids({'has_current_role': 'false'}), [historical.pk])
+        self.assertCountEqual(ids({}), [current.pk, historical.pk, owner_person.pk])
+        self.assertEqual(self.client.get('/api/v1/people/', {'has_current_role': 'invalid'}).status_code, 400)
+        self.assertEqual(self.client.get(f'/api/v1/people/{historical.pk}/').status_code, 200)
+        with self.assertNumQueries(4):
+            rows = self.client.get('/api/v1/people/').json()['results']
+        contexts = {row['id']: row['role_context'] for row in rows}
+        self.assertEqual(contexts[current.pk]['company_count'], 2)
+        self.assertTrue(contexts[current.pk]['has_current_role'])
+        self.assertEqual(contexts[historical.pk], {'has_current_role': False, 'company_count': 1,
+            'companies': [{'id': self.company.pk, 'name': self.company.name}]})
+
+    def test_namesakes_keep_separate_company_context_and_bounded_previews(self):
+        for company in (self.company, self.customer):
+            person = PersonIdentity.objects.create(scope_key=f'synthetic:{company.pk}', full_name='Synthetic Namesake')
+            Directorship.objects.create(supplier=company, person_identity=person,
+                director=Director.objects.create(full_name=person.full_name))
+        response = self.client.get('/api/v1/people/', {'search': 'Synthetic Namesake', 'has_current_role': 'true'})
+        self.assertEqual(response.json()['count'], 2)
+        self.assertCountEqual([r['role_context']['companies'][0]['id'] for r in response.json()['results']],
+            [self.company.pk, self.customer.pk])
+        person = PersonIdentity.objects.first()
+        for number in range(3, 7):
+            company = Supplier.objects.create(bin=f'{number:012}', name=f'Synthetic extra {number}')
+            Ownership.objects.create(supplier=company, person_identity=person,
+                owner=Owner.objects.create(full_name=person.full_name))
+        row = next(r for r in self.client.get('/api/v1/people/').json()['results'] if r['id'] == person.pk)
+        self.assertEqual(row['role_context']['company_count'], 5)
+        self.assertEqual(len(row['role_context']['companies']), 2)
+
+    def test_legacy_company_page_does_not_disclose_director_identifier(self):
+        from django.urls import reverse
+        director = Director.objects.create(full_name='Synthetic Private Identifier', iin='000000000091')
+        Directorship.objects.create(supplier=self.company, director=director)
+        response = self.client.get(reverse('companies:detail', args=[self.company.pk]))
+        self.assertContains(response, director.full_name)
+        self.assertNotContains(response, director.iin)
+
+    def test_checked_profile_filter_requires_selected_matching_source_identity(self):
+        def count(state='checked'):
+            response = self.client.get('/api/v1/companies/', {'profile_status': state})
+            self.assertEqual(response.status_code, 200)
+            return response.json()['count']
+        self.assertEqual(count(), 0)
+        obs = self.observation(self.company, source='adata', facts={'bin': self.company.bin, 'name': self.company.name})
+        SelectedFact.objects.create(supplier=self.company, field='name', observation=obs)
+        self.assertEqual(count(), 1)
+        self.assertEqual(count('pending'), 1)
+        for changes in ({'status': 'unavailable'}, {'source': 'legacy'}, {'subject_key': 'contract:1'},
+                        {'normalized_values': {'bin': self.customer.bin, 'name': self.company.name}},
+                        {'normalized_values': {'bin': self.company.bin, 'name': 'Different name'}}):
+            original = {key: getattr(obs, key) for key in changes}
+            SourceObservation.objects.filter(pk=obs.pk).update(**changes)
+            self.assertEqual(count(), 0)
+            SourceObservation.objects.filter(pk=obs.pk).update(**original)
+        self.observation(self.company, source='adata', status='unavailable')
+        self.assertEqual(count(), 1)
+        self.assertEqual(self.client.get('/api/v1/companies/').json()['count'], 2)
+
+    def test_field_evidence_is_bound_to_saved_value_and_company_without_private_values(self):
+        observation = self.observation(self.company, source='adata', facts={'name': self.company.name},
+            source_url='https://example.test/company?token=synthetic-private-sentinel')
+        selected = SelectedFact.objects.create(supplier=self.company, field='name', observation=observation)
+        def evidence():
+            response = self.client.get(f'/api/v1/companies/{self.company.pk}/')
+            self.assertNotIn('synthetic-private-sentinel', response.content.decode())
+            return next(row for row in response.json()['field_evidence'] if row['field'] == 'name')
+        with self.assertNumQueries(3):
+            result = evidence()
+        self.assertEqual(result['status'], 'source_backed')
+        self.assertIsNotNone(result['observed_at'])
+        self.company.name = 'Changed without a source'
+        self.company.save(update_fields=['name'])
+        self.assertEqual(evidence()['status'], 'unconfirmed')
+        selected.observation = self.observation(self.customer, source='adata', facts={'name': self.company.name})
+        selected.save()
+        self.assertIsNone(evidence()['source'])
+        self.assertIsNone(evidence()['observed_at'])
+
+    def test_legacy_backfill_does_not_become_a_source_check_date(self):
+        obs = self.observation(self.company, source='legacy', status='not_checked', facts={'name': self.company.name})
+        SelectedFact.objects.create(supplier=self.company, field='name', observation=obs)
+        director = Director.objects.create(full_name='Synthetic Legacy')
+        Directorship.objects.create(supplier=self.company, director=director, source='legacy', source_observation=obs)
+        detail = self.client.get(f'/api/v1/companies/{self.company.pk}/').json()
+        name = next(row for row in detail['field_evidence'] if row['field'] == 'name')
+        self.assertEqual(name['status'], 'legacy')
+        self.assertIsNone(name['observed_at'])
+        role = self.client.get('/api/v1/directorships/').json()['results'][0]
+        self.assertIsNone(role['source_reference']['observed_at'])
+
+    def test_person_name_counts_do_not_merge_records_or_publish_identifiers(self):
+        first = PersonIdentity.objects.create(scope_key='source:a', full_name='Synthetic Namesake', iin='000000000001')
+        PersonIdentity.objects.create(scope_key='source:b', full_name='Synthetic Namesake')
+        PersonIdentity.objects.create(scope_key='source:c', full_name='Synthetic Namesake Jr')
+        with self.assertNumQueries(3):
+            response = self.client.get(f'/api/v1/people/{first.pk}/')
+        self.assertEqual(response.json()['same_name_count'], 1)
+        self.assertEqual(response.json()['pending_match_count'], 0)
+        self.assertEqual(response.json()['identity_status'], 'unverified')
+        self.assertNotIn(first.iin, response.content.decode())
+        self.assertEqual(PersonIdentity.objects.count(), 3)
+
     def test_latest_failure_retains_dated_zero_without_claiming_current_success(self):
         successful = self.observation(self.company, facts=self.debt_facts())
         failed = self.observation(self.company, status='unavailable')
         CompanyKgdState.objects.create(supplier=self.company, source='kgd_tax_debt',
             latest_observation=failed, last_successful_observation=successful)
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(3):
             response = self.client.get(f'/api/v1/companies/{self.company.pk}/')
         check = response.json()['kgd_checks'][1]
         self.assertEqual(check['status'], 'unavailable')
@@ -237,6 +356,7 @@ class EntityApiTests(TestCase):
         self.assertEqual(row['customer']['id'], self.customer.pk)
         self.assertEqual(row['source_url'], 'https://goszakup.gov.kz/ru/egzcontract/cpublic/show/123')
         self.assertEqual(row['source_observation_id'], observation.pk)
+        self.assertEqual(datetime.fromisoformat(row['source_observed_at']), observation.observed_at)
         self.assertEqual(self.client.get('/api/v1/contracts/', {'customer_id': self.customer.pk}).json()['count'], 1)
         self.assertEqual(self.client.get('/api/v1/contracts/', {'supplier_id': self.customer.pk}).json()['count'], 0)
 

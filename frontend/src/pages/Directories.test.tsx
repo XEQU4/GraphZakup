@@ -29,6 +29,11 @@ const person: Person = {
   is_verified: false,
   identity_status: "unverified",
   history_status: "not_integrated",
+  role_context: {
+    has_current_role: true,
+    company_count: 1,
+    companies: [{ id: company.id, name: company.name }],
+  },
 };
 const contract: Contract = {
   id: 31,
@@ -78,6 +83,37 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("directory presentation preserves saved-data actions", () => {
+  it("defaults to checked profiles and verified current people with explicit access to pending data", async () => {
+    const companies = render(
+      <MemoryRouter>
+        <Companies />
+      </MemoryRouter>,
+    );
+    await screen.findByRole("region", { name: "Companies results" });
+    expect(reads.at(-1)?.searchParams.get("profile_status")).toBe("checked");
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Profile evidence" }),
+      { target: { value: "pending" } },
+    );
+    await waitFor(() =>
+      expect(reads.at(-1)?.searchParams.get("profile_status")).toBe("pending"),
+    );
+    companies.unmount();
+    render(
+      <MemoryRouter>
+        <People />
+      </MemoryRouter>,
+    );
+    await screen.findByText("No saved identities match");
+    expect(reads.at(-1)?.searchParams.get("is_verified")).toBe("true");
+    expect(reads.at(-1)?.searchParams.get("has_current_role")).toBe("true");
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Identity verification filter" }),
+      { target: { value: "" } },
+    );
+    await screen.findByRole("region", { name: "People results" });
+    expect(reads.at(-1)?.searchParams.has("is_verified")).toBe(false);
+  });
   it("keeps native company links and resets pagination when applying a role or search", async () => {
     render(
       <MemoryRouter initialEntries={["/companies?role=supplier&page=2"]}>
@@ -116,7 +152,7 @@ describe("directory presentation preserves saved-data actions", () => {
 
   it("keeps identity uncertainty visible and does not invent verified people", async () => {
     render(
-      <MemoryRouter initialEntries={["/people"]}>
+      <MemoryRouter initialEntries={["/people?is_verified=false"]}>
         <People />
       </MemoryRouter>,
     );
@@ -127,13 +163,25 @@ describe("directory presentation preserves saved-data actions", () => {
       within(results).getByText("Unverified identity"),
     ).toBeInTheDocument();
     expect(
-      within(results).getByText("Verified history not integrated"),
-    ).toBeInTheDocument();
+      within(results).queryByRole("columnheader", { name: "History coverage" }),
+    ).toBeNull();
     expect(
       within(results).getByRole("link", {
         name: "Open Synthetic Jordan Example",
       }),
     ).toHaveAttribute("href", "/people/23");
+    expect(within(results).getByText(company.name)).toBeInTheDocument();
+    expect(reads.at(-1)?.searchParams.get("has_current_role")).toBe("true");
+    fireEvent.change(screen.getByRole("combobox", { name: "Role records" }), {
+      target: { value: "all" },
+    });
+    await waitFor(() =>
+      expect(reads.at(-1)?.searchParams.has("has_current_role")).toBe(false),
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "You are viewing source history",
+    );
+    expect(screen.getByText("Current role record")).toBeInTheDocument();
     fireEvent.change(
       screen.getByRole("combobox", { name: "Identity verification filter" }),
       { target: { value: "true" } },

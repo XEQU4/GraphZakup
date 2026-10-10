@@ -36,7 +36,7 @@ indices, not probabilities of wrongdoing.
 
 The current stack is Django/DRF, React/TypeScript, PostgreSQL, Celery, Redis and D3.js. Django serves React at /app/; the home page redirects there. Legacy templates remain at /legacy/ and their existing detail routes.
 
-English is the primary language for project documentation, code comments, interfaces and generated explanations. Russian website localisation will be added later, after the English version is complete. Source data and the labels used to parse official websites retain their original language.
+English is the default workspace language. The React website has an EN/RU switch that remembers the browser preference; the developer API reference stays English. Documentation, code comments, CLI messages and generated explanations use English. Source data, parser labels and immutable saved explanations retain their original language.
 
 
 ## Versioned API
@@ -61,11 +61,11 @@ uses server configuration/paid gates. GET never regenerates domain results.
 No new .env settings or domain migrations are needed for the API. Run
 `uv run python manage.py collectstatic --noinput` after installing or updating
 dependencies, then restart the server; legacy pages and admin remain available. API introduction does not start collection
-or enable a model. Russian localisation follows the completed English frontend.
+or enable a model. API documentation remains English regardless of the website language.
 
 ## React workspace
 
-The English interface includes an overview, searchable company/person directories,
+The EN/RU interface includes an overview, searchable company/person directories,
 company/person details, contracts, relationship groups, saved graphs, evidence and
 analysis histories, an About Us guide and a project footer with contacts, sources
 and credits. Sign-up/sign-in dialogs and a personal profile support username
@@ -100,7 +100,7 @@ proxy stays same-origin from the browser and forwards CSRF origin to Django.
 Docker builds React automatically from package-lock.json before collectstatic.
 English design follows the supplied blue, restrained cyberpunk references; rewriting
 the wider relationship-group page remains separate follow-up work. Saved AI explanations now support cited prose and aligned review panels.
-Russian localisation remains deferred. See [Phase 7](docs/PHASE7.md) for verification.
+The user accepted the current design and Russian localisation on 10 October 2026. See [Phase 7](docs/PHASE7.md) for verification.
 
 The overview combines Lightswind-derived aurora lighting with original dimensional
 artwork, glass cards and accessible saved-record controls. Mobile contract cards
@@ -235,6 +235,12 @@ not accidentally executed. This Windows helper is for development; deployment
 uses the Linux worker in Compose. Stop it before changing ingestion algorithms
 or starting another collector against the same database.
 
+Manual start/stop is the current laptop workflow; no Windows startup task is
+installed. Start PostgreSQL and Redis first, then run `Start` once. The terminal
+can be closed after a successful start. Collection cannot run while the laptop
+is asleep or switched off. Use `Status` to inspect owned processes and saved
+progress; source counters alone do not establish that workers are running.
+
 Beat checks due work every minute. Profiles use batches of ten with a two-minute
 minimum interval; KGD registration and debt have independent batches of ten and
 five-minute intervals. These are eligibility intervals, not throughput promises:
@@ -328,7 +334,7 @@ Intentional collection uses `ingest_data`: `--mode=initial` continues the initia
 
 Phase 3 adds an opt-in `--mode=kgd` for existing companies: taxpayer registration first, optionally aggregate company arrears. The company page only reads stored checks; failed requests retain the last success and never imply zero arrears. Checks default off (`ENABLE_KGD_CHECKS=false`) and are not added to automatic imports or beat schedules. Registration requires a portal token; arrears additionally require an accepted account token. Two authorised requests verified registration and a complete zero-arrears response for one company in an isolated database. Parser `3.1` fixed the returned reporting timestamp format; offline reprocessing preserved original retrieval times and failure history, without another request. The working database was neither migrated nor modified. Phase 3 is complete within this verified scope; access setup, commands and operational limits are in [PHASE3.md](docs/PHASE3.md).
 
-Phase 4 publishes saved evidence graphs and preserves UUID/version history through changes, merges and splits. Graph pages read saved results; authenticated users save personal views, and staff explicitly request deduplicated background recalculation from saved data. No collection or explanation generation runs on GET. Search, filters, neighbour highlighting, path/evidence inspection, pinning and layout restoration are implemented. See [PHASE4.md](docs/PHASE4.md) for applying migrations, an explicit first rebuild, verification and visual-check limits. The current graph prototype is accepted; further design and animation work follows the user's references in Phase 7. Russian localisation follows completion of the English interface.
+Phase 4 publishes saved evidence graphs and preserves UUID/version history through changes, merges and splits. Graph pages read saved results; authenticated users save personal views, and staff explicitly request deduplicated background recalculation from saved data. No collection or explanation generation runs on GET. Search, filters, neighbour highlighting, path/evidence inspection, pinning and layout restoration are implemented. See [PHASE4.md](docs/PHASE4.md) for applying migrations, an explicit first rebuild, verification and visual-check limits. Phase 7 adds the accepted React design and EN/RU presentation without changing saved graph evidence or identity rules.
 
 The user runs Git commands. For a separate Codex chat, specify the phase, scope and verification criteria; use repository documents for architecture decisions and current status.
 

@@ -249,13 +249,6 @@
                                         <br><small class="text-muted">Identity across companies is unconfirmed</small>
                                     {% endif %}
 
-                                    {% if ds.director.iin %}
-                                        <br>
-
-                                        <small style="color:#8b9ab0;">
-                                            IIN: {{ ds.director.iin }}
-                                        </small>
-                                    {% endif %}
                                 </div>
 
                                 <a href="{% url 'owners:detail' ds.director.pk %}"

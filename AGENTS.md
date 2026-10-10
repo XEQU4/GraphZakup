@@ -31,8 +31,8 @@ last demo. Final visual design remains Phase 7 work.
 - The user runs Git commands. Do not run Git commands, create commits, branches or pull requests, or push changes without a separate instruction.
 - The user does not read Markdown instructions. Put all required user actions, exact commands, environment changes and suggested Git commands directly at the end of each final response in execution order. Do not require opening a document to finish a phase; keep repository records concise for task continuity.
 - Preserve the user's changes. `test.py` contains learning exercises, not application tests. Do not repurpose it for this project.
-- Use English for project documentation, instructions, code comments, UI and CLI messages, generated explanations, prompts, and proposed commit messages. Save decisions in the repository so the next task can continue without chat history.
-- Develop and verify the English version first. Add Russian website localisation later, after the English interface is complete. Preserve official source labels, identifiers and original data in their source language; translating parser selectors would break data collection.
+- Use English for project documentation, instructions, code comments, CLI messages, generated explanations, prompts, and proposed commit messages. English remains the default UI language; the user explicitly authorised an EN/RU website switch on 10 October 2026. Save decisions in the repository so the next task can continue without chat history.
+- Preserve the verified English interface when adding Russian localisation. Keep official source labels, identifiers and original data in their source language; translating parser selectors would break data collection. Interface language never changes identity rules, review scores, business dates or immutable stored explanation text.
 
 ## Data and safe changes
 
@@ -453,3 +453,175 @@ full project audit after remaining work, preferably using their label
 these as preferences, without claiming availability or silently switching models.
 See the latest ROADMAP entry. Source coverage is still incomplete; commitment of
 the implementation is not a production-readiness or complete-data certification.
+
+User-authorised entity-page follow-up, 9 October: company selected-field provenance
+is bound to the exact displayed value/company; legacy migration dates are not
+source check dates. Person pages explain separate identities, same-name record
+counts and pending matches; no merges. KGD registration/debt stay separate; roles
+filter current/inactive observations, contracts switch supplier/customer with
+source dates, and mobile rows become cards. Cluster company/person filters use
+current saved snapshots in SQL; person links require an exact verified node and
+role evidence. No schema, ingestion/rule algorithm or saved document was changed.
+551 PostgreSQL tests (no skips), then 18 entity checks, 111 React tests, build,
+format, schema and read-only browser checks passed. Stable 320–1920px layouts
+fit; touch/large-catalogue performance unmeasured. Report: artifacts/entity-pages/.
+Visual review pending. At final status worker/AI-worker/beat were already stopped,
+last cycle 07:27 UTC; this task did not stop them. Tell the user the restart command
+rather than claiming collection is running. No Git or next-phase work performed.
+
+9 October source-aligned UI follow-up: user requested removal of unused sections.
+Hide ownership when its unfiltered read succeeds with zero records; keep real
+records and errors visible. Current adapters do not collect confirmed ownership.
+Omit empty company fields; retain missing KGD checks. Remove repeated person-history
+column/empty history panel and use collapsed source-scope notes instead. Preserve
+identity uncertainty, models, histories and future ownership support. 112 React
+tests, build/format/collectstatic and read-only 320/1440px browser checks passed.
+No backend or collection change. A source-access audit for verified director IDs
+and current ownership is a proposed follow-up, not an authorised new integration.
+
+User-authorised parser audit, 9 October 2026: public Goszakup director tables do
+expose IIN; parser 2.3 had ignored it. Version 2.4 binds exact unmasked identifiers
+to names in the same labelled director section. No name merge, ownership inference
+or appointment-date invention. Atomic fact selection follows role chronology and
+retains dated verified evidence across matching name-only refreshes; compatible
+2.3 contract/legal-form caches remain usable. Current-role People filtering keeps
+all historical URLs and namesake comparison; empty group panels are compact.
+Legacy company HTML no longer prints director IIN. Public participant identifiers
+for entrepreneurs may already equal IIN; do not conflate those with person fields.
+Eight bounded HTTP attempts produced four accepted registry cards (two IP/two UL).
+Rehearsed then atomically published: four verified directors, one graph/analysis/
+template version, original histories and 809 unrelated companies preserved.
+563 PostgreSQL and 112 React tests, build/format/OpenAPI, 38 read-only public GETs
+and bounded Chromium checks passed. Recovery before/after was independently verified.
+Worker/AI-worker/beat were restarted; native collection remains authorised/running.
+Status then showed 150 KGD registrations/three debt results, 598 first-attempt
+profile gaps and source cooldown/failures. No universal completeness claim.
+User has no OWS token; existing public adapters remain in use. See
+docs/PARSER_AUDIT_2026_10_09.md and docs/RECOVERY.md; private artifacts under
+artifacts/parser-final-audit/. No Git, schema, new source or next phase was started.
+
+9 October People-list clarification: the user sees repeated names in the UI.
+Read-only audit: 1,068 identity records, 384 current identities, 383 same-company
+repeated-name sets plus one cross-company current name collision; zero duplicate
+verified IIN. Preserve history and do not merge by name. Current-role default stays;
+company previews distinguish namesakes and Source history explicitly includes
+repeats with row state labels. PersonDirectorySerializer adds safe bounded company
+context via prefetch; nested person serializers and existing API defaults remain.
+21 PostgreSQL entity tests, 112 React tests, build/format/schema/static and bounded
+320-1920px browser checks passed. No data/schema/ingestion/AI mutation or Git.
+Collector left running; owned preview stopped. Details in docs/PHASE7.md; private
+reports in artifacts/people-record-audit/. MVP currently demonstrates contact-based
+links (no real shared verified director yet); demo preparation remains proposed.
+
+9 October readiness follow-up: main Companies defaults to source-checked selected
+name/BIN profiles; People to verified current identities. Pending/unverified/all
+history remain explicit filters; public API omission keeps previous all-records
+semantics. GET reads committed facts, never collects or generates. Company
+Directorships now defaults to current (the reported company 567: one of three);
+person historical views/empty ownership behaviour remain. Queue refresh bypasses
+failure retry delay only for successful outdated parser versions; exact subject
+and BIN checks protect due/backlog/KGD selection. All existing budgets/cooldowns
+remain. 568 PostgreSQL tests, 113 React tests (two-worker rerun), build/format/schema
+and bounded browser checks passed. All 51 working hashes matched verified recovery
+before collection restart. See docs/DATA_READINESS.md and docs/RECOVERY.md; private
+artifacts/readiness/. No schema/source expansion/Git/next phase. User's next order:
+visual refinement, then whole-project audit and deployment; require those tasks.
+# Latest user-authorised UI refinement, 9 October 2026
+
+Saved graph layouts can be removed from GraphExplorer and Profile. DELETE on the
+personal view route uses strict revision/CSRF/account fencing. Empty JSON payload
+is a deletion marker with retained revision; normalized saved layouts are always
+nonempty. Exclude markers from account listings, return null with their revision,
+and never reset revisions or resurrect guest layouts after account removal.
+No schema change. Shared IZ monogram/favicon, charcoal surfaces, restrained blue,
+finite surface/disclosure motion and API motion preference are implemented.
+178 PostgreSQL API/graph and 118 React tests passed, plus build/format/schema/static
+checks. Chromium verified responsive routes, guest and synthetic-account removal,
+Profile, API native GET/filtering/reduced motion. See latest PHASE7 entry and
+ignored artifacts/ui-polish/. Working preview was read-only; owned collectors
+remain running. User visual acceptance, whole-project audit and deployment remain
+pending. Do not run Git or start the next task automatically.
+
+User review correction: the user rejected the near-grayscale palette and wants
+softened contrast with a clearly blue identity. Navy surfaces/blue actions are
+restored across the workspace and API; graph canvas/inspector match. Logo dots
+and favicon connectors use #5797f0. Preserve this direction rather than globally
+desaturating the UI again. Build/format/static and twelve Chromium layout checks
+passed; see PHASE7.md. No backend/data change or Git command was needed.
+
+Latest UI consistency follow-up: shared surface tokens replace positional card
+colours and per-cell gradients across the workspace. Home uses additive overview
+checked_company_count/current_verified_people_count fields matching default
+directory query scopes, shared via apps/api/catalogue.py. Raw count fields remain
+compatible and are labelled as saved records in coverage, not unique current
+people. Do not merge identities to reconcile displayed counts. Swagger now points
+to workspace session access instead of generic credential buttons; native CSRF
+and OpenAPI security remain. 28 isolated PostgreSQL, two static and 119 React
+tests plus build/schema/browser checks passed. No working writes/schema/parser/
+Git changes. See latest PHASE7 entry; user visual acceptance remains pending.
+
+Latest authorised design audit: directory arrows now align at the right edge with
+a 20px inset and rounded row hover has no square backdrop. Particles has a separate
+3-7 second twinkle clock plus animated CSS fallback; manual/device motion and
+visibility pause remain. A noninteractive desktop crescent sits behind content in
+the upper-right gutter; hide it below 768px. Mobile navigation scrolls internally,
+portal surfaces/actions use the blue palette, and compact controls are at least
+44px. Swagger resource filtering uses its documented fn.opsFilter hook for trimmed
+case-insensitive matching without replacing native bootstrap/CSRF. 120 React and
+two strict Swagger static tests, build/format/static and bounded Chromium design
+checks passed; see PHASE7.md and ignored artifacts/design-audit/. Working reads
+were read-only; account writes synthetic only. Collection stays running. No Git,
+parser/schema/dependency change. Full project audit/deployment remain separate.
+
+## Final-audit timezone/localisation follow-up, 10 October 2026
+
+The user explicitly authorised AUD-001 remediation and an EN/RU website switch;
+this supersedes earlier localisation deferrals, not the other audit findings.
+FINAL_AUDIT.md remains a historical audit with a bounded remediation note.
+Django TIME_ZONE is Asia/Qyzylorda, Celery uses the same setting, and UTC-aware
+storage remains enabled. Data-quality contract/role dates use localdate(now).
+Ten new cross-domain boundary regressions and all 583 PostgreSQL tests passed
+without skips; owned test database removed. Native and isolated Linux
+normal-settings probes confirmed UTC+05:00 with no database/network work.
+
+Read-only repeatable-read working assessment found no current graph/role/KGD
+projection differences across the old/new relevant dates and no creation-day
+mismatch candidates in 57 graph snapshots, 44 analyses or 47 jobs. Preserve
+saved histories: no migration, source recollection or saved-result rewrite was
+performed. Fresh verified recovery (51 tables/18,890 rows/70 migrations) is in
+artifacts/final-audit/recovery/summary.json and docs/RECOVERY.md.
+
+Workspace/API language preference is localStorage['iz2-language'], en/ru,
+default en. API chrome/help/filter/motion and native Try/Cancel/Reset/Execute/Clear
+labels are localised through Swagger React wrappers; native validation, entered
+values, CSRF and schema remain. Technical contract descriptions/examples/responses
+retain their original language. Two final strict Swagger tests and bounded
+Chromium EN/RU/persistence/cross-tab/native GET/validation/320-1920px checks passed.
+Workspace EN/RU passed 141 React tests, build, formatting, normal collectstatic
+and ten-route Chromium checks at 320/768/1440/1920px. Language changes preserve
+drafts, filters, graph layout and revision fences without API requests or writes.
+Source values and saved explanation prose remain original; the latter has an
+explicit language note. Calendar dates do not shift; timestamps use Qyzylorda.
+Synthetic registration/profile/graph save-reload-removal and workspace/API
+cross-tab language synchronisation passed. See PHASE7 for verification limits.
+Private reports: artifacts/timezone-fix/ and artifacts/localization/.
+Worker, AI-worker and beat were already stopped at audit entry and remain stopped;
+do not restart collection just to test localisation. No Git, dependency update,
+paid generation, source expansion or Phase 8 was started.
+
+User review, 10 October 2026: the current website design and Russian localisation
+are accepted. The user subsequently requested English-only developer API docs;
+remove its EN/RU controls and preference listeners, keeping React's switch and
+stored preference. The next agreed task after the user-operated commit/push is
+Docker configuration for a Linux server; no host has been selected. Do not treat
+this as public-deployment approval or closure of the remaining audit findings.
+For the laptop, use the existing background.ps1 Start/Status/Stop controls; no
+Windows startup task is installed. Start also enables the local Ollama/Qwen AI
+worker. Stop waits for owned workers but leaves Ollama available; local_ai.ps1
+-Stop stops the owned model server separately. A read-only Status check again
+found worker/ai-worker/beat stopped; this UI task did not start collection.
+English-only API cleanup passed two strict Swagger tests, syntax/formatting,
+collectstatic and browser GET/filter/320-1920px checks with a retained Russian
+workspace preference. Only the API template/helper/styles and continuity docs
+changed. No Git, collection, deployment or model job was run.
+

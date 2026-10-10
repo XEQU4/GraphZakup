@@ -1,3 +1,4 @@
+import { useI18n, translate } from "../i18n";
 import { useRef, type ReactNode, type RefObject } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -40,14 +41,19 @@ function SavedFacts({
   document: ExplanationDocument;
   factsRef: RefObject<HTMLDetailsElement | null>;
 }) {
+  useI18n();
   return (
     <details ref={factsRef} className="explanation-saved-facts">
       <summary>
         <ReaderIcon aria-hidden="true" />
-        <span>Saved evidence and facts</span>
+        <span>{translate("Saved evidence and facts")}</span>
         <small>
-          {document.findings.length}{" "}
-          {document.findings.length === 1 ? "finding" : "findings"}
+          {translate(
+            document.findings.length === 1
+              ? "{count} finding"
+              : "{count} findings",
+            { count: document.findings.length },
+          )}
         </small>
         <ChevronDownIcon
           className="explanation-disclosure-arrow"
@@ -83,13 +89,17 @@ function SavedFacts({
                   </Link>
                 ))}
                 {finding.additional_companies > 0 && (
-                  <span>and {finding.additional_companies} more</span>
+                  <span>
+                    {translate("and {count} more", {
+                      count: finding.additional_companies,
+                    })}
+                  </span>
                 )}
               </div>
             )}
             {finding.notes.length > 0 && (
               <details className="explanation-finding-limits">
-                <summary>Evidence limits</summary>
+                <summary>{translate("Evidence limits")}</summary>
                 {finding.notes.map((note, index) => (
                   <p key={index}>{note}</p>
                 ))}
@@ -99,8 +109,10 @@ function SavedFacts({
         ))}
         {document.additional_findings > 0 && (
           <p>
-            {document.additional_findings} additional findings are included in
-            the saved evidence.
+            {translate(
+              "{count} additional findings are included in the saved evidence.",
+              { count: document.additional_findings },
+            )}
           </p>
         )}
       </div>
@@ -113,6 +125,7 @@ export function SavedExplanation({
 }: {
   explanation: Explanation | null;
 }) {
+  const { language } = useI18n();
   const factsRef = useRef<HTMLDetailsElement>(null);
   if (!explanation)
     return (
@@ -122,11 +135,13 @@ export function SavedExplanation({
             <ReaderIcon aria-hidden="true" />
           </span>
           <div>
-            <span className="eyebrow">SAVED RESULTS</span>
-            <h2>No saved explanation</h2>
+            <span className="eyebrow">{translate("SAVED RESULTS")}</span>
+            <h2>{translate("No saved explanation")}</h2>
           </div>
         </div>
-        <p>No explanation is published for this analysis version.</p>
+        <p>
+          {translate("No explanation is published for this analysis version.")}
+        </p>
       </article>
     );
   const document = explanation.document;
@@ -144,13 +159,15 @@ export function SavedExplanation({
     return (
       <div
         className="explanation-references"
-        aria-label="Supporting saved evidence"
+        aria-label={translate("Supporting saved evidence")}
       >
         {findings.map((finding) => (
           <a
             key={finding.finding_id}
             href={"#" + encodeURIComponent(findingTarget(finding.finding_id))}
-            aria-label={"Read evidence for " + finding.title}
+            aria-label={translate("Read evidence for {title}", {
+              title: finding.title,
+            })}
             onClick={() => {
               if (factsRef.current) factsRef.current.open = true;
             }}
@@ -170,12 +187,26 @@ export function SavedExplanation({
         </span>
         <div>
           <span className="eyebrow">
-            {narrative ? "BASED ON SAVED EVIDENCE" : "SAVED EXPLANATION"}
+            {narrative
+              ? translate("BASED ON SAVED EVIDENCE")
+              : translate("SAVED EXPLANATION")}
           </span>
-          <h2>{narrative ? "AI explanation" : "Saved summary"}</h2>
+          <h2>
+            {narrative
+              ? translate("AI explanation")
+              : translate("Saved summary")}
+          </h2>
         </div>
         <Badge tone="blue">{explanation.language.toUpperCase()}</Badge>
       </header>
+      {language === "ru" &&
+        explanation.language.toLowerCase().startsWith("en") && (
+          <p className="explanation-language-note">
+            {translate(
+              "This saved explanation is in English. Switching the interface language does not rewrite saved evidence or model text.",
+            )}
+          </p>
+        )}
       {document ? (
         <>
           {narrative ? (
@@ -195,8 +226,8 @@ export function SavedExplanation({
             aria-labelledby="explanation-next-title"
           >
             <h3 id="explanation-next-title">
-              <TargetIcon aria-hidden="true" />
-              What to check next
+              <TargetIcon aria-hidden="true" />{" "}
+              {translate("What to check next")}{" "}
             </h3>
             <ol>
               {narrative
@@ -215,7 +246,7 @@ export function SavedExplanation({
           <details className="explanation-coverage">
             <summary>
               <InfoCircledIcon aria-hidden="true" />
-              <span>Data coverage and missing checks</span>
+              <span>{translate("Data coverage and missing checks")}</span>
               <ChevronDownIcon
                 className="explanation-disclosure-arrow"
                 aria-hidden="true"
@@ -240,17 +271,17 @@ export function SavedExplanation({
       )}
       <footer className="explanation-source">
         <span>
-          <CheckCircledIcon aria-hidden="true" />
-          Saved {formatDate(explanation.created_at)}
+          <CheckCircledIcon aria-hidden="true" /> {translate("Saved")}{" "}
+          {formatDate(explanation.created_at)}
         </span>
         <span>
           {explanation.status === "fallback"
-            ? "Saved template fallback"
+            ? translate("Saved template fallback")
             : narrative
-              ? "AI-written from saved facts"
+              ? translate("AI-written from saved facts")
               : explanation.provider === "template"
-                ? "Prepared from saved facts"
-                : "Saved model-assisted summary"}
+                ? translate("Prepared from saved facts")
+                : translate("Saved model-assisted summary")}
         </span>
         {narrative && (
           <span className="explanation-model-name">
@@ -260,31 +291,33 @@ export function SavedExplanation({
         )}
         {explanation.status === "fallback" && (
           <p className="explanation-fallback-note">
-            Model generation did not produce an accepted answer. This
-            explanation uses the saved template.
+            {" "}
+            {translate(
+              "Model generation did not produce an accepted answer. This explanation uses the saved template.",
+            )}{" "}
           </p>
         )}
       </footer>
       <details className="cluster-technical">
-        <summary>Explanation metadata</summary>
+        <summary>{translate("Explanation metadata")}</summary>
         <dl>
           <div>
-            <dt>Provider</dt>
+            <dt>{translate("Provider")}</dt>
             <dd>
               {explanation.provider}
               {explanation.model ? " · " + explanation.model : ""}
             </dd>
           </div>
           <div>
-            <dt>Status</dt>
-            <dd>{explanation.status}</dd>
+            <dt>{translate("Status")}</dt>
+            <dd>{translate(explanation.status)}</dd>
           </div>
           <div>
-            <dt>Prompt version</dt>
+            <dt>{translate("Prompt version")}</dt>
             <dd>{explanation.prompt_version}</dd>
           </div>
           <div>
-            <dt>Saved</dt>
+            <dt>{translate("Saved")}</dt>
             <dd>{formatDateTime(explanation.created_at)}</dd>
           </div>
         </dl>
@@ -308,6 +341,7 @@ export function ReviewPriority({
   unavailable: boolean;
   children: ReactNode;
 }) {
+  const { language } = useI18n();
   const breakdown = analysis?.metrics.score_breakdown ?? [];
   const score = analysis?.metrics.review_priority;
   return (
@@ -317,12 +351,13 @@ export function ReviewPriority({
           <TargetIcon aria-hidden="true" />
         </span>
         <div>
-          <span className="eyebrow">SAVED RULE RESULTS</span>
-          <h2>Review priority</h2>
+          <span className="eyebrow">{translate("SAVED RULE RESULTS")}</span>
+          <h2>{translate("Review priority")}</h2>
         </div>
       </header>
       <p className="priority-purpose">
-        A guide to which connections deserve a closer look.
+        {" "}
+        {translate("A guide to which connections deserve a closer look.")}{" "}
       </p>
       {analysis ? (
         <>
@@ -331,7 +366,7 @@ export function ReviewPriority({
               {score}
               <span>/100</span>
             </strong>
-            <small>Manual review index</small>
+            <small>{translate("Manual review index")}</small>
           </div>
           <div className="priority-track" aria-hidden="true">
             <span
@@ -341,12 +376,14 @@ export function ReviewPriority({
           <p className="priority-interpretation">
             <InfoCircledIcon aria-hidden="true" />
             <span>
-              Points come from saved facts and fixed rules. They are not a
-              percentage chance of wrongdoing.
+              {" "}
+              {translate(
+                "Points come from saved facts and fixed rules. They are not a percentage chance of wrongdoing.",
+              )}{" "}
             </span>
           </p>
           <section className="priority-contributions">
-            <h3>What adds points</h3>
+            <h3>{translate("What adds points")}</h3>
             {breakdown.length ? (
               <ul>
                 {breakdown.map((item) => {
@@ -360,27 +397,40 @@ export function ReviewPriority({
                     (finding
                       ? findingLabels[finding.code] ||
                         finding.code.replaceAll("_", " ")
-                      : "Saved finding");
+                      : translate("Saved finding"));
                   return (
                     <li key={item.finding_id}>
-                      <span>{label}</span>
+                      <span>
+                        {language === "ru" &&
+                        finding &&
+                        findingLabels[finding.code]
+                          ? translate(findingLabels[finding.code])
+                          : label}
+                      </span>
                       <strong>
                         +{item.points}
-                        <small> points</small>
+                        <small> {translate("points")}</small>
                       </strong>
                     </li>
                   );
                 })}
               </ul>
             ) : (
-              <p>No credited finding is listed in this saved analysis.</p>
+              <p>
+                {translate(
+                  "No credited finding is listed in this saved analysis.",
+                )}
+              </p>
             )}
           </section>
           <dl className="analysis-metrics">
             <div>
               <dt>
-                Relationship strength
-                <small>Strength of the saved connection evidence</small>
+                {" "}
+                {translate("Relationship strength")}{" "}
+                <small>
+                  {translate("Strength of the saved connection evidence")}
+                </small>
               </dt>
               <dd>
                 {analysis.metrics.link_strength}
@@ -389,19 +439,23 @@ export function ReviewPriority({
             </div>
             <div>
               <dt>
-                Behavioural risk
-                <small>A separate assessment from relationships</small>
+                {" "}
+                {translate("Behavioural risk")}{" "}
+                <small>
+                  {translate("A separate assessment from relationships")}
+                </small>
               </dt>
               <dd>
                 {analysis.metrics.behavioural_risk === null
-                  ? "Not assessable"
+                  ? translate("Not assessable")
                   : analysis.metrics.behavioural_risk + "/100"}
               </dd>
             </div>
             <div>
               <dt>
-                Fresh arrears checks
-                <small>Successful current company checks</small>
+                {" "}
+                {translate("Fresh arrears checks")}{" "}
+                <small>{translate("Successful current company checks")}</small>
               </dt>
               <dd>
                 {analysis.metrics.fresh_arrears_checks}
@@ -410,7 +464,9 @@ export function ReviewPriority({
             </div>
           </dl>
           <p className="priority-evidence-date">
-            Evidence date <strong>{formatDate(analysis.as_of)}</strong>
+            {" "}
+            {translate("Evidence date")}{" "}
+            <strong>{formatDate(analysis.as_of)}</strong>
           </p>
         </>
       ) : (
@@ -418,24 +474,26 @@ export function ReviewPriority({
           <LightningBoltIcon aria-hidden="true" />
           <strong>
             {loading
-              ? "Loading saved analysis"
+              ? translate("Loading saved analysis")
               : unavailable
-                ? "Score unavailable"
-                : "Not calculated"}
+                ? translate("Score unavailable")
+                : translate("Not calculated")}
           </strong>
           <p>
             {unavailable
-              ? "Retry the analysis read to view saved rule results."
+              ? translate("Retry the analysis read to view saved rule results.")
               : loading
-                ? "Reading the saved rule result for this graph."
-                : "This graph has no saved review-priority result to display yet."}
+                ? translate("Reading the saved rule result for this graph.")
+                : translate(
+                    "This graph has no saved review-priority result to display yet.",
+                  )}
           </p>
         </div>
       )}
       <details className="priority-companies" open={companies.length <= 6}>
         <summary>
           <CubeIcon aria-hidden="true" />
-          <span>Companies</span>
+          <span>{translate("Companies")}</span>
           <strong>{companies.length}</strong>
         </summary>
         <ul className="analysis-company-list">

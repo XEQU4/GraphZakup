@@ -1,4 +1,5 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -14,6 +15,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { Clusters } from "./Clusters";
+import { setLanguage } from "../i18n";
 import type { Cluster, ClusterDirectory } from "../lib/types";
 
 const savedDirectory: ClusterDirectory = {
@@ -91,6 +93,7 @@ function show(path = "/clusters") {
   );
 }
 beforeEach(() => {
+  setLanguage("en");
   reads = [];
   response = () => json([cluster]);
   vi.stubGlobal(
@@ -103,7 +106,10 @@ beforeEach(() => {
     }),
   );
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  setLanguage("en");
+});
 async function cards() {
   return screen.findByRole("region", { name: "Relationship group results" });
 }
@@ -429,4 +435,35 @@ describe("relationship group directory", () => {
     results = await cards();
     expect(results.textContent).not.toContain("same owner");
   });
+});
+
+it("localizes derived group titles and filters without changing source labels, URL or draft search", async () => {
+  const original = structuredClone(cluster);
+  const { container } = show(
+    "/clusters?relationship=phone&minimum_review_priority=5",
+  );
+  await screen.findByRole("heading", { name: "Shared phone · 5 companies" });
+  const search = screen.getByPlaceholderText("Company name, BIN or connection");
+  fireEvent.change(search, { target: { value: "unsent source name" } });
+  const beforeReads = reads.length;
+  const url = screen.getByTestId("location").textContent;
+  act(() => setLanguage("ru"));
+  expect(
+    screen.getByRole("heading", { name: "Общий телефон · компаний: 5" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByPlaceholderText("Название компании, БИН или связь"),
+  ).toHaveValue("unsent source name");
+  expect(screen.getByLabelText("Связь")).toHaveValue("phone");
+  expect(screen.getByText("Synthetic <North> Services")).toBeInTheDocument();
+  expect(screen.getByTestId("location").textContent).toBe(url);
+  expect(container.querySelector(".group-card-reason")).toHaveTextContent(
+    "Компаний, связанных общим телефоном: 5.",
+  );
+  expect(reads.length).toBe(beforeReads);
+  expect(cluster).toEqual(original);
+  act(() => setLanguage("en"));
+  expect(
+    screen.getByRole("heading", { name: "Shared phone · 5 companies" }),
+  ).toBeInTheDocument();
 });

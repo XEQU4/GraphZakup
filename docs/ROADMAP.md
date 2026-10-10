@@ -15,7 +15,7 @@ Based on the [audit](AUDIT.md), [baseline](BASELINE.md), [recovery record](RECOV
 | 4 | Persist graph versions and substantially improve graph interaction | Complete: 191 PostgreSQL tests; revised graph prototype accepted by the user |
 | 5 | Introduce verifiable analysis and versioned explanations | Complete: 238 PostgreSQL tests and five local-model synthetic cases passed |
 | 6 | Provide a DRF API | Complete: 320 PostgreSQL tests; versioned API and locally served OpenAPI verified |
-| 7 | Build a React interface using user references | Implemented; browser checks passed, user visual acceptance pending |
+| 7 | Build a React interface using user references | Implemented; browser checks passed, current design and EN/RU accepted on 10 October 2026 |
 | 8 | Prepare thesis demonstration and operations | Planned |
 
 Phases 0-2 were completed on 5 October 2026. Phase 2 consolidated parsers/the service pipeline, added provenance, resumable runs, and safe person identity. All 128 tests passed on PostgreSQL; a new backup was restored and migrated separately with existing values preserved. The source database and user files remained unchanged. See [BASELINE.md](BASELINE.md), [PHASE1.md](PHASE1.md), and [PHASE2.md](PHASE2.md) for protocols and limits. Audience, schedule, and spending limits remain open.
@@ -39,7 +39,14 @@ are user actions; no Git operation or domain deployment was performed.
 
 ## Project language
 
-Use English for documentation, instructions, comments, UI/CLI messages, prompts, and newly prepared explanations. Develop and verify the English website first. Add Russian website localisation later, after the English interface is complete. Preserve official source labels and original data in their source language. Translating files does not regenerate existing stored explanations.
+Use English for documentation, instructions, comments, CLI messages, prompts and
+newly prepared explanations. English is the website default. On 10 October 2026,
+the user explicitly authorised an EN/RU website switch, superseding the earlier
+Russian-localisation deferral. Preserve official source labels and original data
+in their source language. Switching interface language does not regenerate or
+translate immutable stored explanations, or change Kazakhstan business dates.
+The user subsequently chose English-only API documentation; this does not change
+the website's EN/RU switch or its saved preference.
 
 ## Dependencies
 
@@ -325,3 +332,48 @@ availability or a model switch. Final audit should cover architecture, security,
 parsers/data quality, graph/AI evidence and versioning, API/UI, performance,
 tests and deployment/recovery. Do not start that final audit or the next task
 automatically. Git remains user-operated.
+
+9 October entity-page implementation: source/value-bound field provenance,
+separate KGD checks, role/history filters, both contract roles and exact saved
+group links are implemented. Person pages explain namesakes and missing history.
+551 PostgreSQL and 111 React tests passed; read-only browser verification covered
+320–1920px. See PHASE7 for evidence and limits. User visual review is pending;
+complete-stack runtime/data-transfer verification remains next, not started.
+
+Latest user sequence, 9 October: after the source-readiness/parser follow-up,
+refine visual design, then perform the whole-project audit and deployment work.
+These are next requested areas, not started automatically. DATA_READINESS.md
+records source-backed default catalogues, current company roles, queue safeguards
+and passed verification. External source/entitlement limits remain open.
+
+## Final audit and authorised follow-up, 10 October 2026
+
+The full audit is recorded in [FINAL_AUDIT.md](FINAL_AUDIT.md). It supports a
+supervised relationship-evidence demonstration, not unattended public release or
+a validated bidding-behaviour detector. Historical phase-completion counts above
+are not a current release certification. Remaining findings need individually
+scoped follow-up work.
+
+The user selected AUD-001 (timezone and date-boundary regressions) and additionally
+authorised EN/RU website localisation. Django and Celery now share explicit
+`Asia/Qyzylorda`; timestamps remain UTC-aware. The data-quality report follows
+the same civil-date policy. Ten new boundary regressions and all 583 PostgreSQL
+tests passed; native/Linux configuration probes and a read-only saved-data impact
+assessment passed. No schema migration or working history refresh is required by
+this change. See [PHASE7.md](PHASE7.md) for implementation and verification scope.
+
+The standalone API reference has bilingual navigation/help and safe native
+control labels with the same browser preference as the workspace. Workspace
+localisation passed 141 React tests, build, formatting, collectstatic and ten-route
+Chromium checks at 320-1920 px; details and limitations are in PHASE7. Original
+source values and saved explanation prose retain their original language.
+Collector processes were already stopped at audit
+entry and were left stopped. This follow-up does not start other audit fixes,
+new source collection, paid generation, deployment, Git operations or Phase 8.
+
+Latest user review: the website design and EN/RU are accepted. API documentation
+was returned to English-only with its existing styling and native Swagger
+controls; targeted static/browser checks passed (PHASE7). Next agreed work after
+the user-operated commit/push is Docker configuration for a Linux server; no
+hosting provider is selected yet. Existing collector controls were inspected;
+workers/beat remain stopped and no Windows autostart task was installed.

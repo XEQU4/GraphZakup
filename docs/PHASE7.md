@@ -455,3 +455,315 @@ Final post-browser comparison preserved all 50 source tables, protected files an
 25 next-app source files. The owned browser/preview stopped; port 8780 has no
 remaining listener. User servers were untouched. See source-compare-latest.json
 and cleanup.json in the private directory.
+
+## Company and person detail follow-up, 9 October 2026
+
+The user authorised entity detail refinement. Company facts now expose bounded
+selected-field provenance only when the saved observation matches the company,
+field and displayed value. Legacy import dates are not source check dates.
+KGD registration and arrears remain separate, including retained dated results,
+failed attempts and missing checks. Contract previews switch supplier/customer
+roles and show source retrieval dates; role filters distinguish observed current
+and inactive records without inventing legal periods.
+
+Related-group filtering runs in SQL before pagination against current immutable
+snapshots. Person filters require the exact verified node and evidenced role;
+name matches never establish membership. Person pages explain separate identities,
+count other exact case-insensitive name records and pending match candidates,
+and distinguish company checks from unavailable personal-history integrations.
+Mobile roles/contracts use vertical cards. No migration or saved-data algorithm
+change, collection request, model generation or Git command was performed.
+
+551 isolated PostgreSQL tests passed without skips; 18 entity tests subsequently
+passed with an explicit timezone-equivalent contract timestamp assertion. All 111
+React tests, production build, formatting, strict OpenAPI and collectstatic passed.
+GET-only browser checks used a PostgreSQL read-only connection and covered saved
+legacy/fresh company facts, roles/contracts filters, group/name-search links,
+keyboard section navigation and 320/390/768/1440/1920px. Stable layouts fit their
+client width; screenshots were inspected. Physical touch and large-catalogue
+performance remain unmeasured. Private report: artifacts/entity-pages/verification.json.
+Final status found the pre-existing worker/AI-worker/beat stopped (last cycle
+07:27 UTC); this task did not stop them. User restart instructions are in chat.
+Visual acceptance remains pending. Complete-stack verification is the next task,
+not started here.
+
+### Source-aligned simplification, 9 October 2026
+
+The user requested removal of unused/empty UI. Current adapters collect director
+records, not confirmed ownership/shares. Empty ownership sections and their person
+navigation link are suppressed; saved ownership records and request errors remain
+visible. Company fact lists omit unpopulated values with an explicit coverage note.
+The unused person-directory history column and large unimplemented-history panel
+are replaced by one collapsed scope explanation. Legacy scores are removed from
+company metadata. KGD unknown checks and identity uncertainty remain visible.
+No database field, source adapter or saved evidence was removed or changed.
+112 React tests passed, including retained ownership and failed-read cases; build,
+formatting and collectstatic passed. Read-only Chromium checks covered company,
+person and people-list pages at 320/1440px without page overflow or JS errors.
+Further ownership/person-identifier coverage needs a separate source-access audit;
+this task did not start new integrations or change collection.
+
+## People record clarity, 9 October 2026
+
+The user reported repeats in People, not a request to erase database history.
+A read-only repeatable-read audit found 1,068 identities, 384 with current roles,
+384 repeated-name sets (383 within one company), one current cross-company name
+collision, and no duplicate verified IIN. Legacy original/company-scoped records
+and later source-scoped identities explain most repetition. Do not merge by name.
+
+The existing current-role default is retained. Directory projections now add
+bounded company context (up to two names and an exact distinct company count),
+loaded in four list queries without per-person requests. Source history is clearly
+labelled as including repeats, with current/historical row labels and an explicit
+return to Current people. Source history, IDs, roles, snapshots and AI texts remain
+unchanged; API filters are backward compatible. The collector was not interrupted.
+
+21 isolated PostgreSQL entity tests and 112 React tests passed; build, formatting,
+strict OpenAPI, collectstatic and Chromium filter/reload/context checks passed.
+320/768/1440/1920px had no horizontal overflow or application error. Screenshots
+were inspected and the owned read-only preview/browser stopped. Port 8000 refused
+connections during inspection; the user's server was not started or stopped.
+Private aggregates/tests/screenshots: artifacts/people-record-audit/.
+
+MVP assessment at audit time: 813 companies, 525 contracts, 235 companies with an
+accepted nonlegacy profile, 168 KGD registrations, three debt results and ten active
+groups. Shared features are six addresses, three phones and one email; there is
+no current real shared-verified-director feature. This supports a relationship
+analysis thesis demonstration, not a proven fraud detector or complete catalogue.
+A clearly labelled synthetic shared-director scenario and a reproducible saved
+real-data walkthrough are proposed demonstration preparation, not executed here.
+# Saved-view removal and neutral visual refinement, 9 October 2026
+
+The user requested removal of saved graph views, a quieter black/white/blue
+palette, smoother interactions, API-page refinement and a new logo/favicon.
+DELETE `/api/v1/clusters/{uuid}/view/` accepts exactly an integer `revision`,
+requires the authenticated account and CSRF, and clears only that account's
+layout. Empty payload is a deletion marker; normal validation always produces a
+nonempty layout. Keeping the revision prevents stale tabs from resurrecting it.
+Profile lists exclude markers, GET returns null plus the retained revision,
+and a subsequent explicit save restores a visible layout. Archived views can
+also be removed. No migration or graph/evidence deletion is needed.
+
+Graph toolbar and Profile provide removal; browser-only views use the existing
+localStorage key. Removal preserves the current arrangement; Restore disables
+until another view is saved. Removed account views do not fall back to an old
+guest layout. Conflict and failed-read fencing remain in place.
+
+Large surfaces now use charcoal and muted steel blue, with lighter primary
+actions. Semantic graph relationship colours remain distinct. Shared IZ evidence
+monogram and matching favicons cover header/footer/API/Vite. Page surfaces and
+API disclosures have finite entrance motion; controls transition smoothly. API
+motion uses the existing preference key and device reduced-motion setting.
+The overview heading's two lines now remain separate.
+
+Verification: 178 isolated PostgreSQL API/graph tests, all 118 React tests,
+production build, formatting, strict OpenAPI validation and collectstatic passed.
+Chromium checked seven routes plus graph at 320/768/1440/1920px without document
+overflow or observed JavaScript exceptions; inspected desktop screenshots.
+Guest save/remove/reload/re-save/restore and real synthetic-account save/remove/
+reload/re-save/Profile removal passed. API filtering, native GET (200/one record),
+motion persistence and device reduced motion passed. Working-data preview was
+GET-only and PostgreSQL read-only; account writes used isolated synthetic SQLite.
+Recovery precondition: independently verified 51-table backup recorded under
+the Directory readiness entry in RECOVERY.md. Collection remains running.
+Private reports/screenshots: ignored artifacts/ui-polish/. No Git, source
+algorithm, dependency, environment or learning-file changes. Visual acceptance
+and physical touch remain unverified; final audit/deployment are separate tasks.
+
+## Blue palette correction after user review, 9 October 2026
+
+The user rejected the preceding nearly monochrome treatment: reduce harsh
+contrast while retaining the blue identity. Restored navy fills throughout the
+workspace, directories, footer/dialogs and API; surfaces now use softer blue
+steps, and primary actions are blue with off-white text. Graph canvas, inspector,
+toolbar and surrounding panels share that palette while relationship colours
+remain distinct. Logo connectors/dots and both favicon assets use #5797f0.
+The previous grayscale choice is superseded; motion and saved-view behaviour
+are unchanged. Production build, formatting and collectstatic passed. Chromium
+screenshots of overview, graph, companies and API were inspected; twelve layout
+checks at 320/768/1440px found no document overflow or JavaScript exceptions.
+This was presentation-only, so backend tests were not rerun. Read-only preview
+was stopped; collection/user server were untouched. Private screenshots use
+artifacts/ui-polish/blue-*; user visual acceptance remains pending.
+
+## Shared card surfaces and catalogue totals, 9 October 2026
+
+The user requested consistent blue cards/rows and reported that overview counts
+did not match the directory. Shared card/inset/row tokens now cover statistics,
+groups, coverage, directories, detail panels, Profile, About and account surfaces.
+Removed positional colour variants and repeating per-cell gradients; semantic
+status/relationship colours and decorative hero artwork remain distinct.
+
+Overview adds checked_company_count and current_verified_people_count using
+the same company-profile/person-current-role query helpers as directory filters.
+Home links those counts to default directories. Existing API total fields keep
+their compatible meaning; raw identity totals include earlier/unverified source
+records and are explicitly labelled as records in Evidence coverage. No records
+are deleted or merged. No ingestion, persistence or schema algorithm changed.
+
+Swagger's generic credential buttons are hidden; a visible account guide explains
+public reads, workspace session reuse, page reload after login and staff-only jobs.
+OpenAPI security definitions, CSRF/bootstrap and native request execution remain
+unchanged. No separate API login or token entry is needed in this same-origin UI.
+
+Verification: 28 isolated PostgreSQL overview/entity tests, two strict-static
+Swagger tests, all 119 React tests, build/format/schema/collectstatic passed.
+Read-only working HTTP checks matched 105 default people and 296 checked companies
+between overview and their directories; 1,176 raw identities remained separately
+reported (counts can change under ongoing collection). Chromium checked identical
+computed backgrounds on eight overview cards and solid list cells, six routes at
+320/768/1440px without document overflow/errors, and Swagger GET 200/one record.
+Screenshots/reports: ignored artifacts/ui-consistency/. Owned read-only preview
+stopped; user server and collection untouched. No Git. Visual acceptance pending.
+
+## Design audit and space background, 9 October 2026
+
+The user requested right-aligned directory arrows, a site-wide design review,
+brighter twinkling stars and a small moon. People reserves a fixed action column;
+People/Companies arrows sit about 20px from the row edge. Rounded cell hover no
+longer has a square row backdrop. Mobile card actions retain their full width.
+
+Particles uses an independent twinkle clock with staggered 3-7 second fades;
+slow drift, one RAF loop, frame/DPR bounds and visibility pauses remain. The CSS
+fallback also twinkles. Manual/device reduced motion freezes decoration. A small
+textured blue-white crescent occupies the upper-right desktop gutter behind
+content, is noninteractive/hidden from accessibility APIs, and hides below 768px.
+
+The audit also fixed the unscrollable short-screen navigation drawer, aligned its
+portal colours and registration actions with the workspace, enlarged compact
+pagination/dialog/tab controls to 44px, and increased analysis scroll margins
+past the sticky header. Swagger's documented fn.opsFilter hook now trims queries
+and matches resource tags case-insensitively; bootstrap, CSRF and native operation
+execution are unchanged. API styling remains as previously accepted.
+
+Verification: 120 React tests, two strict Swagger static/manifest tests, production
+build, formatting and collectstatic passed. Chromium checked eleven routes at
+320/768/1440/1920px, with additional 390px and 500px-height checks. No document
+overflow or application JavaScript errors were observed. Inspected desktop/mobile
+screenshots, rounded row hover, aligned analysis columns, keyboard focus, scrollable
+menu/signup and synthetic authenticated Profile. Real WebGL pixel samples changed
+over 1.4 seconds; manual/reduced motion and context-loss fallback passed. Lowercase,
+mixed-case/spaced and cleared API filters passed; native GET returned 200/one row.
+
+Working preview was GET-only with PostgreSQL read-only; registration/Profile used
+isolated synthetic SQLite. No schema/parser/dependency/data algorithm or Git change.
+Worker, AI-worker and beat continued running. Owned previews are stopped after
+verification. Private screenshots/report: artifacts/design-audit/. Physical touch,
+Firefox/Safari and subjective visual acceptance remain unverified. This is a UI
+audit; full project audit and deployment remain separate tasks.
+
+## Kazakhstan dates and authorised EN/RU interface, 10 October 2026
+
+After the final audit, the user explicitly authorised fixing AUD-001 and adding
+Russian website localisation through an EN/RU control. This supersedes the
+earlier localisation deferral. English remains the default, and project
+documentation, CLI messages, code comments and source selectors stay English.
+Official source labels, identifiers, company/person names and saved evidence are
+preserved. Language selection must not change identity matching, review points,
+the business timezone or immutable explanation text; no translation inference or
+working recalculation was requested or performed.
+
+Django explicitly uses `Asia/Qyzylorda`; Celery derives its timezone from the
+same setting. `USE_TZ` and Celery UTC handling remain enabled. Calendar-day rules
+therefore use Kazakhstan dates while timestamps retain aware UTC storage.
+The data-quality report now uses the same local civil date for future contracts
+and role applicability instead of extracting the UTC date from `now`.
+
+Ten new regressions cover Kazakhstan and UTC midnight, year/leap-day rollover,
+language-independent dates, inclusive role starts/exclusive ends, API/graph
+agreement, same-day/future/undated KGD reporting, seven/eight-day freshness,
+retained successes after failure, elapsed retrieval age, UTC timestamp round
+trips, new graph/analysis/job dates and unchanged immutable histories on GET.
+All **583 PostgreSQL tests** passed with zero skips (100.530 s including setup);
+the owned database was removed. Normal-settings native and Linux probes both
+resolved `2026-10-09T19:00:00Z` to `2026-10-10T00:00:00+05:00`. The Linux check
+used the existing audited image with only current configuration mounted read-only,
+no network, database or data volumes; it was not a new full-stack deployment.
+
+Read-only working assessment covered 813 companies and 1,238 indexed edges.
+At a fixed 04:10 UTC comparison clock, Chicago used 9 October and Kazakhstan
+10 October. Current edge keys, applicable roles, KGD API statuses and current
+group analysis-input hashes did not differ for this saved dataset. None of the
+57 graph snapshots, 44 analyses or 47 jobs had a date differing from its
+Kazakhstan creation day. Historical date differences can be legitimate, so this
+check does not itself authorise refreshing saved results. No working migration,
+regeneration, source request or model call was made.
+
+The standalone API page shares `localStorage['iz2-language']` (`en`/`ru`, default
+`en`) with the workspace and listens for cross-tab preference changes. Its
+navigation, account help, status, resource search and motion controls are bilingual.
+Swagger React preset wrappers translate Try/Cancel/Reset/Execute/Clear labels while
+preserving native handlers, validation, entered values, CSRF and request
+interceptors. Paths, fields, schema descriptions, examples and responses retain
+their original contract/data. The page explains this boundary. The resource
+filter accepts both English tags and Russian section names; no source text is
+translated through a blanket DOM observer.
+
+API checks completed: two strict static/manifest/bootstrap tests, JavaScript/CSS
+formatting, Chromium language persistence and cross-tab changes, case/space-safe
+Russian filtering and empty state, native GET 200 with one record, parameter
+retention during language changes, rejected invalid parameters without an HTTP
+request, Cancel and blocked-storage fallback. Layouts at 320/768/1440/1920 px
+had no horizontal overflow. Reduced motion disabled animation after the media
+change event. No application JavaScript exception was observed; Swagger emitted
+one existing underscore deep-link deprecation message. Screenshots were inspected.
+
+Private reports: `artifacts/timezone-fix/` and `artifacts/localization/`.
+API account data and preview writes were synthetic; working reads were explicitly
+read-only. Collectors remain stopped as found. No Git, dependency update, parser
+expansion, saved-text rewrite or Phase 8 work was started.
+
+Workspace localisation is complete for the current React routes, navigation,
+footer, account dialogs/profile, directories, entity details, graph controls and
+analysis presentation. `LanguageProvider` shares the API preference without
+remounting the application. D3 labels update in place; changing language does
+not refetch or save domain data, reset layouts or clear form/search drafts.
+Account errors are translated when rendered. Source names, original descriptions,
+identifiers and immutable saved explanation prose remain unchanged; an English
+saved explanation has an explicit Russian language note. Decimal money formatting
+changes separators without conversion to floating point. Calendar-only source
+dates do not shift; timestamp displays use `Asia/Qyzylorda` in both languages.
+
+All **141 React tests** passed, including locale preference/storage failures,
+cross-tab changes, date boundaries, exact amounts, form state, directory filters,
+graph state and account revision fencing. TypeScript/Vite build, formatting and
+normal-settings collectstatic passed. Final Chromium verification covered ten
+workspace routes at 320/768/1440/1920 px with no horizontal page overflow or
+application JavaScript exceptions. The mobile header uses a second search row;
+registration remains available inside the account dialog. Synthetic registration,
+profile draft retention, graph save/reload/removal and EN/RU persistence passed.
+Switching the graph language made zero API requests and retained node positions.
+Workspace/API cross-tab synchronisation passed against the built assets. Desktop
+profile/graph and narrow overview screenshots were inspected. Existing unit-test
+act warnings and the Swagger deprecation above are not application exceptions.
+
+Final report: `artifacts/localization/workspace-verification.json`. Browser writes
+were confined to the owned synthetic SQLite database. No working records or saved
+explanations were rewritten. `.env`, learning exercises, dependency manifests and
+the accidental `next-app` starter were preserved. The temporary preview is stopped
+after verification; restart the local application to load the new settings/assets.
+
+## Accepted website and English-only API reference, 10 October 2026
+
+The user accepted the current website design and Russian localisation, then chose
+English-only developer documentation. The API template/helper/styles no longer
+contain locale controls, dictionaries, language preference access or Swagger
+translation wrappers. Native English controls, resource filtering, motion,
+account guidance and the existing design remain. React EN/RU and its browser
+preference are unchanged.
+
+The two strict Swagger manifest/bootstrap tests, JavaScript syntax, scoped
+formatting and normal collectstatic passed. Synthetic Chromium verification kept
+`iz2-language=ru`: API html/title/buttons stayed English, native Execute returned
+HTTP 200 with one record, English case/space-safe filtering worked and returning
+to the website retained Russian. API layouts at 320/768/1440/1920 px had no page
+overflow. Collected normal/preview JS and CSS hashes matched the source. Preview
+was stopped afterwards; no working data, collection or model requests were used.
+Screenshot/report: ignored `artifacts/localization/api-english-only-*`.
+
+A read-only collector Status check found ingestion worker, AI worker and beat
+stopped. The existing manual Start/Status/Stop workflow remains; no startup task
+was installed. The next agreed task, after the user-operated commit/push, is
+Docker configuration for a Linux server without a selected hosting provider.
+Other final-audit findings and public deployment approval remain separate.
+

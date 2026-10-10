@@ -83,6 +83,16 @@ class CrawlTests(TestCase):
         self.assertEqual(provider.complete_contract.call_count, 0)
         self.assertEqual(SourceObservation.objects.count(), observations)
 
+    def test_previous_compatible_contract_evidence_survives_company_parser_upgrade(self):
+        provider = self.provider({1: [1, 2]})
+        collect_contract_slice('head', provider, limit=2)
+        SourceObservation.objects.filter(source='goszakup_contracts').update(parser_version='2.3')
+        provider.VERSION = '2.4'
+        provider.complete_contract.reset_mock()
+        run = collect_contract_slice('head', provider, limit=2)
+        self.assertEqual(run.counters['unchanged'], 2)
+        self.assertEqual(provider.complete_contract.call_count, 0)
+
     def test_changed_amount_and_expired_party_evidence_are_refetched(self):
         provider = self.provider({1: [1]})
         collect_contract_slice('head', provider, limit=1)

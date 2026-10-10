@@ -6,11 +6,12 @@ import re
 from urllib.parse import urlsplit, parse_qs
 
 from django.conf import settings
+from django.db import transaction
 from django.utils import timezone
 
 from apps.companies.models import Supplier
 from .dto import ResultStatus, SourceResult
-from .identities import synchronize_director, synchronize_owners
+from .identities import synchronize_director, synchronize_owners, normalized_name
 from .models import SourceObservation, SelectedFact
 from .normalizers import normalize_bin, normalize_date, normalize_email, normalize_phone
 from .parsers.kgd import FIELDS_BY_SOURCE, KgdParser
@@ -128,22 +129,49 @@ def cached_company_result(source, supplier, version='2.0', *, seconds=None):
                         observed_at=observation.observed_at, from_cache=True)
 
 
+@transaction.atomic
 def apply_company_facts(supplier):
     # Source-specific latest successful facts; failures never erase the last valid observation.
-    observations = list(supplier.source_observations.filter(status='success').only(
-        'pk', 'source', 'normalized_values', 'observed_at').order_by('-observed_at', '-pk'))
+    observations = supplier.source_observations.filter(status='success', subject_key=f'company:{supplier.bin}',
+        source__in=['goszakup_supplier', 'adata', 'goszakup_contracts']).only(
+        'pk', 'source', 'normalized_values', 'observed_at').order_by('-observed_at', '-pk')
+    # Retain the latest nonempty value per field/source in one streaming pass.
+    # Contract observations and KGD histories are not company-profile inputs.
+    candidates, owner_candidates = {}, {}
+    for item in observations.iterator(chunk_size=200):
+        values = item.normalized_values
+        if not isinstance(values, dict) or values.get('bin') != supplier.bin:
+            continue
+        for field in COMPANY_FIELDS:
+            if values.get(field) not in (None, '') or (field == 'director_name' and values.get('director_absent') is True):
+                candidates.setdefault((field, item.source), item)
+        if values.get('owners_complete') is True:
+            owner_candidates.setdefault(item.source, item)
+    current_facts = dict(supplier.selected_facts.values_list('field', 'observation_id'))
     changed = []
     for field in COMPANY_FIELDS:
         priority = ('adata', 'goszakup_supplier') if field in ('phone', 'email') else ('goszakup_supplier', 'adata', 'goszakup_contracts')
         selected = None
         for source in priority:
-            selected = next((item for item in observations if item.source == source
-                             and (item.normalized_values.get(field) not in (None, '') or
-                                  (field == 'director_name' and item.normalized_values.get('director_absent') is True))), None)
+            selected = candidates.get((field, source))
             if selected:
                 break
         if not selected:
             continue
+        if field == 'director_name':
+            # A newer role observation must agree with the displayed director;
+            # an older preferred source cannot pin the display to an ended role.
+            selected = max((candidates[(field, source)] for source in priority if (field, source) in candidates),
+                           key=lambda item: (item.observed_at, item.pk))
+            latest_name = normalized_name(selected.normalized_values.get(field) or '')
+            identified = [item for (candidate_field, _), item in candidates.items() if candidate_field == field
+                and latest_name and normalized_name(item.normalized_values.get(field) or '') == latest_name
+                and item.normalized_values.get('director_iin_verified') is True
+                and re.fullmatch(r'[0-9]{12}', item.normalized_values.get('director_iin') or '')]
+            if identified:
+                # A matching name-only refresh is not evidence that a known identifier
+                # ceased to apply. Keep its dated source, not a new verification date.
+                selected = max(identified, key=lambda item: (item.observed_at, item.pk))
         value = selected.normalized_values.get(field, '')
         if field == 'director_name' and selected.normalized_values.get('director_absent') is True:
             value = ''
@@ -152,12 +180,12 @@ def apply_company_facts(supplier):
         if getattr(supplier, field) != value:
             setattr(supplier, field, value)
             changed.append(field)
-        SelectedFact.objects.update_or_create(supplier=supplier, field=field, defaults={'observation': selected})
+        if current_facts.get(field) != selected.pk:
+            SelectedFact.objects.update_or_create(supplier=supplier, field=field, defaults={'observation': selected})
         if field == 'director_name':
             synchronize_director(supplier, selected)
     for source in ('goszakup_supplier', 'adata'):
-        owner_observation = next((item for item in observations if item.source == source
-                                  and item.normalized_values.get('owners_complete') is True), None)
+        owner_observation = owner_candidates.get(source)
         if owner_observation:
             synchronize_owners(supplier, owner_observation)
     if changed:

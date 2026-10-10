@@ -1,3 +1,5 @@
+import { translate as t, useI18n } from "../i18n";
+import { BrandMark } from "./BrandMark";
 import { Link } from "react-router-dom";
 import {
   ArrowRightIcon,
@@ -19,49 +21,45 @@ const footerNavigation = [
 ] as const;
 
 export function WorkspaceFooter() {
+  useI18n();
   return (
-    <footer className="workspace-footer-full" aria-label="Project information">
+    <footer
+      className="workspace-footer-full"
+      aria-label={t("Project information")}
+    >
       <div className="workspace-footer-inner">
         <div className="workspace-footer-top">
           <div className="footer-project-intro">
             <Link
               to="/"
               className="footer-project-brand"
-              aria-label="IZ2 overview"
+              aria-label={t("IZ2 overview")}
             >
-              <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
-                <path
-                  d="M8 8H13V32H8Z M18 8H33V13L24 27H33V32H18V27L27 13H18Z"
-                  fill="currentColor"
-                />
-                <path
-                  d="M3 3H12M3 3V12M37 28V37H28"
-                  stroke="#4b84ff"
-                  strokeWidth="2"
-                />
-              </svg>
+              <BrandMark />
               <span>
-                IZ2<small>EVIDENCE, CONNECTED</small>
+                {t("IZ2")}
+                <small>{t("EVIDENCE, CONNECTED")}</small>
               </span>
             </Link>
             <p>
-              A workspace for reviewing company relationships in Kazakhstan
-              public procurement.
+              {t(
+                "A workspace for reviewing company relationships in Kazakhstan public procurement.",
+              )}
             </p>
             <span className="footer-project-status">
-              <i aria-hidden="true" /> Educational thesis prototype
+              <i aria-hidden="true" /> {t("Educational thesis prototype")}
             </span>
             <Link to="/about" className="footer-about-link">
-              Meet the project <ArrowRightIcon aria-hidden="true" />
+              {t("Meet the project")} <ArrowRightIcon aria-hidden="true" />
             </Link>
           </div>
 
-          <nav className="footer-explore" aria-label="Footer navigation">
-            <h2>Explore</h2>
+          <nav className="footer-explore" aria-label={t("Footer navigation")}>
+            <h2>{t("Explore the workspace")}</h2>
             <ul>
               {footerNavigation.map(({ to, label }) => (
                 <li key={to}>
-                  <Link to={to}>{label}</Link>
+                  <Link to={to}>{t(label)}</Link>
                 </li>
               ))}
             </ul>
@@ -71,7 +69,7 @@ export function WorkspaceFooter() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              API documentation <ArrowTopRightIcon aria-hidden="true" />
+              {t("API documentation")} <ArrowTopRightIcon aria-hidden="true" />
             </a>
           </nav>
 
@@ -79,14 +77,14 @@ export function WorkspaceFooter() {
             className="footer-project-credits"
             aria-labelledby="footer-credits-title"
           >
-            <h2 id="footer-credits-title">Project credits</h2>
+            <h2 id="footer-credits-title">{t("Project credits")}</h2>
             <dl>
               <div>
-                <dt>Developer</dt>
+                <dt>{t("Developer")}</dt>
                 <dd>{projectInfo.developer}</dd>
               </div>
               <div>
-                <dt>Related article author</dt>
+                <dt>{t("Related article author")}</dt>
                 <dd>{projectInfo.articleAuthor}</dd>
               </div>
             </dl>
@@ -108,8 +106,8 @@ export function WorkspaceFooter() {
             glowRadius={18}
             fillOpacity={0.08}
           >
-            <h2 id="footer-contact-title">Get in touch</h2>
-            <p>Questions about the project or its implementation?</p>
+            <h2 id="footer-contact-title">{t("Get in touch")}</h2>
+            <p>{t("Questions about the project or its implementation?")}</p>
             <a
               className="footer-email-link"
               href={`mailto:${projectInfo.email}`}
@@ -119,7 +117,7 @@ export function WorkspaceFooter() {
             </a>
             <div className="footer-article-contact">
               <span className="footer-contact-person">
-                Related article · {projectInfo.articleAuthor}
+                {t("Related article ·")} {projectInfo.articleAuthor}
               </span>
               <a
                 className="footer-email-link"
@@ -135,7 +133,7 @@ export function WorkspaceFooter() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <GitHubLogoIcon aria-hidden="true" /> GitHub{" "}
+                <GitHubLogoIcon aria-hidden="true" /> {t("GitHub")}{" "}
                 <ArrowTopRightIcon aria-hidden="true" />
               </a>
               <a
@@ -143,7 +141,7 @@ export function WorkspaceFooter() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <PaperPlaneIcon aria-hidden="true" /> Telegram{" "}
+                <PaperPlaneIcon aria-hidden="true" /> {t("Telegram")}{" "}
                 <ArrowTopRightIcon aria-hidden="true" />
               </a>
             </div>
@@ -155,7 +153,7 @@ export function WorkspaceFooter() {
             className="footer-source-section"
             aria-labelledby="footer-sources-title"
           >
-            <h2 id="footer-sources-title">Source services</h2>
+            <h2 id="footer-sources-title">{t("Source services")}</h2>
             <ul>
               {projectSources.map(({ name, domain, url }) => (
                 <li key={url}>
@@ -163,7 +161,7 @@ export function WorkspaceFooter() {
                     href={url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    title={name}
+                    title={t(name)}
                   >
                     {domain}
                     <ArrowTopRightIcon aria-hidden="true" />
@@ -171,13 +169,13 @@ export function WorkspaceFooter() {
                 </li>
               ))}
             </ul>
-            <p>Stored results show availability and source dates.</p>
+            <p>{t("Stored results show availability and source dates.")}</p>
           </section>
           <section
             className="footer-stack-section"
             aria-labelledby="footer-stack-title"
           >
-            <h2 id="footer-stack-title">Built with</h2>
+            <h2 id="footer-stack-title">{t("Built with")}</h2>
             <ul>
               {projectStack.map((technology) => (
                 <li key={technology}>{technology}</li>
@@ -187,17 +185,20 @@ export function WorkspaceFooter() {
         </div>
 
         <div className="workspace-footer-bottom">
-          <span>© {new Date().getFullYear()} IZ2. Educational project.</span>
           <span>
-            Evidence supports review. A relationship does not establish a
-            violation.
+            © {new Date().getFullYear()} {t("IZ2. Educational project.")}
+          </span>
+          <span>
+            {t(
+              "Evidence supports review. A relationship does not establish a violation.",
+            )}
           </span>
           <a
             href="/static/frontend/third-party-notices.txt"
             target="_blank"
             rel="noopener noreferrer"
           >
-            Component credits <ArrowTopRightIcon aria-hidden="true" />
+            {t("Component credits")} <ArrowTopRightIcon aria-hidden="true" />
           </a>
         </div>
       </div>

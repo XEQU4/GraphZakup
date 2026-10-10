@@ -1,6 +1,6 @@
 .group-directory {
-  --group-line: #2d45604d;
-  --group-secondary: #9fb2cc;
+  --group-line: #3845554d;
+  --group-secondary: #a8b3c3;
 }
 .group-directory-head {
   align-items: center;
@@ -17,37 +17,37 @@
   place-items: center;
   flex: 0 0 92px;
   height: 92px;
-  color: #96c2ff;
-  border: 1px solid #3865a13b;
+  color: #adc5e8;
+  border: 1px solid #4f688a3b;
   border-radius: 27px;
-  background: radial-gradient(circle at 35% 25%, #20467e5e, #0b142000 75%);
-  box-shadow: inset 0 1px 0 #accdff0c;
+  background: radial-gradient(circle at 35% 25%, #344a6a5e, #0f141c00 75%);
+  box-shadow: inset 0 1px 0 #bed0ed0c;
 }
 .group-directory-tools {
   padding: 24px;
-  border-color: #2a426366;
-  background: linear-gradient(135deg, #102039db, #09121eeb 68%);
+  border-color: #35455866;
+  background: linear-gradient(135deg, #192330db, #0d121aeb 68%);
 }
 .group-directory-search {
   display: flex;
   gap: 15px;
   align-items: center;
   padding: 7px 8px 7px 18px;
-  border: 1px solid #34577e;
+  border: 1px solid #44596e;
   border-radius: 14px;
-  background: #060d18b3;
+  background: #0a0f14b3;
   transition:
     border-color 180ms,
     box-shadow 180ms;
 }
 .group-directory-search:focus-within {
-  border-color: #5a9cff;
+  border-color: #7da4dc;
   box-shadow:
-    0 0 0 3px #2975f319,
-    0 7px 32px #1b4e9217;
+    0 0 0 3px #5480c819,
+    0 7px 32px #33537a17;
 }
 .group-directory-search > svg {
-  color: #93b7e3;
+  color: #a5b9d1;
   flex-shrink: 0;
 }
 .group-directory-search input {
@@ -86,11 +86,11 @@
 }
 .group-directory-filters select {
   min-height: 46px;
-  border-color: #2a4260;
+  border-color: #354255;
   border-radius: 10px;
-  background: #0a1423;
+  background: #10151d;
   padding: 11px 28px 11px 12px;
-  color: #d3e2f8;
+  color: #dbe3f0;
   font-size: 12px;
   letter-spacing: 0;
 }
@@ -115,17 +115,17 @@
   max-width: 100%;
   min-height: 44px;
   padding: 9px 12px;
-  border: 1px solid #396193;
+  border: 1px solid #566476;
   border-radius: 9px;
-  background: #1c3a602b;
-  color: #c0dafd;
+  background: #2b3b512b;
+  color: #cedcef;
   font-size: 11px;
   overflow-wrap: anywhere;
   text-align: left;
 }
 .group-filter-chip:hover {
-  background: #1d45724a;
-  border-color: #6099df;
+  background: #2e46614a;
+  border-color: #7b9bc4;
 }
 .group-filter-chip svg {
   width: 14px;
@@ -136,11 +136,11 @@
   margin-left: auto;
   padding: 9px 12px;
   background: transparent;
-  color: #b5cef0;
+  color: #c2d0e3;
   font-size: 12px;
   text-decoration: underline;
   text-underline-offset: 4px;
-  text-decoration-color: #6085b76b;
+  text-decoration-color: #7388a46b;
 }
 .group-filter-reset:hover {
   color: white;
@@ -163,10 +163,10 @@
 .group-directory-results-head h2 span {
   min-width: 29px;
   padding: 3px 8px;
-  border: 1px solid #345277;
+  border: 1px solid #425469;
   border-radius: 7px;
-  background: #12284280;
-  color: #a8ccff;
+  background: #1d2a3780;
+  color: #bbcfec;
   font:
     11px/1.5 "IBM Plex Mono",
     monospace;
@@ -202,13 +202,13 @@
   flex-direction: column;
   min-width: 0;
   padding: 27px;
-  border: 1px solid #35577b73;
+  border: 1px solid #43586d73;
   border-radius: 22px;
   background:
-    radial-gradient(ellipse at 0 0, #163a6b45, transparent 68%),
-    linear-gradient(155deg, #0d192cef, #080f1cf5);
+    radial-gradient(ellipse at 0 0, #273d5a45, transparent 68%),
+    linear-gradient(155deg, #131b26ef, #0d0f17f5);
   box-shadow:
-    inset 0 1px 0 #c0d8ff07,
+    inset 0 1px 0 #cddbf207,
     0 15px 32px #00000012;
   color: var(--text);
   text-decoration: none;
@@ -223,10 +223,10 @@
 }
 .group-directory-card:hover {
   transform: translateY(-3px);
-  border-color: #659fe29c;
+  border-color: #7fa1c89c;
   box-shadow:
-    inset 0 1px 0 #c0d8ff0c,
-    0 16px 42px #02071161;
+    inset 0 1px 0 #cddbf20c,
+    0 16px 42px #060b1061;
 }
 .group-card-top {
   display: flex;
@@ -240,10 +240,10 @@
   place-items: center;
   flex: 0 0 52px;
   height: 52px;
-  border: 1px solid #447bb349;
+  border: 1px solid #5c7b9b49;
   border-radius: 15px;
-  background: linear-gradient(145deg, #2149795c, #0e213836);
-  color: #a0cdff;
+  background: linear-gradient(145deg, #334a685c, #16233036);
+  color: #b3cfec;
 }
 .group-card-state {
   display: flex;
@@ -267,7 +267,7 @@
 }
 .group-card-kicker {
   display: block;
-  color: #819abc;
+  color: #8e9caf;
   font:
     9px/1.6 "IBM Plex Mono",
     monospace;
@@ -276,7 +276,7 @@
 }
 .group-card-heading h2 {
   margin: 8px 0 10px;
-  color: #edf4ff;
+  color: #ebf0fa;
   font-size: clamp(22px, 1.9vw, 28px);
   line-height: 1.28;
   font-weight: 550;
@@ -284,7 +284,7 @@
   overflow-wrap: anywhere;
 }
 .group-card-reason {
-  color: #b5c8e2;
+  color: #bec9d9;
   font-size: 12px;
   line-height: 1.8;
 }
@@ -298,10 +298,10 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  border: 1px solid #294261;
+  border: 1px solid #354255;
   border-radius: 6px;
   padding: 5px 8px;
-  color: #a8c8ef;
+  color: #b8c9e0;
   font-size: 10px;
 }
 .group-card-reasons svg {
@@ -324,7 +324,7 @@
   display: flex;
   align-items: baseline;
   gap: 9px;
-  color: #c8d7eb;
+  color: #cfd9e4;
   font-size: 12px;
   line-height: 1.65;
   overflow-wrap: anywhere;
@@ -339,11 +339,11 @@
   position: relative;
   top: -2px;
   border-radius: 50%;
-  background: #638dc3;
+  background: #7890ae;
 }
 .group-card-companies li.group-company-more {
   padding-left: 13px;
-  color: #8aaccf;
+  color: #99acc0;
   font-size: 11px;
 }
 .group-card-unavailable {
@@ -357,9 +357,9 @@
   gap: 20px;
   padding: 20px;
   margin-top: auto;
-  border: 1px solid #294b723f;
+  border: 1px solid #374c643f;
   border-radius: 12px;
-  background: #0712216b;
+  background: #0c141c6b;
 }
 .group-card-priority,
 .group-card-coverage {
@@ -373,13 +373,13 @@
   border-left: 1px solid var(--group-line);
 }
 .group-card-metric-label {
-  color: #adbed5;
+  color: #b6bfcc;
   font-size: 10px;
   line-height: 1.5;
 }
 .group-card-number {
   display: block;
-  color: #eff6ff;
+  color: #ebf2fa;
   font:
     500 33px/1.4 "Space Grotesk Variable",
     sans-serif;
@@ -387,7 +387,7 @@
   margin: 8px 0;
 }
 .group-card-number small {
-  color: #86a1c3;
+  color: #94a2b5;
   font:
     11px/1.5 "Manrope Variable",
     sans-serif;
@@ -397,7 +397,7 @@
 }
 .group-card-missing {
   margin: 13px 0;
-  color: #a9b8ce;
+  color: #b1b9c6;
   font-size: 14px;
   font-weight: 500;
 }
@@ -407,20 +407,20 @@
   height: 3px;
   margin: 0 0 10px;
   border-radius: 3px;
-  background: #253c57;
+  background: #303d4d;
   overflow: hidden;
 }
 .group-card-priority-track > span {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, #518be4, #84c8fa);
+  background: linear-gradient(90deg, #7092c5, #9dc4e1);
   border-radius: inherit;
 }
 .group-card-metric-note {
   display: inline-flex;
   gap: 5px;
   align-items: start;
-  color: #91a9c7;
+  color: #9caabc;
   font-size: 10px;
   line-height: 1.7;
 }
@@ -432,7 +432,7 @@
 }
 .group-card-coverage-date {
   margin-top: 7px;
-  color: #91a9c7;
+  color: #9caabc;
   font-size: 9px;
   line-height: 1.65;
 }
@@ -448,18 +448,18 @@
   display: flex;
   flex-direction: column;
   gap: 5px;
-  color: #97afcc;
+  color: #a2b1c1;
   font-size: 10px;
   line-height: 1.6;
 }
 .group-card-footer > div > span:first-child {
-  color: #c0d4ee;
+  color: #cad5e4;
 }
 .group-card-open {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  color: #a6ccff;
+  color: #b8ceed;
   font-size: 12px;
 }
 .group-card-open svg {
@@ -473,7 +473,7 @@
 .group-directory-note {
   max-width: 1000px;
   margin: 26px 0 20px;
-  color: #92a5bf;
+  color: #9ba6b6;
   font-size: 11px;
   line-height: 1.85;
 }

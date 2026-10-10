@@ -1,3 +1,4 @@
+import { useI18n, translate, getLanguage, type MessageValues } from "../i18n";
 import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import {
@@ -40,6 +41,19 @@ const idOf = (node: string | number | Node) =>
   typeof node === "object" ? node.id : String(node);
 const nodeX = (node: Node) => node.x ?? 0;
 const nodeY = (node: Node) => node.y ?? 0;
+
+const russianCountForm = new Intl.PluralRules("ru");
+function graphCountNoun(
+  count: number,
+  singular: string,
+  plural: string,
+): string {
+  if (getLanguage() !== "ru") return count === 1 ? singular : plural;
+  const form = russianCountForm.select(count);
+  return translate(
+    `${singular} (${form === "one" || form === "few" ? form : "many"})`,
+  );
+}
 
 // Keep the original key so anonymous views survive the React migration.
 export const graphStorageKey = (cluster: string) =>
@@ -287,6 +301,7 @@ type Controller = {
   collect: () => ViewPayload;
   setSaved: (value: ViewPayload | null) => void;
   setMotion: (allowed: boolean) => void;
+  setLanguage: () => void;
   destroy: () => void;
 };
 
@@ -295,7 +310,7 @@ function mountGraph(
   inspector: HTMLDivElement,
   response: GraphResponse,
   initial: ViewPayload | null,
-  report: (message: string) => void,
+  report: (message: string, values?: MessageValues) => void,
   onFilters: (values: Relationship[]) => void,
   onFrozen: (frozen: boolean) => void,
   initialMotion: boolean,
@@ -325,7 +340,10 @@ function mountGraph(
   const svg = d3
     .select(container)
     .append("svg")
-    .attr("aria-label", "Companies, verified people and shared contacts");
+    .attr(
+      "aria-label",
+      translate("Companies, verified people and shared contacts"),
+    );
   const defs = svg.append("defs");
   const suffix = response.snapshot_id ?? "empty";
   for (const [kind, from, to] of [
@@ -373,7 +391,7 @@ function mountGraph(
     )
     .attr("tabindex", 0)
     .attr("role", "button")
-    .attr("aria-label", (edge) => `${edge.type}: ${edge.value}`)
+    .attr("aria-label", (edge) => `${translate(edge.type)}: ${edge.value}`)
     .on("click", (_, edge) => inspectEdge(edge))
     .on("keydown", (event: KeyboardEvent, edge) => {
       if (event.key === "Enter" || event.key === " ") {
@@ -384,7 +402,11 @@ function mountGraph(
     .on("mouseover", (event: MouseEvent, edge) =>
       showTooltip(
         event,
-        `${edge.type}: ${edge.value} · confidence ${edge.confidence}`,
+        translate("{type}: {value} · confidence {confidence}", {
+          type: translate(edge.type),
+          value: edge.value,
+          confidence: edge.confidence,
+        }),
       ),
     )
     .on("mouseout", () => tooltip.style("display", "none"));
@@ -400,7 +422,11 @@ function mountGraph(
     .on("mouseover", (event: MouseEvent, edge) =>
       showTooltip(
         event,
-        `${edge.type}: ${edge.value} · confidence ${edge.confidence}`,
+        translate("{type}: {value} · confidence {confidence}", {
+          type: translate(edge.type),
+          value: edge.value,
+          confidence: edge.confidence,
+        }),
       ),
     )
     .on("mouseout", () => tooltip.style("display", "none"));
@@ -421,16 +447,18 @@ function mountGraph(
     .on("click", (_, edge) => inspectEdge(edge));
   edgeLabel
     .append("rect")
-    .attr("x", -32)
+    .attr("x", (edge) => -Math.max(32, translate(edge.type).length * 3.7 + 8))
     .attr("y", -11)
-    .attr("width", 64)
+    .attr("width", (edge) =>
+      Math.max(64, translate(edge.type).length * 7.4 + 16),
+    )
     .attr("height", 22)
     .attr("rx", 10);
   edgeLabel
     .append("text")
     .attr("text-anchor", "middle")
     .attr("y", 4)
-    .text((edge) => edge.type);
+    .text((edge) => translate(edge.type));
   const groups = layer
     .append("g")
     .selectAll<SVGGElement, Node>("g")
@@ -445,7 +473,7 @@ function mountGraph(
     .attr("role", "button")
     .attr("data-node-id", (node) => node.id)
     .attr("aria-pressed", "false")
-    .attr("aria-label", (node) => `${node.kind}: ${node.name}`)
+    .attr("aria-label", (node) => `${translate(node.kind)}: ${node.name}`)
     .on("click", (event: MouseEvent, node) => {
       if (!event.defaultPrevented) {
         selectNode(node.id);
@@ -471,7 +499,7 @@ function mountGraph(
       report(node.pinned ? "Node pinned." : "Node unpinned.");
     })
     .on("mouseover", (event: MouseEvent, node) =>
-      showTooltip(event, `${node.kind}: ${node.name}`),
+      showTooltip(event, `${translate(node.kind)}: ${node.name}`),
     )
     .on("mouseout", () => tooltip.style("display", "none"));
   groups.each(function (node) {
@@ -516,7 +544,7 @@ function mountGraph(
         .attr("x", -75)
         .attr("y", -38)
         .attr("class", "node-category")
-        .text("COMPANY");
+        .text(translate("COMPANY"));
     } else if (node.kind === "person") {
       group.append("circle").attr("r", 90).attr("class", "node-shape");
       group.append("circle").attr("r", 99).attr("class", "node-aura");
@@ -557,7 +585,7 @@ function mountGraph(
         .attr("text-anchor", "middle")
         .attr("y", -36)
         .attr("class", "node-category")
-        .text((node.contact_type ?? "contact").toUpperCase());
+        .text(translate(node.contact_type ?? "contact").toUpperCase());
     }
     group
       .select(".node-shape")
@@ -595,10 +623,10 @@ function mountGraph(
       .attr("class", "node-meta")
       .text(
         node.kind === "company"
-          ? `BIN ${node.bin ?? "unknown"}`
+          ? `${translate("BIN")} ${node.bin ?? translate("unknown")}`
           : node.kind === "person"
-            ? "IDENTITY VERIFIED"
-            : "SHARED CONTACT · WEAK EVIDENCE",
+            ? translate("IDENTITY VERIFIED")
+            : translate("SHARED CONTACT · WEAK EVIDENCE"),
       );
   });
   const simulation = d3
@@ -806,36 +834,53 @@ function mountGraph(
     selectedEdge = edge.id;
     path = null;
     inspector.replaceChildren();
-    category("Saved relationship");
-    add("h3", edge.type[0].toUpperCase() + edge.type.slice(1));
+    category(translate("Saved relationship"));
+    add("h3", translate(edge.type[0].toUpperCase() + edge.type.slice(1)));
     add(
       "p",
       `${byId.get(idOf(edge.source))!.name} → ${byId.get(idOf(edge.target))!.name}`,
     );
     add(
       "p",
-      `Relationship in saved graph v${response.version}. ${["owner", "director"].includes(edge.type) ? "Verified identity and source-backed role." : "Shared contact; affiliation and wrongdoing are not established."}`,
+      translate("Relationship in saved graph v{version}. {meaning}", {
+        version: response.version ?? "—",
+        meaning: translate(
+          ["owner", "director"].includes(edge.type)
+            ? "Verified identity and source-backed role."
+            : "Shared contact; affiliation and wrongdoing are not established.",
+        ),
+      }),
     );
-    fact("Recorded value", edge.value);
-    fact("Evidence confidence", edge.confidence);
+    fact(translate("Recorded value"), edge.value);
+    fact(translate("Evidence confidence"), edge.confidence);
     fact(
-      "Legal interval",
-      `${edge.valid_from ?? "unknown"} to ${edge.valid_until ?? "unknown"} (exclusive end)`,
+      translate("Legal interval"),
+      translate("{from} to {until} (exclusive end)", {
+        from: edge.valid_from ?? translate("unknown"),
+        until: edge.valid_until ?? translate("unknown"),
+      }),
     );
     for (const text of edge.limitations) add("p", text);
     for (const item of edge.evidence) {
       add(
         "p",
-        `${item.quality ?? "unknown quality"} · observed ${item.observed_at ?? "unknown"}`,
+        translate("{quality} · observed {date}", {
+          quality: translate(item.quality ?? "unknown quality"),
+          date: item.observed_at ?? translate("unknown"),
+        }),
       );
       reference(
-        item.source +
-          (item.observation_id ? ` · observation ${item.observation_id}` : ""),
+        item.observation_id
+          ? translate("{source} · observation {id}", {
+              source: item.source,
+              id: item.observation_id,
+            })
+          : item.source,
         item.url ?? "",
       );
     }
     updateHighlights();
-    report(`Selected ${edge.type} relationship.`);
+    report("Selected {type} relationship.", { type: edge.type });
   }
   function selectNode(id: string) {
     const node = byId.get(id);
@@ -849,16 +894,16 @@ function mountGraph(
     inspector.replaceChildren();
     category(
       node.kind === "company"
-        ? "Company record"
+        ? translate("Company record")
         : node.kind === "person"
-          ? "Verified person"
-          : "Shared contact",
+          ? translate("Verified person")
+          : translate("Shared contact"),
     );
     add("h3", node.name);
-    if (node.bin) fact("BIN", node.bin);
+    if (node.bin) fact(translate("BIN"), node.bin);
     if (node.kind === "company" && node.company_id)
       reference(
-        "Open company",
+        translate("Open company"),
         `${import.meta.env.DEV ? "" : "/app"}/companies/${node.company_id}`,
       );
     const neighbours = adjacency(nodes, links, filters),
@@ -873,40 +918,58 @@ function mountGraph(
     }
     add(
       "p",
-      `${direct.length} direct relationships · ${related.size} connected companies under the current filters.`,
+      translate(
+        "{direct} direct relationships · {companies} connected companies under the current filters.",
+        { direct: direct.length, companies: related.size },
+      ),
     );
-    button("Focus this node", () => focusNode(node));
+    button(translate("Focus this node"), () => focusNode(node));
     if (pathStart && pathStart !== id) {
       add(
         "p",
         path
-          ? `Path (${path.edges.length} relationships): ${path.nodes.map((key) => byId.get(key)!.name).join(" → ")}. This is a path, not a direct company relationship.`
-          : "No path under the current filters.",
+          ? translate(
+              "Path ({count} relationships): {path}. This is a path, not a direct company relationship.",
+              {
+                count: path.edges.length,
+                path: path.nodes.map((key) => byId.get(key)!.name).join(" → "),
+              },
+            )
+          : translate("No path under the current filters."),
       );
       for (const key of path?.edges ?? []) {
         const edge = links.find((item) => item.id === key)!;
-        button(`Inspect path evidence: ${edge.type}`, () => inspectEdge(edge));
+        button(
+          translate("Inspect path evidence: {type}", {
+            type: translate(edge.type),
+          }),
+          () => inspectEdge(edge),
+        );
       }
     }
-    button("Use as path start", () => {
+    button(translate("Use as path start"), () => {
       pathStart = id;
       report("Path start selected. Select another node to inspect a path.");
     });
-    button(node.pinned ? "Unpin node" : "Pin node", () => {
-      node.pinned = !node.pinned;
-      applyFrozen();
-      selectNode(id);
-    });
-    const directHeading = add("h4", "Direct relationships");
+    button(
+      node.pinned ? translate("Unpin node") : translate("Pin node"),
+      () => {
+        node.pinned = !node.pinned;
+        applyFrozen();
+        selectNode(id);
+      },
+    );
+    const directHeading = add("h4", translate("Direct relationships"));
     directHeading.className = "graph-inspector-section";
     for (const item of direct)
-      button(`${item.edge.type} → ${byId.get(item.node)!.name}`, () =>
-        inspectEdge(item.edge),
+      button(
+        `${translate(item.edge.type)} → ${byId.get(item.node)!.name}`,
+        () => inspectEdge(item.edge),
       );
     if (node.kind === "company" && related.size) {
       const relatedHeading = add(
         "h4",
-        "Companies connected through a shared feature",
+        translate("Companies connected through a shared feature"),
       );
       relatedHeading.className = "graph-inspector-section";
       for (const key of related)
@@ -917,7 +980,7 @@ function mountGraph(
         });
     }
     updateHighlights();
-    report(`Selected ${node.name}`);
+    report("Selected {name}", { name: node.name });
   }
   function fit() {
     const width = container.clientWidth,
@@ -1051,14 +1114,18 @@ function mountGraph(
       artwork.append(point);
     }
     emblem.append(artwork);
-    add("h3", "Follow the connections");
+    add("h3", translate("Follow the connections"));
     add(
       "p",
-      "Select a company, person or shared contact to see who is connected and why. Select a line to inspect its source and legal period.",
+      translate(
+        "Select a company, person or shared contact to see who is connected and why. Select a line to inspect its source and legal period.",
+      ),
     );
     add(
       "p",
-      "Drag to arrange nodes. Double-click or press P to pin a node. Saved views keep your arrangement.",
+      translate(
+        "Drag to arrange nodes. Double-click or press P to pin a node. Saved views keep your arrangement.",
+      ),
     );
   }
   const keydown = (event: KeyboardEvent) => {
@@ -1200,6 +1267,54 @@ function mountGraph(
     setSaved: (value) => {
       saved = value;
     },
+    // Update only presentation. Keep simulation, pending camera, selection, path,
+    // unsaved pins/positions/filters and personal revision authority intact.
+    setLanguage: () => {
+      svg.attr(
+        "aria-label",
+        translate("Companies, verified people and shared contacts"),
+      );
+      line.attr(
+        "aria-label",
+        (edge) => `${translate(edge.type)}: ${edge.value}`,
+      );
+      edgeLabel.select("text").text((edge) => translate(edge.type));
+      edgeLabel
+        .select("rect")
+        .attr(
+          "x",
+          (edge) => -Math.max(32, translate(edge.type).length * 3.7 + 8),
+        )
+        .attr("width", (edge) =>
+          Math.max(64, translate(edge.type).length * 7.4 + 16),
+        );
+      groups.attr(
+        "aria-label",
+        (node) => `${translate(node.kind)}: ${node.name}`,
+      );
+      groups
+        .select(".node-category")
+        .text((node) =>
+          node.kind === "company"
+            ? translate("COMPANY")
+            : translate(node.contact_type ?? "contact").toUpperCase(),
+        );
+      groups
+        .select(".node-meta")
+        .text((node) =>
+          node.kind === "company"
+            ? `${translate("BIN")} ${node.bin ?? translate("unknown")}`
+            : node.kind === "person"
+              ? translate("IDENTITY VERIFIED")
+              : translate("SHARED CONTACT · WEAK EVIDENCE"),
+        );
+      tooltip.style("display", "none");
+      if (selectedEdge) {
+        const edge = links.find((item) => item.id === selectedEdge);
+        if (edge) inspectEdge(edge);
+      } else if (selected) selectNode(selected);
+      else emptyInspector();
+    },
     setMotion: (allowed) => {
       decorationAllowed = allowed;
       updateMotion();
@@ -1223,6 +1338,7 @@ function mountGraph(
 }
 
 export function GraphExplorer({ graph }: { graph: GraphResponse }) {
+  const { language } = useI18n();
   const { user, csrfToken, loading: sessionLoading } = useSession();
   const { ref: workspace, active: decorationActive } =
     useDecorationActive<HTMLElement>();
@@ -1235,8 +1351,13 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
     saveAbort = useRef<AbortController | null>(null);
   const viewReadAbort = useRef<AbortController | null>(null),
     viewReadSequence = useRef(0);
-  const [status, setStatus] = useState("Loading saved view…"),
-    [ready, setReady] = useState(false),
+  const [status, setStatusMessage] = useState<{
+    key: string;
+    values?: MessageValues;
+  }>({ key: "Loading saved view…" });
+  const setStatus = (key: string, values?: MessageValues) =>
+    setStatusMessage({ key, values });
+  const [ready, setReady] = useState(false),
     [saving, setSaving] = useState(false);
   const [privateViewReady, setPrivateViewReady] = useState(false),
     [readingView, setReadingView] = useState(false),
@@ -1245,6 +1366,7 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
       message: string;
       retryView?: boolean;
     } | null>(null);
+  const [hasSavedView, setHasSavedView] = useState(false);
   const [filters, setFilters] = useState<Relationship[]>([...RELATIONSHIPS]),
     [frozen, setFrozen] = useState(false),
     [query, setQuery] = useState(""),
@@ -1256,6 +1378,7 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
     setPrivateViewReady(false);
     setReadingView(false);
     setSaveFeedback(null);
+    setHasSavedView(false);
     if (
       sessionLoading ||
       !canvas.current ||
@@ -1294,7 +1417,7 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
           fetchedRevision = view.revision;
           // A successful empty account view may start from the guest layout.
           // Copying it to the account still requires an explicit Save view.
-          if (view.payload === null) {
+          if (view.payload === null && view.revision === 0) {
             try {
               const browserView = sanitizeView(
                 JSON.parse(
@@ -1337,6 +1460,7 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
       )
         return;
       revision.current = fetchedRevision;
+      setHasSavedView(!!payload && !browserViewLoaded);
       controller.current = mountGraph(
         canvas.current,
         inspector.current,
@@ -1357,9 +1481,7 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
         setSaveFeedback({ state: "info", message });
       }
       if (loadError) {
-        const message =
-          loadError +
-          (authenticated ? " Retry the saved view before saving." : "");
+        const message = loadError;
         setStatus(message);
         setSaveFeedback({ state: "error", message });
       }
@@ -1379,6 +1501,10 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
   useEffect(() => {
     controller.current?.setMotion(decorationActive);
   }, [decorationActive]);
+
+  useEffect(() => {
+    controller.current?.setLanguage();
+  }, [language]);
 
   const retrySavedView = async () => {
     if (!authenticated || !controller.current || readingView || saving) return;
@@ -1412,6 +1538,7 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
         );
       revision.current = view.revision;
       ownedController.setSaved(sanitizeView(view.payload));
+      setHasSavedView(!!view.payload);
       setPrivateViewReady(true);
       const message = view.payload
         ? "Latest account view loaded. Your current arrangement is unchanged. Save it or choose Restore saved view."
@@ -1433,12 +1560,12 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
     }
   };
 
-  const save = async () => {
+  const save = async (remove = false) => {
     if (
       !controller.current ||
       !ready ||
       saving ||
-      graph.historical ||
+      (graph.historical && !remove) ||
       (saveAbort.current && !saveAbort.current.signal.aborted) ||
       (authenticated && !privateViewReady)
     )
@@ -1447,17 +1574,22 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
     const payload = ownedController.collect();
     if (!authenticated) {
       try {
-        localStorage.setItem(
-          graphStorageKey(graph.cluster),
-          JSON.stringify(payload),
-        );
-        ownedController.setSaved(payload);
-        const message =
-          "View saved in this browser. Sign in to save across devices.";
+        if (remove) localStorage.removeItem(graphStorageKey(graph.cluster));
+        else
+          localStorage.setItem(
+            graphStorageKey(graph.cluster),
+            JSON.stringify(payload),
+          );
+        ownedController.setSaved(remove ? null : payload);
+        setHasSavedView(!remove);
+        const message = remove
+          ? "Saved view removed from this browser. Your current arrangement is unchanged."
+          : "View saved in this browser. Sign in to save across devices.";
         setStatus(message);
         setSaveFeedback({ state: "success", message });
       } catch {
-        const message = "View was not saved. Browser storage is unavailable.";
+        const message =
+          "View could not be updated. Browser storage is unavailable.";
         setStatus(message);
         setSaveFeedback({ state: "error", message });
       }
@@ -1473,7 +1605,9 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
     setSaving(true);
     setSaveFeedback({
       state: "loading",
-      message: "Saving your personal view…",
+      message: remove
+        ? "Removing your saved view…"
+        : "Saving your personal view…",
     });
     const abort = new AbortController();
     saveAbort.current = abort;
@@ -1481,15 +1615,17 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
       const result = await apiFetch<GraphView>(
         "clusters/" + graph.cluster + "/view/",
         {
-          method: "PUT",
+          method: remove ? "DELETE" : "PUT",
           csrfToken,
           signal: abort.signal,
-          body: {
-            snapshot_id: graph.snapshot_id,
-            graph_hash: graph.graph_hash,
-            revision: revision.current,
-            payload,
-          },
+          body: remove
+            ? { revision: revision.current }
+            : {
+                snapshot_id: graph.snapshot_id,
+                graph_hash: graph.graph_hash,
+                revision: revision.current,
+                payload,
+              },
         },
       );
       if (abort.signal.aborted || controller.current !== ownedController)
@@ -1497,20 +1633,26 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
       if (
         !Number.isSafeInteger(result.revision) ||
         result.revision < 0 ||
-        !result.payload
+        (remove ? result.payload !== null : !result.payload)
       )
         throw new ApiError(
-          "The server did not confirm the saved view. Reload the saved account view before trying again.",
+          "The server did not confirm the update. Reload the saved account view before trying again.",
           200,
           "invalid_response",
         );
       revision.current = result.revision;
       ownedController.setSaved(result.payload);
-      setStatus("Personal view saved.");
+      setHasSavedView(!remove);
+      setStatus(
+        remove
+          ? "Saved view removed. Your current arrangement is unchanged."
+          : "Personal view saved.",
+      );
       setSaveFeedback({
         state: "success",
-        message:
-          "View saved to your account. Restore saved view returns to this arrangement.",
+        message: remove
+          ? "Saved view removed from your account. Save view can save this arrangement again."
+          : "View saved to your account. Restore saved view returns to this arrangement.",
       });
     } catch (error) {
       if (!abort.signal.aborted && controller.current === ownedController) {
@@ -1529,10 +1671,10 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
           : conflict
             ? "Graph or view changed in another tab. Reload the saved account view before saving."
             : error instanceof ApiError && error.status === 403
-              ? "View was not saved. Sign in again or reload the page before saving."
+              ? "View was not updated. Sign in again or reload the page before trying again."
               : error instanceof Error
                 ? error.message
-                : "View could not be saved.";
+                : "View could not be updated.";
         setStatus(message);
         setSaveFeedback({
           state: "error",
@@ -1560,13 +1702,13 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
     <section
       className="panel graph-workspace"
       ref={workspace}
-      aria-label="Relationship explorer"
+      aria-label={translate("Relationship explorer")}
       data-motion-active={decorationActive}
     >
       <div className="graph-heading">
         <div>
-          <span className="eyebrow">Relationship explorer</span>
-          <TechHeading as="h2" text="Network evidence" />
+          <span className="eyebrow">{translate("Relationship explorer")}</span>
+          <TechHeading as="h2" text={translate("Network evidence")} />
         </div>
         <div className="graph-metrics">
           {(
@@ -1581,25 +1723,30 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
             ).length;
             return (
               <span key={kind}>
-                <strong>{count}</strong> {count === 1 ? singular : plural}
+                <strong>{count}</strong>{" "}
+                {graphCountNoun(count, singular, plural)}
               </span>
             );
           })}
           <span>
             <strong>{graph.graph.links.length}</strong>{" "}
-            {graph.graph.links.length === 1 ? "relationship" : "relationships"}
+            {graphCountNoun(
+              graph.graph.links.length,
+              "relationship",
+              "relationships",
+            )}
           </span>
         </div>
       </div>
       <div className="graph-toolbar">
         <label className="field graph-search">
-          <span>Find a node</span>
+          <span>{translate("Find a node")}</span>
           <div className="graph-search-input">
             <MagnifyingGlassIcon />
             <input
               value={query}
               onChange={(event) => updateSearch(event.target.value)}
-              placeholder="Company, BIN, person or contact"
+              placeholder={translate("Company, BIN, person or contact")}
               disabled={!ready}
             />
           </div>
@@ -1609,24 +1756,21 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
           disabled={!ready}
           onClick={() => controller.current?.fit()}
         >
-          <EnterFullScreenIcon />
-          Fit
+          <EnterFullScreenIcon /> {translate("Fit")}{" "}
         </button>
         <button
           className="button button-quiet"
           disabled={!ready}
           onClick={() => controller.current?.reset()}
         >
-          <ResetIcon />
-          Reset layout
+          <ResetIcon /> {translate("Reset layout")}{" "}
         </button>
         <button
           className="button button-quiet"
-          disabled={!ready}
+          disabled={!ready || !hasSavedView}
           onClick={() => controller.current?.restore()}
         >
-          <ReloadIcon />
-          Restore saved view
+          <ReloadIcon /> {translate("Restore saved view")}{" "}
         </button>
         <button
           className="button"
@@ -1642,13 +1786,27 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
           onClick={() => void save()}
           title={
             graph.historical
-              ? "Open the current graph before saving a view"
+              ? translate("Open the current graph before saving a view")
               : undefined
           }
         >
           <BookmarkIcon />
-          {saving ? "Saving…" : "Save view"}
+          {saving ? translate("Updating…") : translate("Save view")}
         </button>
+        {hasSavedView && (
+          <button
+            className="button button-quiet"
+            disabled={
+              !ready ||
+              saving ||
+              readingView ||
+              (authenticated && !privateViewReady)
+            }
+            onClick={() => void save(true)}
+          >
+            <Cross2Icon /> {translate("Remove saved view")}{" "}
+          </button>
+        )}
         <button
           className="button button-quiet"
           disabled={!ready}
@@ -1656,7 +1814,7 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
           onClick={() => controller.current?.freeze()}
         >
           {frozen ? <LockOpen1Icon /> : <LockClosedIcon />}
-          {frozen ? "Resume layout" : "Freeze positions"}
+          {frozen ? translate("Resume layout") : translate("Freeze positions")}
         </button>
       </div>
       {saveFeedback && (
@@ -1668,25 +1826,26 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
           aria-live={saveFeedback.state === "error" ? "assertive" : "polite"}
           aria-atomic="true"
         >
-          <span>{saveFeedback.message}</span>
+          <span>{translate(saveFeedback.message)}</span>
           {authenticated &&
             saveFeedback.retryView !== false &&
             !privateViewReady &&
-            ready &&
-            !graph.historical && (
+            ready && (
               <button
                 className="button button-quiet"
                 disabled={readingView || saving}
                 onClick={() => void retrySavedView()}
               >
                 <ReloadIcon />
-                {readingView ? "Reading view…" : "Reload saved account view"}
+                {readingView
+                  ? translate("Reading view…")
+                  : translate("Reload saved account view")}
               </button>
             )}
         </div>
       )}
       {query.trim() && (
-        <div className="graph-results" aria-label="Matching nodes">
+        <div className="graph-results" aria-label={translate("Matching nodes")}>
           {matches.length ? (
             matches.map((node) => (
               <button
@@ -1694,19 +1853,19 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
                 className="button button-quiet"
                 onClick={() => controller.current?.select(node.id)}
               >
-                {node.kind}: {node.name}
+                {translate(node.kind)}: {node.name}
               </button>
             ))
           ) : (
-            <p>No matching nodes.</p>
+            <p>{translate("No matching nodes.")}</p>
           )}
           {matches.length === 20 && (
-            <small>Up to 20 matching nodes shown.</small>
+            <small>{translate("Up to 20 matching nodes shown.")}</small>
           )}
         </div>
       )}
       <fieldset className="graph-filters">
-        <legend>Relationships</legend>
+        <legend>{translate("Relationships")}</legend>
         {RELATIONSHIPS.map((type) => (
           <label className={`filter-${type}`} key={type}>
             <input
@@ -1722,32 +1881,33 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
               }}
             />
             <span className="graph-dot" />
-            {type[0].toUpperCase() + type.slice(1)}
+            {translate(type[0].toUpperCase() + type.slice(1))}
           </label>
         ))}
       </fieldset>
       <div className="graph-legend">
         <span>
-          <span className="legend-shape legend-company" />
-          Company
+          <span className="legend-shape legend-company" />{" "}
+          {translate("Company")}{" "}
         </span>
         <span>
-          <span className="legend-shape legend-person" />
-          Verified person
+          <span className="legend-shape legend-person" />{" "}
+          {translate("Verified person")}{" "}
         </span>
         <span>
-          <span className="legend-shape legend-contact" />
-          Shared contact
+          <span className="legend-shape legend-contact" />{" "}
+          {translate("Shared contact")}{" "}
         </span>
         <span>
-          <span className="legend-link" />
-          Role
+          <span className="legend-link" /> {translate("Role")}{" "}
         </span>
         <span>
-          <span className="legend-link legend-weak" />
-          Weak contact
+          <span className="legend-link legend-weak" />{" "}
+          {translate("Weak contact")}{" "}
         </span>
-        <span>Click to focus · drag to arrange · scroll to zoom</span>
+        <span>
+          {translate("Click to focus · drag to arrange · scroll to zoom")}
+        </span>
       </div>
       {graph.graph.nodes.length ? (
         <div className="graph-panels">
@@ -1756,14 +1916,20 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
               className="graph-canvas"
               ref={canvas}
               tabIndex={0}
-              aria-label="Interactive saved graph. Use arrow keys to pan and plus or minus to zoom."
+              aria-label={translate(
+                "Interactive saved graph. Use arrow keys to pan and plus or minus to zoom.",
+              )}
             />
             <div className="graph-map-caption" aria-hidden="true">
               <span>
-                <span className="graph-caption-mark" />
-                Saved network
+                <span className="graph-caption-mark" />{" "}
+                {translate("Saved network")}{" "}
               </span>
-              <span>Version {graph.version ?? "—"}</span>
+              <span>
+                {translate("Version {version}", {
+                  version: graph.version ?? "—",
+                })}
+              </span>
             </div>
             <span className="graph-map-corner corner-top" aria-hidden="true" />
             <span
@@ -1772,24 +1938,35 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
             />
           </div>
           <aside className="graph-inspector">
-            <span className="eyebrow">Evidence panel</span>
+            <span className="eyebrow">{translate("Evidence panel")}</span>
             <div ref={inspector} />
           </aside>
         </div>
       ) : (
         <div className="empty-state">
-          <h3>No saved graph</h3>
-          <p>This group has no nodes in the selected version.</p>
+          <h3>{translate("No saved graph")}</h3>
+          <p>{translate("This group has no nodes in the selected version.")}</p>
         </div>
       )}
       <p className="graph-status" role="status">
-        {graph.graph.nodes.length ? status : "No nodes in this saved version."}
+        {graph.graph.nodes.length
+          ? translate(
+              status.key,
+              status.values && {
+                ...status.values,
+                ...(typeof status.values.type === "string"
+                  ? { type: translate(status.values.type) }
+                  : {}),
+              },
+            )
+          : translate("No nodes in this saved version.")}
       </p>
       <div className="graph-bottom">
         <p>
-          A path through a shared person or contact is different from a direct
-          company relationship. Confidence describes evidence strength, not a
-          probability of wrongdoing. Unknown legal periods remain unconfirmed.
+          {" "}
+          {translate(
+            "A path through a shared person or contact is different from a direct company relationship. Confidence describes evidence strength, not a probability of wrongdoing. Unknown legal periods remain unconfirmed.",
+          )}{" "}
         </p>
         <button
           className="button button-quiet"
@@ -1800,8 +1977,7 @@ export function GraphExplorer({ graph }: { graph: GraphResponse }) {
             setMatches([]);
           }}
         >
-          <Cross2Icon />
-          Clear selection
+          <Cross2Icon /> {translate("Clear selection")}{" "}
         </button>
       </div>
     </section>

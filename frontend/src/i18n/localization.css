@@ -1,0 +1,106 @@
+/* Locale controls share the site's existing keyboard and motion conventions. */
+.language-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 76px;
+  min-height: 44px;
+  padding: 9px 10px;
+  border: 1px solid var(--line, #314b69);
+  border-radius: 12px;
+  color: var(--muted, #93a7c0);
+  background: #102035;
+  font: 600 12px/1.2 var(--font-body, Manrope, sans-serif);
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+.language-switch:hover {
+  background: #1c3552;
+  border-color: #779fce;
+}
+.language-switch .active {
+  color: #ecf4ff;
+}
+.language-divider {
+  opacity: 0.45;
+}
+.language-switch:focus-visible {
+  outline: 2px solid #85b2ef;
+  outline-offset: 3px;
+}
+html[lang="ru"] .topbar-location {
+  min-width: 0;
+}
+html[lang="ru"] .topbar-location strong {
+  overflow-wrap: anywhere;
+}
+html[lang="ru"] .eyebrow {
+  letter-spacing: 0.12em;
+}
+@media (max-width: 600px) {
+  .app-shell .topbar {
+    display: grid;
+    grid-template-columns: 44px 30px minmax(0, 1fr);
+    height: auto;
+    gap: 8px;
+    padding: 10px;
+  }
+  .topbar .mobile-menu,
+  .topbar .mobile-brand {
+    order: initial;
+    margin: 0;
+  }
+  .topbar .mobile-menu {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .topbar .mobile-brand {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .topbar .topbar-actions {
+    grid-column: 3;
+    justify-self: end;
+    gap: 4px;
+    min-width: 0;
+  }
+  .topbar .global-search {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    margin: 0;
+  }
+  .topbar .global-search input {
+    width: 100%;
+    min-width: 0;
+    font-size: 12px;
+  }
+  .topbar .account-signup {
+    display: none;
+  }
+  .topbar .account-profile-link {
+    max-width: 80px;
+    min-width: 44px;
+  }
+  .topbar .account-profile-link span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .language-switch {
+    min-width: 66px;
+    padding-inline: 7px;
+    gap: 4px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .language-switch {
+    transition: none;
+  }
+}

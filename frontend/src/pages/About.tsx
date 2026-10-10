@@ -1,3 +1,4 @@
+import { translate as t, useI18n } from "../i18n";
 import { Link } from "react-router-dom";
 import {
   ArrowRightIcon,
@@ -71,6 +72,7 @@ const audiences = [
 ] as const;
 
 function EvidenceFlow() {
+  useI18n();
   const { ref, active } = useDecorationActive<HTMLDivElement>();
   const stages = [
     {
@@ -97,7 +99,7 @@ function EvidenceFlow() {
   return (
     <div ref={ref} className="about-evidence-flow" data-active={active}>
       <div className="about-flow-heading">
-        <span className="eyebrow">FROM RECORD TO REVIEW</span>
+        <span className="eyebrow">{t("FROM RECORD TO REVIEW")}</span>
         <span className="about-flow-signal" aria-hidden="true">
           <i />
           <i />
@@ -111,8 +113,8 @@ function EvidenceFlow() {
               <Icon />
             </span>
             <div>
-              <strong>{label}</strong>
-              <span>{detail}</span>
+              <strong>{t(label)}</strong>
+              <span>{t(detail)}</span>
             </div>
             <span className="about-flow-index" aria-hidden="true">
               0{index + 1}
@@ -121,19 +123,20 @@ function EvidenceFlow() {
         ))}
       </ol>
       <p className="about-flow-caption">
-        A connection becomes useful when you can see what supports it.
+        {t("A connection becomes useful when you can see what supports it.")}
       </p>
     </div>
   );
 }
 
 export function About() {
+  useI18n();
   return (
     <div className="about-page">
       <header className="about-page-header">
-        <span className="eyebrow">ABOUT IZ2</span>
+        <span className="eyebrow">{t("ABOUT IZ2")}</span>
         <span className="about-project-tag">
-          <i aria-hidden="true" /> THESIS PROTOTYPE
+          <i aria-hidden="true" /> {t("THESIS PROTOTYPE")}
         </span>
       </header>
 
@@ -145,27 +148,29 @@ export function About() {
       >
         <div className="about-hero-copy">
           <span className="about-section-index">
-            EVIDENCE / CONTEXT / REVIEW
+            {t("EVIDENCE / CONTEXT / REVIEW")}
           </span>
           <TechHeading
             as="h1"
             id="about-title"
-            text={["Understand the links.", "Inspect the evidence."]}
+            text={[t("Understand the links."), t("Inspect the evidence.")]}
           />
           <p>
-            IZ2 brings saved company, contract and relationship records into one
-            workspace for reviewing Kazakhstan public procurement.
+            {t(
+              "IZ2 brings saved company, contract and relationship records into one workspace for reviewing Kazakhstan public procurement.",
+            )}
           </p>
           <p className="about-hero-detail">
-            Explore who is connected, see why a connection appears and read what
-            still needs checking.
+            {t(
+              "Explore who is connected, see why a connection appears and read what still needs checking.",
+            )}
           </p>
           <div className="about-actions">
             <Link className="button button-primary" to="/companies">
-              Find a company <ArrowRightIcon aria-hidden="true" />
+              {t("Find a company")} <ArrowRightIcon aria-hidden="true" />
             </Link>
             <Link className="button button-secondary" to="/clusters">
-              Explore groups <LayersIcon aria-hidden="true" />
+              {t("Explore groups")} <LayersIcon aria-hidden="true" />
             </Link>
           </div>
         </div>
@@ -174,30 +179,29 @@ export function About() {
 
       <section className="about-section" aria-labelledby="about-purpose-title">
         <div className="about-section-heading">
-          <span className="about-section-index">01 / PURPOSE</span>
+          <span className="about-section-index">{t("01 / PURPOSE")}</span>
           <TechHeading
             as="h2"
             id="about-purpose-title"
-            text="Give each connection its context."
+            text={t("Give each connection its context.")}
           />
         </div>
         <div className="about-purpose-grid">
           <p className="about-lead">
-            A company record tells one part of a story. Procurement records,
-            shared contacts and dated source evidence help you examine the wider
-            picture.
+            {t(
+              "A company record tells one part of a story. Procurement records, shared contacts and dated source evidence help you examine the wider picture.",
+            )}
           </p>
           <div className="about-purpose-detail">
             <p>
-              IZ2 connects those records in a graph and keeps the supporting
-              evidence close to the result. Saved versions let you return to the
-              same analysis instead of receiving a newly generated account on
-              every visit.
+              {t(
+                "IZ2 connects those records in a graph and keeps the supporting evidence close to the result. Saved versions let you return to the same analysis instead of receiving a newly generated account on every visit.",
+              )}
             </p>
             <p>
-              Review priority helps organise follow-up work. It is not a
-              probability of wrongdoing, and a shared contact or relationship
-              does not establish a violation.
+              {t(
+                "Review priority helps organise follow-up work. It is not a probability of wrongdoing, and a shared contact or relationship does not establish a violation.",
+              )}
             </p>
           </div>
         </div>
@@ -205,13 +209,13 @@ export function About() {
 
       <section className="about-section" aria-labelledby="about-audience-title">
         <div className="about-section-heading">
-          <span className="about-section-index">02 / WHO IT IS FOR</span>
+          <span className="about-section-index">{t("02 / WHO IT IS FOR")}</span>
           <TechHeading
             as="h2"
             id="about-audience-title"
-            text="Built for careful review."
+            text={t("Built for careful review.")}
           />
-          <p>Designed to support examination, research and learning.</p>
+          <p>{t("Designed to support examination, research and learning.")}</p>
         </div>
         <div className="about-audience-grid">
           {audiences.map(({ title, text, icon: Icon }) => (
@@ -224,8 +228,8 @@ export function About() {
               <span className="about-card-icon" aria-hidden="true">
                 <Icon />
               </span>
-              <h3>{title}</h3>
-              <p>{text}</p>
+              <h3>{t(title)}</h3>
+              <p>{t(text)}</p>
             </BorderGlow>
           ))}
         </div>
@@ -233,11 +237,13 @@ export function About() {
 
       <section className="about-section" aria-labelledby="about-how-title">
         <div className="about-section-heading">
-          <span className="about-section-index">03 / HOW TO USE IZ2</span>
+          <span className="about-section-index">
+            {t("03 / HOW TO USE IZ2")}
+          </span>
           <TechHeading
             as="h2"
             id="about-how-title"
-            text="Start with a company. Follow the facts."
+            text={t("Start with a company. Follow the facts.")}
           />
         </div>
         <ol className="about-steps">
@@ -252,10 +258,10 @@ export function About() {
                   <span>{number}</span>
                   <Icon aria-hidden="true" />
                 </div>
-                <h3>{title}</h3>
-                <p>{text}</p>
+                <h3>{t(title)}</h3>
+                <p>{t(text)}</p>
                 <Link to={to}>
-                  {label}
+                  {t(label)}
                   <ArrowRightIcon aria-hidden="true" />
                 </Link>
               </BorderGlow>
@@ -263,18 +269,19 @@ export function About() {
           ))}
         </ol>
         <p className="about-small-note">
-          Browsing reads saved results. Anonymous graph layouts stay in this
-          browser; signed-in users can save their own views.
+          {t(
+            "Browsing reads saved results. Anonymous graph layouts stay in this browser; signed-in users can save their own views.",
+          )}
         </p>
       </section>
 
       <section className="about-section" aria-labelledby="about-scope-title">
         <div className="about-section-heading">
-          <span className="about-section-index">04 / CURRENT SCOPE</span>
+          <span className="about-section-index">{t("04 / CURRENT SCOPE")}</span>
           <TechHeading
             as="h2"
             id="about-scope-title"
-            text="What you can explore today."
+            text={t("What you can explore today.")}
           />
         </div>
         <div className="about-scope-grid">
@@ -285,25 +292,29 @@ export function About() {
             fillOpacity={0.08}
           >
             <span className="about-scope-label">
-              <CheckCircledIcon aria-hidden="true" /> IMPLEMENTED
+              <CheckCircledIcon aria-hidden="true" /> {t("IMPLEMENTED")}
             </span>
-            <h3 id="about-available-title">Saved evidence, connected</h3>
+            <h3 id="about-available-title">{t("Saved evidence, connected")}</h3>
             <ul>
               <li>
-                Company, person and procurement contract records with available
-                source context.
+                {t(
+                  "Company, person and procurement contract records with available source context.",
+                )}
               </li>
               <li>
-                Interactive relationship graphs, evidence inspection, saved
-                versions and personal layouts.
+                {t(
+                  "Interactive relationship graphs, evidence inspection, saved versions and personal layouts.",
+                )}
               </li>
               <li>
-                Rule-based review priority and saved explanations with remaining
-                checks.
+                {t(
+                  "Rule-based review priority and saved explanations with remaining checks.",
+                )}
               </li>
               <li>
-                Stored State Revenue Committee (KGD) checks where available;
-                missing and unavailable results remain explicit.
+                {t(
+                  "Stored State Revenue Committee (KGD) checks where available; missing and unavailable results remain explicit.",
+                )}
               </li>
             </ul>
           </BorderGlow>
@@ -314,26 +325,30 @@ export function About() {
             fillOpacity={0.06}
           >
             <span className="about-scope-label">
-              PLANNED / NOT CURRENT FINDINGS
+              {t("PLANNED / NOT CURRENT FINDINGS")}
             </span>
-            <h3 id="about-planned-title">A broader verified history</h3>
+            <h3 id="about-planned-title">{t("A broader verified history")}</h3>
             <ul>
               <li>
-                Verified court, bankruptcy and restricted-participant
-                integrations.
+                {t(
+                  "Verified court, bankruptcy and restricted-participant integrations.",
+                )}
               </li>
               <li>
-                Richer ownership history and procurement behaviour analysis when
-                supporting records are available.
+                {t(
+                  "Richer ownership history and procurement behaviour analysis when supporting records are available.",
+                )}
               </li>
               <li>
-                Independent evaluation and the operational work needed for a
-                future pilot.
+                {t(
+                  "Independent evaluation and the operational work needed for a future pilot.",
+                )}
               </li>
             </ul>
             <p>
-              These plans do not establish findings about any company in the
-              current workspace.
+              {t(
+                "These plans do not establish findings about any company in the current workspace.",
+              )}
             </p>
           </BorderGlow>
         </div>
@@ -347,34 +362,37 @@ export function About() {
       >
         <div className="about-section-heading">
           <span className="about-section-index">
-            05 / HOW TO READ THE RESULT
+            {t("05 / HOW TO READ THE RESULT")}
           </span>
           <TechHeading
             as="h2"
             id="about-principles-title"
-            text="Keep the evidence in view."
+            text={t("Keep the evidence in view.")}
           />
         </div>
         <dl className="about-principle-grid">
           <div>
-            <dt>Inspect the source</dt>
+            <dt>{t("Inspect the source")}</dt>
             <dd>
-              Use evidence, dates and coverage to understand what a connection
-              means.
+              {t(
+                "Use evidence, dates and coverage to understand what a connection means.",
+              )}
             </dd>
           </div>
           <div>
-            <dt>Keep uncertainty visible</dt>
+            <dt>{t("Keep uncertainty visible")}</dt>
             <dd>
-              An unavailable check is not a confirmed absence. Similar names
-              alone do not establish identity.
+              {t(
+                "An unavailable check is not a confirmed absence. Similar names alone do not establish identity.",
+              )}
             </dd>
           </div>
           <div>
-            <dt>Return to saved versions</dt>
+            <dt>{t("Return to saved versions")}</dt>
             <dd>
-              Graphs and explanations share saved evidence. Opening a page does
-              not regenerate them.
+              {t(
+                "Graphs and explanations share saved evidence. Opening a page does not regenerate them.",
+              )}
             </dd>
           </div>
         </dl>
@@ -383,18 +401,20 @@ export function About() {
       <section className="about-project" aria-labelledby="about-project-title">
         <div>
           <span className="about-section-index">
-            A THESIS PROJECT WITH A FUTURE PILOT IN MIND
+            {t("A THESIS PROJECT WITH A FUTURE PILOT IN MIND")}
           </span>
           <TechHeading
             as="h2"
             id="about-project-title"
-            text="Made to be examined."
+            text={t("Made to be examined.")}
           />
           <p>
-            Independently developed by {projectInfo.developer} for a thesis at{" "}
-            {projectInfo.university}. {projectInfo.articleAuthor} is preparing a
-            related article. The repository is available for exploring the
-            implementation and its documented limits.
+            {t("Independently developed by")} {projectInfo.developer}{" "}
+            {t("for a thesis at")} {projectInfo.university}.{" "}
+            {projectInfo.articleAuthor}{" "}
+            {t(
+              "is preparing a related article. The repository is available for exploring the implementation and its documented limits.",
+            )}
           </p>
         </div>
         <div className="about-project-links">
@@ -404,19 +424,21 @@ export function About() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            View on GitHub <ArrowTopRightIcon aria-hidden="true" />
+            {t("View on GitHub")} <ArrowTopRightIcon aria-hidden="true" />
           </a>
           <a
             className="about-contact-link"
             href={`mailto:${projectInfo.email}`}
           >
-            Contact the developer <ArrowTopRightIcon aria-hidden="true" />
+            {t("Contact the developer")}{" "}
+            <ArrowTopRightIcon aria-hidden="true" />
           </a>
           <a
             className="about-contact-link"
             href={`mailto:${projectInfo.articleEmail}`}
           >
-            Contact the article author <ArrowTopRightIcon aria-hidden="true" />
+            {t("Contact the article author")}{" "}
+            <ArrowTopRightIcon aria-hidden="true" />
           </a>
         </div>
       </section>

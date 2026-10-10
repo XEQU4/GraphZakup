@@ -26,6 +26,7 @@ import type {
   ViewPayload,
 } from "../lib/types";
 import { MotionPreferences, useMotionPreferences } from "./MotionPreferences";
+import { setLanguage } from "../i18n";
 
 const state = vi.hoisted(() => ({
   user: {
@@ -97,6 +98,7 @@ const json = (value: unknown, status = 200) =>
   });
 
 beforeEach(() => {
+  setLanguage("en");
   state.user = { id: null, username: null, role: "anonymous" };
   state.loading = false;
   localStorage.clear();
@@ -112,6 +114,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  setLanguage("en");
   vi.unstubAllGlobals();
 });
 
@@ -575,6 +578,120 @@ describe("graph presentation and motion", () => {
 });
 
 describe("graph Save View contract", () => {
+  it("removes a browser view without moving nodes and allows saving it again", async () => {
+    const { container } = render(<GraphExplorer graph={graph} />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save view" })).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save view" }));
+    const before = container
+      .querySelector(".graph-node")
+      ?.getAttribute("transform");
+    expect(localStorage.getItem(graphStorageKey(graph.cluster))).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Remove saved view" }));
+    expect(localStorage.getItem(graphStorageKey(graph.cluster))).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Remove saved view" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Restore saved view" }),
+    ).toBeDisabled();
+    expect(
+      container.querySelector(".graph-node")?.getAttribute("transform"),
+    ).toEqual(before);
+    fireEvent.click(screen.getByRole("button", { name: "Save view" }));
+    expect(localStorage.getItem(graphStorageKey(graph.cluster))).not.toBeNull();
+  });
+
+  it("removes an account view with CSRF and uses the returned revision for re-save", async () => {
+    state.user = { id: 7, username: "synthetic-user", role: "user" };
+    const fetcher = vi.fn(async (_url: string, options: RequestInit) => {
+      if (options.method === "DELETE") {
+        expect(JSON.parse(String(options.body))).toEqual({ revision: 4 });
+        expect(options.headers).toMatchObject({
+          "X-CSRFToken": "synthetic-csrf",
+        });
+        return json({ revision: 5, payload: null });
+      }
+      if (options.method === "PUT") {
+        const body = JSON.parse(String(options.body));
+        expect(body.revision).toBe(5);
+        return json({ revision: 6, payload: body.payload });
+      }
+      return json({ revision: 4, payload: { frozen: true, positions: {} } });
+    });
+    vi.stubGlobal("fetch", fetcher);
+    render(<GraphExplorer graph={graph} />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Remove saved view" }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Remove saved view" }),
+      ).not.toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save view" }));
+    await screen.findByRole("button", { name: "Remove saved view" });
+    expect(fetcher.mock.calls.map(([, options]) => options.method)).toEqual([
+      "GET",
+      "DELETE",
+      "PUT",
+    ]);
+  });
+
+  it("does not reload an old guest layout after an account view was removed", async () => {
+    state.user = { id: 7, username: "synthetic-user", role: "user" };
+    localStorage.setItem(
+      graphStorageKey(graph.cluster),
+      JSON.stringify({ frozen: true, selected: "company:1", positions: {} }),
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => json({ revision: 5, payload: null })),
+    );
+    render(<GraphExplorer graph={graph} />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save view" })).toBeEnabled(),
+    );
+    expect(
+      screen.queryByRole("button", { name: "Remove saved view" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Browser view loaded/)).not.toBeInTheDocument();
+  });
+
+  it("retains the saved view and blocks stale writes if removal conflicts", async () => {
+    state.user = { id: 7, username: "synthetic-user", role: "user" };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, options: RequestInit) =>
+        options.method === "DELETE"
+          ? json(
+              {
+                error: {
+                  code: "view_conflict",
+                  message: "View changed in another tab.",
+                },
+              },
+              409,
+            )
+          : json({ revision: 2, payload: { frozen: true, positions: {} } }),
+      ),
+    );
+    render(<GraphExplorer graph={graph} />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Remove saved view" }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Reload saved account view" }),
+      ).toBeEnabled(),
+    );
+    expect(screen.getByRole("button", { name: "Save view" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Remove saved view" }),
+    ).toBeDisabled();
+  });
+
   it("saves the final focus camera to the account and restores its coordinates, filters and selection after a fresh mount", async () => {
     state.user = { id: 7, username: "synthetic-user", role: "user" };
     vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(900);
@@ -947,6 +1064,129 @@ describe("personal graph save conflicts", () => {
       screen.queryByRole("button", { name: "Reload saved account view" }),
     ).not.toBeInTheDocument();
     expect(container.querySelectorAll(".graph-node")).toHaveLength(3);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("graph language switching", () => {
+  it("updates D3 labels while preserving unsaved positions, pins, camera, filters, selection and browser storage", async () => {
+    const saved = {
+      positions: {
+        "company:1": { x: 420, y: -180, pinned: false },
+        "company:2": { x: -100, y: 250, pinned: true },
+        "contact:1": { x: 40, y: 50, pinned: false },
+      },
+      zoom: { x: 90, y: 70, k: 0.9 },
+      frozen: true,
+      filters: ["address", "director"],
+    };
+    const original = JSON.stringify(saved);
+    localStorage.setItem(graphStorageKey(graph.cluster), original);
+    const fetcher = vi.fn();
+    vi.stubGlobal("fetch", fetcher);
+    const { container } = render(<GraphExplorer graph={graph} />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save view" })).toBeEnabled(),
+    );
+    const canvas = container.querySelector(".graph-canvas")!;
+    const svg = canvas.querySelector("svg")!;
+    const node = container.querySelector('[data-node-id="company:1"]')!;
+    fireEvent.keyDown(node, { key: "p" });
+    fireEvent.keyDown(canvas, { key: "ArrowRight" });
+    fireEvent.keyDown(canvas, { key: "+" });
+    fireEvent.click(screen.getByLabelText("Director"));
+    fireEvent.change(
+      screen.getByPlaceholderText("Company, BIN, person or contact"),
+      { target: { value: "000000000002" } },
+    );
+    const camera = svg.querySelector("g")!.getAttribute("transform");
+    const positions = [...container.querySelectorAll(".graph-node")].map(
+      (item) => item.getAttribute("transform"),
+    );
+    act(() => setLanguage("ru"));
+    expect(canvas.querySelector("svg")).toBe(svg);
+    expect(container.querySelector('[data-node-id="company:1"]')).toBe(node);
+    expect(svg.querySelector("g")).toHaveAttribute("transform", camera);
+    expect(
+      [...container.querySelectorAll(".graph-node")].map((item) =>
+        item.getAttribute("transform"),
+      ),
+    ).toEqual(positions);
+    expect(node).toHaveClass("pinned");
+    expect(node).toHaveAttribute("aria-pressed", "true");
+    expect(node).toHaveAttribute(
+      "aria-label",
+      "компания: Synthetic Company One",
+    );
+    expect(
+      screen.getByRole("button", { name: "Открепить узел" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Адрес")).toBeChecked();
+    expect(screen.getByLabelText("Руководитель")).not.toBeChecked();
+    expect(
+      screen.getByRole("button", { name: "Продолжить раскладку" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByPlaceholderText("Компания, БИН, человек или контакт"),
+    ).toHaveValue("000000000002");
+    expect(localStorage.getItem(graphStorageKey(graph.cluster))).toBe(original);
+    expect(fetcher).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить вид" }));
+    const updated = JSON.parse(
+      localStorage.getItem(graphStorageKey(graph.cluster))!,
+    );
+    expect(updated).toMatchObject({
+      positions: { "company:1": { x: 420, y: -180, pinned: true } },
+      selected: "company:1",
+      frozen: true,
+      filters: ["address"],
+    });
+    expect(updated.zoom).not.toEqual(saved.zoom);
+    act(() => setLanguage("en"));
+    expect(canvas.querySelector("svg")).toBe(svg);
+    expect(node).toHaveAttribute(
+      "aria-label",
+      "company: Synthetic Company One",
+    );
+    expect(screen.getByRole("button", { name: "Save view" })).toBeEnabled();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Selected Synthetic Company One",
+    );
+  });
+
+  it("keeps private revision fencing through locale changes and does not refetch or save automatically", async () => {
+    state.user = { id: 7, username: "synthetic-user", role: "user" };
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(json({ revision: 4, payload: { frozen: true } }))
+      .mockResolvedValueOnce(
+        json(
+          {
+            error: { code: "view_conflict", message: "Reload before saving." },
+          },
+          409,
+        ),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    const { container } = render(<GraphExplorer graph={graph} />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save view" })).toBeEnabled(),
+    );
+    const svg = container.querySelector(".graph-canvas svg");
+    act(() => setLanguage("ru"));
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить вид" }));
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent("другой вкладке"),
+    );
+    expect(JSON.parse(String(fetcher.mock.calls[1][1].body)).revision).toBe(4);
+    expect(
+      screen.getByRole("button", { name: "Сохранить вид" }),
+    ).toBeDisabled();
+    act(() => setLanguage("en"));
+    expect(screen.getByRole("button", { name: "Save view" })).toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent("another tab");
+    expect(container.querySelector(".graph-canvas svg")).toBe(svg);
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 });

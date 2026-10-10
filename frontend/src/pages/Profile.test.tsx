@@ -315,6 +315,34 @@ describe("personal account profile", () => {
 });
 
 describe("saved account graph views", () => {
+  it("removes a saved view from the profile and refreshes the list", async () => {
+    let removed = false;
+    const fetcher = vi.fn(async (path: string, options: RequestInit) => {
+      if (path === "/api/v1/session/") return response(session);
+      if (path === "/api/v1/account/profile/") return response(account);
+      if (options.method === "DELETE") {
+        expect(path).toBe("/api/v1/clusters/" + uuid + "/view/");
+        expect(JSON.parse(String(options.body))).toEqual({ revision: 4 });
+        removed = true;
+        return response({ revision: 5, payload: null });
+      }
+      return response(
+        removed
+          ? emptyViews
+          : { ...emptyViews, count: 1, results: [savedView] },
+      );
+    });
+    vi.stubGlobal("fetch", fetcher);
+    renderProfile();
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Remove saved view for Synthetic shared director group",
+      }),
+    );
+    await screen.findByText("No graph views saved yet.");
+    expect(screen.getByRole("status")).toHaveTextContent("Saved view removed");
+  });
+
   const uuid = "46b7d331-54f0-463a-b333-4f725e292ebc";
   const savedView = {
     cluster_uuid: uuid,

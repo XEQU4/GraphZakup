@@ -1,14 +1,10 @@
 /* Directory-only surfaces leave company and person detail pages unchanged. */
 .app-shell .directory-page .panel.entity-directory {
   position: relative;
-  border: 1px solid #263d63;
+  border: 1px solid var(--surface-border);
   border-radius: 24px;
-  background:
-    radial-gradient(ellipse at 8% 0, #17356b40, transparent 42%),
-    linear-gradient(145deg, #091321e8, #040a15f2);
-  box-shadow:
-    0 24px 70px #00000025,
-    inset 0 1px 0 #e0ecff0a;
+  background: var(--surface-card);
+  box-shadow: var(--surface-shadow);
   overflow: hidden;
 }
 .app-shell .directory-page .entity-section-head {
@@ -18,42 +14,42 @@
 .app-shell .directory-page .entity-section-head h2 {
   font-size: 23px;
   letter-spacing: -0.04em;
-  color: #f4f7ff;
+  color: #ebeefa;
   gap: 13px;
 }
 .app-shell .directory-page .entity-section-head p {
-  color: #9caec9;
+  color: #a5b0c0;
   line-height: 1.7;
   max-width: 650px;
 }
 .app-shell .directory-page .entity-count {
   border-radius: 8px;
   padding: 7px 11px;
-  color: #dce8ff;
-  background: #16336b73;
-  border-color: #5e88d15c;
-  box-shadow: inset 0 1px 0 #b8d5ff12;
+  color: #e3ebf8;
+  background: #273a5a73;
+  border-color: #778fb85c;
+  box-shadow: inset 0 1px 0 #c8d7f012;
   font-size: 13px;
   letter-spacing: 0;
 }
 .app-shell .directory-page .entity-data-label {
   padding: 9px 12px;
-  border: 1px solid #2d456654;
+  border: 1px solid #38485b54;
   border-radius: 100px;
-  color: #a9bedb;
-  background: #091323b8;
+  color: #b4c0d0;
+  background: #0e131eb8;
   font-size: 9px;
 }
 .app-shell .directory-page .entity-data-label i {
-  background: #82acff;
-  box-shadow: 0 0 9px #5989ff73;
+  background: #9cb4e4;
+  box-shadow: 0 0 9px #7c97dc73;
 }
 .app-shell .directory-page .entity-toolbar {
   padding: 20px 28px 22px;
   align-items: end;
   gap: 14px;
-  background: #06101f99;
-  border-color: #3b5a8438;
+  background: var(--surface-inset);
+  border-color: var(--surface-border);
 }
 .app-shell .directory-page .entity-search {
   flex-basis: 280px;
@@ -61,32 +57,32 @@
   padding: 5px 6px 5px 16px;
   gap: 12px;
   border-radius: 14px;
-  background: #040b17;
-  border-color: #334e77;
-  box-shadow: inset 0 1px 0 #bed3ff08;
+  background: #0e1c30;
+  border-color: var(--surface-border);
+  box-shadow: inset 0 1px 0 #ccd7f108;
 }
 .app-shell .directory-page .entity-search > svg {
-  color: #9ab4d9;
+  color: #a7b7cc;
   width: 18px;
   height: 18px;
 }
 .app-shell .directory-page .entity-search input {
   font-size: 13px;
   min-height: 44px;
-  color: #ecf3ff;
+  color: #ebf0fa;
 }
 .app-shell .directory-page .entity-search input::placeholder {
-  color: #91a5c3;
+  color: #9ca7b8;
 }
 .app-shell .directory-page .entity-search .entity-search-button {
   border-radius: 10px;
   min-height: 44px;
   padding: 10px 16px;
-  background: linear-gradient(145deg, #183b78, #10264e);
-  color: #f5f8ff;
-  border-color: #4d73ad;
+  background: linear-gradient(145deg, #294d76, #203e62);
+  color: #ebeefa;
+  border-color: #4c729c;
   font-size: 12px;
-  box-shadow: inset 0 1px 0 #b3d2ff12;
+  box-shadow: inset 0 1px 0 #c3d4ef12;
 }
 .app-shell .directory-page .entity-select-label {
   display: flex;
@@ -97,7 +93,7 @@
 }
 .app-shell .directory-page .directory-control-label {
   padding-left: 3px;
-  color: #9bb0d0;
+  color: #a6b3c5;
   font: 9px var(--font-mono, monospace);
   letter-spacing: 0.05em;
 }
@@ -107,10 +103,10 @@
   min-height: 56px;
   padding: 12px 13px;
   font-size: 12px;
-  border-color: #2c4264;
+  border-color: var(--surface-border);
   border-radius: 14px;
-  background-color: #0a1526;
-  color: #c8d8ee;
+  background-color: #0e1c30;
+  color: #d0d9e6;
   cursor: pointer;
 }
 .app-shell .directory-page .entity-clear {
@@ -131,7 +127,7 @@
 }
 .app-shell .directory-page .entity-table th {
   padding: 13px 20px 7px;
-  color: #839bc0;
+  color: #919db2;
   border: 0;
   background: transparent;
   font: 9px var(--font-mono, monospace);
@@ -147,34 +143,40 @@
 .app-shell .directory-page .entity-table th:last-child {
   width: 94px;
 }
+.app-shell .people-directory-page .entity-table th:first-child {
+  width: auto;
+}
+.app-shell .people-directory-page .entity-table th:nth-child(2) {
+  width: 30%;
+}
 .app-shell .directory-page .entity-table tbody tr {
   background: transparent;
   box-shadow: none;
 }
 .app-shell .directory-page .entity-table td {
   padding: 21px 20px;
-  border-block: 1px solid #253a5b73;
-  background: linear-gradient(160deg, #10223b6b, #081321b5);
-  color: #c7d7ed;
+  border-block: 1px solid var(--surface-border);
+  background: var(--surface-row);
+  color: #cfd8e5;
   font-size: 13px;
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
 .app-shell .directory-page .entity-table td:first-child {
-  border-left: 1px solid #253a5b73;
+  border-left: 1px solid var(--surface-border);
   border-radius: 15px 0 0 15px;
-  box-shadow: inset 3px 0 #467bce00;
+  box-shadow: inset 3px 0 #6482b000;
 }
 .app-shell .directory-page .entity-table td:last-child {
-  border-right: 1px solid #253a5b73;
+  border-right: 1px solid var(--surface-border);
   border-radius: 0 15px 15px 0;
 }
 .app-shell .directory-page .entity-table tbody tr:last-child td {
-  border-bottom: 1px solid #253a5b73;
+  border-bottom: 1px solid var(--surface-border);
 }
 .app-shell .directory-page .entity-table tbody tr:is(:hover, :focus-within) td {
-  background: linear-gradient(160deg, #15366699, #0b1b3599);
-  border-color: #4771b8;
+  background: var(--surface-row-hover);
+  border-color: var(--surface-border-hover);
 }
 .app-shell
   .directory-page
@@ -182,12 +184,12 @@
   tbody
   tr:is(:hover, :focus-within)
   td:first-child {
-  box-shadow: inset 3px 0 #669bff;
+  box-shadow: inset 3px 0 #86a5de;
 }
 .app-shell .directory-page .entity-name-link {
   gap: 15px;
   min-height: 44px;
-  color: #eff5ff;
+  color: #ebf0fa;
   width: fit-content;
   max-width: 100%;
   border-radius: 9px;
@@ -202,10 +204,10 @@
   color: inherit;
 }
 .app-shell .directory-page .entity-name-link:hover {
-  color: #b9d4ff;
+  color: #c7d7f1;
 }
 .app-shell .directory-page .entity-subline {
-  color: #91a9cc;
+  color: #9eacbf;
   font-size: 11px;
   margin-top: 6px;
 }
@@ -214,11 +216,11 @@
   width: 43px;
   height: 43px;
   border-radius: 12px;
-  color: #a0c2ff;
-  border-color: #456faa80;
-  background: linear-gradient(145deg, #1b3b67, #0c1d35);
+  color: #b3c8ec;
+  border-color: #446387;
+  background: #203a5a;
   box-shadow:
-    inset 0 1px 0 #c2dcff21,
+    inset 0 1px 0 #d0def121,
     0 5px 12px #0000001f;
 }
 .app-shell .directory-page .entity-company-symbol::after {
@@ -229,7 +231,7 @@
   top: 6px;
   right: 6px;
   border-radius: 50%;
-  background: #92bdff;
+  background: #a9c1e8;
   opacity: 0.6;
 }
 .app-shell .directory-page .entity-company-symbol svg {
@@ -258,15 +260,15 @@
 .app-shell .directory-page .entity-row-open {
   width: 44px;
   height: 44px;
-  color: #a3bbdf;
-  border: 1px solid #29466c7a;
+  color: #afbed3;
+  border: 1px solid var(--surface-border);
   border-radius: 11px;
-  background: #0c1b3078;
+  background: var(--surface-inset);
 }
 .app-shell .directory-page .entity-row-open:hover {
-  background: #183b7161;
-  color: #e3edff;
-  border-color: #709de9;
+  background: #244468;
+  color: #e9eff9;
+  border-color: #8aa4cf;
 }
 .app-shell .directory-page .entity-row-open svg {
   width: 18px;
@@ -284,14 +286,14 @@
     .entity-inline-link,
     summary
   ):focus-visible {
-  outline: 2px solid #8eb7ff;
+  outline: 2px solid #a6bee7;
   outline-offset: 4px;
 }
 .app-shell .directory-page .entity-pagination {
   padding: 20px 28px;
-  background: #070f1cb8;
-  border-color: #3450795e;
-  color: #a7bad7;
+  background: var(--surface-inset);
+  border-color: var(--surface-border);
+  color: #b1bccd;
   font-size: 12px;
 }
 .app-shell .directory-page .entity-pagination > div {
@@ -301,8 +303,8 @@
   min-height: 44px;
   padding: 10px 13px;
   border-radius: 11px;
-  background: #0d1c33;
-  border-color: #35527b;
+  background: #1b3250;
+  border-color: #3d5b7f;
   font-size: 11px;
 }
 .app-shell .directory-page .entity-pagination .button:disabled {
@@ -323,14 +325,14 @@
   min-height: 35px;
   padding: 4px 7px;
   border-radius: 8px;
-  border: 1px solid #507dbe66;
-  background: #1b376373;
-  color: #f1f6ff;
+  border: 1px solid #6781a766;
+  background: #2a3a5473;
+  color: #ebf0fa;
   font-weight: 500;
 }
 .app-shell .directory-page .entity-footnote {
   margin: 19px 9px;
-  color: #9badc8;
+  color: #a4afbf;
   line-height: 1.8;
 }
 .app-shell .directory-page .entity-contract-table th:first-child {
@@ -351,7 +353,7 @@
   gap: 12px;
 }
 .app-shell .directory-page .entity-contract-title strong {
-  color: #eef4ff;
+  color: #ebf0fa;
   font-size: 13px;
   font-weight: 600;
   line-height: 1.7;
@@ -361,28 +363,28 @@
   font-size: 11px;
 }
 .app-shell .directory-page .entity-contract-title summary {
-  color: #a4bfeb;
+  color: #b3c2dc;
   padding-block: 4px;
 }
 .app-shell .directory-page .entity-contract-title details[open] {
   margin-left: 0;
   padding: 10px 12px;
-  border: 1px solid #33578469;
+  border: 1px solid #455a7269;
   border-radius: 10px;
-  background: #030b18b3;
+  background: #070c14b3;
 }
 .app-shell .directory-page .entity-contract-title details p {
   line-height: 1.8;
-  color: #a3b9d9;
+  color: #aebbce;
 }
 .app-shell .directory-page .directory-party-label {
   display: block;
   font: 9px var(--font-mono, monospace);
-  color: #8fa6ca;
+  color: #9ca8bd;
   margin-bottom: 7px;
 }
 .app-shell .directory-page .entity-inline-link {
-  color: #c1d7ff;
+  color: #cedbf2;
   font-size: 12px;
   line-height: 1.7;
   overflow-wrap: anywhere;
@@ -392,7 +394,7 @@
   white-space: nowrap;
 }
 .app-shell .directory-page .entity-money {
-  color: #f0f6ff;
+  color: #ebf0fa;
   font-size: 13px;
   line-height: 1.6;
   white-space: normal;
@@ -404,19 +406,19 @@
 }
 .app-shell .directory-page .entity-contract-filters {
   padding: 18px 28px 20px;
-  border-top: 1px solid #34507938;
-  background: #06101f99;
+  border-top: 1px solid #43536a38;
+  background: var(--surface-inset);
   gap: 14px;
 }
 .app-shell .directory-page .entity-contract-filters label {
   font-size: 10px;
-  color: #a1b4d1;
+  color: #abb6c7;
   gap: 8px;
 }
 .app-shell .directory-page .entity-contract-filters input {
   border-radius: 11px;
-  border-color: #2c4264;
-  background: #0a1526;
+  border-color: var(--surface-border);
+  background: #0e1c30;
   min-height: 44px;
 }
 .app-shell .directory-page .entity-contract-filters .button {
@@ -424,8 +426,8 @@
   border-radius: 11px;
 }
 .app-shell .directory-page .entity-filter-note {
-  background: #10234870;
-  border-block: 1px solid #3b5a8438;
+  background: var(--surface-inset);
+  border-block: 1px solid var(--surface-border);
   line-height: 1.8;
   flex-wrap: wrap;
 }
@@ -435,9 +437,9 @@
 .app-shell .directory-page .entity-skeleton-row {
   padding: 22px 18px;
   margin: 9px 0;
-  border: 1px solid #253a5b73;
+  border: 1px solid var(--surface-border);
   border-radius: 15px;
-  background: #0a16288c;
+  background: var(--surface-row);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -542,7 +544,7 @@
   }
   45% {
     transform: translateY(-2px) rotate(-7deg);
-    filter: drop-shadow(0 0 5px #89b3ff80);
+    filter: drop-shadow(0 0 5px #a2bae680);
   }
 }
 @keyframes iz2-directory-arrow {
@@ -555,8 +557,19 @@
   }
 }
 @media (min-width: 901px) {
+  .app-shell
+    .entity-page.directory-page
+    .entity-table
+    tbody
+    tr:is(:hover, :focus-within) {
+    background: transparent;
+  }
   .app-shell .directory-page .entity-table td.directory-action-cell {
-    padding-inline: 16px 34px;
+    padding-inline: 10px 20px;
+    text-align: right;
+  }
+  .app-shell .directory-page .directory-action-cell .entity-row-open {
+    margin-inline-start: auto;
   }
 }
 @media (max-width: 1100px) {
@@ -599,13 +612,13 @@
     position: relative;
     margin-bottom: 12px;
     padding: 21px;
-    border: 1px solid #2c436a;
+    border: 1px solid var(--surface-border);
     border-radius: 17px;
-    background: linear-gradient(145deg, #10243f99, #071121cc);
+    background: var(--surface-row);
   }
   .app-shell .directory-page .entity-table tbody tr:is(:hover, :focus-within) {
-    border-color: #638acd;
-    background: linear-gradient(145deg, #163264ab, #0a1730cc);
+    border-color: var(--surface-border-hover);
+    background: var(--surface-row-hover);
   }
   .app-shell .directory-page .entity-table tbody td,
   .app-shell .directory-page .entity-table tbody tr:last-child td {
@@ -638,13 +651,13 @@
     content: attr(data-label);
     display: block;
     font: 9px var(--font-mono, monospace);
-    color: #8ba5cc;
+    color: #99a8be;
     margin-bottom: 8px;
   }
   .app-shell .directory-page .entity-table td:first-child {
     grid-column: 1 / -1;
     padding-bottom: 17px;
-    border-bottom: 1px solid #3a52783d;
+    border-bottom: 1px solid #46546c3d;
   }
   .app-shell .directory-page .entity-table td:first-child::before {
     display: none;

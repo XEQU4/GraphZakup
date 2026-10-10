@@ -29,8 +29,8 @@
   background: linear-gradient(
     115deg,
     transparent 32%,
-    #5b90ff24 43%,
-    #c3dcff36 49%,
+    #7d9ddd24 43%,
+    #cfdef336 49%,
     transparent 60%
   );
   background-size: 230% 100%;
@@ -41,10 +41,10 @@
   :is(.button, .icon-button)::after {
   background: linear-gradient(
     transparent 28%,
-    #7aa5ff32 29%,
+    #97afe232 29%,
     transparent 31%,
     transparent 70%,
-    #3f79ff38 71%,
+    #6789d738 71%,
     transparent 73%
   );
 }
@@ -54,16 +54,16 @@
     [aria-busy="true"]
   ):is(:hover, :focus-visible, :active) {
   transform: none;
-  border-color: #739aff;
+  border-color: #91a7e1;
   box-shadow:
-    0 0 0 1px #4179ff21,
-    0 0 20px #2858d52b,
-    inset 0 1px 0 #adcaff25;
+    0 0 0 1px #6a8ad621,
+    0 0 20px #4c69b12b,
+    inset 0 1px 0 #bed0ee25;
 }
 
 :is(.app-shell, .login-dialog, .dialog-content, .mobile-drawer)
   :is(.button, .icon-button):focus-visible {
-  outline: 2px solid var(--blue, #4d83ff);
+  outline: 2px solid var(--blue, #7391d9);
   outline-offset: 3px;
 }
 
@@ -91,9 +91,9 @@
 .app-shell .clusters-page .cluster-search {
   min-height: 58px;
   padding: 6px 10px;
-  border: 1px solid #28446b;
-  background: #071225;
-  box-shadow: inset 0 1px 0 #bad4ff0b;
+  border: 1px solid #36465d;
+  background: #0e131e;
+  box-shadow: inset 0 1px 0 #c9d7f00b;
 }
 
 .app-shell
@@ -124,9 +124,9 @@
     .graph-search-input
   )::before {
   inset: -1px;
-  border: 1px solid #739aff;
+  border: 1px solid #91a7e1;
   border-radius: inherit;
-  box-shadow: 0 0 15px #376aff24;
+  box-shadow: 0 0 15px #617ed524;
 }
 
 .app-shell
@@ -141,8 +141,8 @@
   background: linear-gradient(
     90deg,
     transparent,
-    #a9cbff,
-    #457bff,
+    #bccfec,
+    #6d8cd7,
     transparent
   );
   background-repeat: no-repeat;
@@ -154,10 +154,10 @@
   :is(.global-search, .entity-search, .cluster-search, .graph-search-input):not(
     :has(input:disabled)
   ):not([aria-busy="true"]):focus-within {
-  border-color: var(--blue, #4d83ff);
+  border-color: var(--blue, #7391d9);
   box-shadow:
-    0 0 0 2px #4d83ff2d,
-    0 0 22px #2c5dce1f;
+    0 0 0 2px #7391d92d,
+    0 0 22px #4f6aab1f;
 }
 
 .app-shell
@@ -165,7 +165,7 @@
     :has(input:disabled)
   ):not([aria-busy="true"]):focus-within
   > svg {
-  color: #a9c5ff;
+  color: #bcccec;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -254,12 +254,12 @@
   18% {
     filter: blur(0.18px);
     text-shadow:
-      -0.5px 0 #548cff66,
-      0.5px 0 #bdd6ff4d;
+      -0.5px 0 #7999da66,
+      0.5px 0 #cbd9f14d;
   }
   32% {
     filter: blur(0.08px);
-    text-shadow: 0.5px 0 #548cff38;
+    text-shadow: 0.5px 0 #7999da38;
   }
 }
 
@@ -349,7 +349,7 @@
     filter: none;
   }
   35% {
-    filter: drop-shadow(0 0 3px #6c9cff8c);
+    filter: drop-shadow(0 0 3px #8ba6e08c);
   }
 }
 

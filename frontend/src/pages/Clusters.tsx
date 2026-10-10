@@ -1,3 +1,4 @@
+import { useI18n, translate } from "../i18n";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { TechHeading } from "../components/motion/TechHeading";
@@ -42,29 +43,30 @@ const orderings = {
 };
 
 function ConnectionSummary({ cluster }: { cluster: Cluster }) {
+  useI18n();
   const directory = cluster.directory;
   const reason = directory?.primary_reason;
   if (!reason) {
     return (
       <p className="group-card-reason">
-        Open the saved graph to inspect its connections.
+        {" "}
+        {translate("Open the saved graph to inspect its connections.")}{" "}
       </p>
     );
   }
   const count = formatCount(reason.company_count);
-  const subject =
-    reason.company_count === 1 ? "company record" : "company records";
   const detail: Record<ClusterConnectionType, string> = {
-    director: "have shared director connections",
-    owner: "have shared owner connections",
-    address: "have shared address connections",
-    phone: "have shared phone connections",
-    email: "have shared email connections",
-    mixed_roles: "connect through verified people in different roles",
+    director: "{count} company records have shared director connections.",
+    owner: "{count} company records have shared owner connections.",
+    address: "{count} company records have shared address connections.",
+    phone: "{count} company records have shared phone connections.",
+    email: "{count} company records have shared email connections.",
+    mixed_roles:
+      "{count} company records connect through verified people in different roles.",
   };
   return (
     <p className="group-card-reason">
-      {count} {subject} {detail[reason.type]}.
+      {translate(detail[reason.type], { count })}
     </p>
   );
 }
@@ -76,6 +78,7 @@ function GroupCard({
   cluster: Cluster;
   directorySearch: string;
 }) {
+  useI18n();
   const directory = cluster.directory;
   const status = directory?.analysis_status ?? "not_calculated";
   const score = directory?.review_priority ?? null;
@@ -96,68 +99,86 @@ function GroupCard({
         </span>
         <div className="group-card-state">
           <Badge tone={cluster.is_active ? "blue" : "neutral"}>
-            {cluster.is_active ? "Active group" : "Archived group"}
+            {cluster.is_active
+              ? translate("Active group")
+              : translate("Archived group")}
           </Badge>
           {status === "stale" && (
             <span className="group-card-stale">
-              <ClockIcon aria-hidden="true" /> Earlier analysis
+              <ClockIcon aria-hidden="true" />{" "}
+              {translate("Earlier analysis")}{" "}
             </span>
           )}
         </div>
       </div>
       <div className="group-card-heading">
-        <span className="group-card-kicker">Recorded connection</span>
+        <span className="group-card-kicker">
+          {translate("Recorded connection")}
+        </span>
         <h2>{clusterDisplayTitle(cluster)}</h2>
         <ConnectionSummary cluster={cluster} />
       </div>
       {directory && directory.reasons.length > 1 && (
         <div
           className="group-card-reasons"
-          aria-label="Recorded relationship types"
+          aria-label={translate("Recorded relationship types")}
         >
           {directory.reasons.map((reason) => (
             <span key={reason.type}>
               <Link2Icon aria-hidden="true" />
-              {reason.label}
+              {translate(relationships[reason.type] ?? reason.label)}
             </span>
           ))}
         </div>
       )}
       <div className="group-card-companies">
-        <span className="group-card-kicker">Companies in this graph</span>
+        <span className="group-card-kicker">
+          {translate("Companies in this graph")}
+        </span>
         {directory?.companies.length ? (
           <ul>
             {directory.companies.map((company) => (
               <li key={company.id}>
                 <span aria-hidden="true" className="group-company-dot" />
-                <span>{company.name || `BIN ${company.bin}`}</span>
+                <span>
+                  {company.name || `${translate("BIN")} ${company.bin}`}
+                </span>
               </li>
             ))}
             {directory.additional_companies > 0 && (
               <li className="group-company-more">
-                + {formatCount(directory.additional_companies)} more{" "}
-                {directory.additional_companies === 1 ? "company" : "companies"}
+                {translate(
+                  directory.additional_companies === 1
+                    ? "+ {count} more company"
+                    : "+ {count} more companies",
+                  { count: formatCount(directory.additional_companies) },
+                )}
               </li>
             )}
           </ul>
         ) : (
           <p className="group-card-unavailable">
-            {formatCount(cluster.company_count)}{" "}
-            {cluster.company_count === 1 ? "company" : "companies"} · Names
-            available in the saved graph
+            {translate(
+              cluster.company_count === 1
+                ? "{count} company · Names available in the saved graph"
+                : "{count} companies · Names available in the saved graph",
+              { count: formatCount(cluster.company_count) },
+            )}
           </p>
         )}
       </div>
       <div className="group-card-metrics">
         <div className="group-card-priority">
-          <span className="group-card-metric-label">Review priority</span>
+          <span className="group-card-metric-label">
+            {translate("Review priority")}
+          </span>
           <strong
             className={
               score === null ? "group-card-missing" : "group-card-number"
             }
           >
             {score === null ? (
-              "Not calculated"
+              translate("Not calculated")
             ) : (
               <>
                 {score}
@@ -174,14 +195,16 @@ function GroupCard({
           )}
           <span className="group-card-metric-note">
             {status === "stale"
-              ? "No score for this saved graph"
+              ? translate("No score for this saved graph")
               : score === null
-                ? "No score for this graph"
-                : "Points for manual review"}
+                ? translate("No score for this graph")
+                : translate("Points for manual review")}
           </span>
         </div>
         <div className="group-card-coverage">
-          <span className="group-card-metric-label">KGD arrears checks</span>
+          <span className="group-card-metric-label">
+            {translate("KGD arrears checks")}
+          </span>
           <strong
             className={
               coverageKnown ? "group-card-number" : "group-card-missing"
@@ -190,31 +213,37 @@ function GroupCard({
             {coverageKnown ? (
               <>
                 {formatCount(checked)}
-                <small>of {formatCount(coverage.total)}</small>
+                <small>
+                  {translate("of {count}", {
+                    count: formatCount(coverage.total),
+                  })}
+                </small>
               </>
             ) : (
-              "Not assessed"
+              translate("Not assessed")
             )}
           </strong>
           <span className="group-card-metric-note">
             {coverageKnown ? (
               coverage.status === "checked" ? (
                 <>
-                  <CheckCircledIcon aria-hidden="true" />
-                  Usable checks at this date
+                  <CheckCircledIcon aria-hidden="true" />{" "}
+                  {translate("Usable checks at this date")}{" "}
                 </>
               ) : checked === 0 ? (
-                "No usable checks at this date"
+                translate("No usable checks at this date")
               ) : (
-                "Some companies lack a usable check"
+                translate("Some companies lack a usable check")
               )
             ) : (
-              "No saved coverage available"
+              translate("No saved coverage available")
             )}
           </span>
           {coverageKnown && (
             <span className="group-card-coverage-date">
-              At analysis date · {formatDate(coverage.as_of)}
+              {translate("At analysis date · {date}", {
+                date: formatDate(coverage.as_of),
+              })}
             </span>
           )}
         </div>
@@ -223,17 +252,22 @@ function GroupCard({
         <div>
           <span>
             {cluster.current_snapshot
-              ? `Graph v${cluster.current_snapshot.version}`
-              : "No saved graph"}
+              ? translate("Graph v{version}", {
+                  version: cluster.current_snapshot.version,
+                })
+              : translate("No saved graph")}
           </span>
           <span>
             {evidenceDate
-              ? `Evidence · ${formatDate(evidenceDate)}`
-              : "Evidence date not recorded"}
+              ? translate("Evidence · {date}", {
+                  date: formatDate(evidenceDate),
+                })
+              : translate("Evidence date not recorded")}
           </span>
         </div>
         <span className="group-card-open">
-          Explore <ArrowRightIcon aria-hidden="true" />
+          {" "}
+          {translate("Explore")} <ArrowRightIcon aria-hidden="true" />
         </span>
       </div>
     </BorderGlowLink>
@@ -241,6 +275,7 @@ function GroupCard({
 }
 
 export function Clusters() {
+  useI18n();
   const [params, setParams] = useSearchParams();
   const search = params.get("search") ?? "";
   const [draft, setDraft] = useState(search);
@@ -281,15 +316,22 @@ export function Clusters() {
   };
   const filters = [
     ...(search
-      ? [{ key: "search", label: `Search: ${search}`, reset: "" }]
+      ? [
+          {
+            key: "search",
+            label: translate("Search: {query}", { query: search }),
+            reset: "",
+          },
+        ]
       : []),
     ...(relationship
       ? [
           {
             key: "relationship",
-            label:
+            label: translate(
               relationships[relationship as ClusterConnectionType] ??
-              relationship,
+                relationship,
+            ),
             reset: "",
           },
         ]
@@ -298,7 +340,11 @@ export function Clusters() {
       ? [
           {
             key: "coverage",
-            label: `KGD: ${coverages[coverage as keyof typeof coverages] ?? coverage}`,
+            label: translate("KGD: {coverage}", {
+              coverage: translate(
+                coverages[coverage as keyof typeof coverages] ?? coverage,
+              ),
+            }),
             reset: "",
           },
         ]
@@ -307,7 +353,7 @@ export function Clusters() {
       ? [
           {
             key: "minimum_review_priority",
-            label: `Priority: ${minimum}+`,
+            label: translate("Priority: {minimum}+", { minimum }),
             reset: "",
           },
         ]
@@ -316,7 +362,7 @@ export function Clusters() {
       ? [
           {
             key: "active",
-            label: "Archived groups",
+            label: translate("Archived groups"),
             reset: "",
           },
         ]
@@ -325,7 +371,11 @@ export function Clusters() {
       ? [
           {
             key: "ordering",
-            label: `Sort: ${orderings[ordering as keyof typeof orderings] ?? ordering}`,
+            label: translate("Sort: {ordering}", {
+              ordering: translate(
+                orderings[ordering as keyof typeof orderings] ?? ordering,
+              ),
+            }),
             reset: "",
           },
         ]
@@ -338,11 +388,15 @@ export function Clusters() {
     <div className="clusters-page group-directory">
       <header className="page-head group-directory-head">
         <div>
-          <span className="eyebrow">Relationship intelligence</span>
-          <TechHeading as="h1" text="Follow the connection." />
+          <span className="eyebrow">
+            {translate("Relationship intelligence")}
+          </span>
+          <TechHeading as="h1" text={translate("Follow the connection.")} />
           <p>
-            See why companies are grouped, what deserves a closer look and which
-            checks are still missing.
+            {" "}
+            {translate(
+              "See why companies are grouped, what deserves a closer look and which checks are still missing.",
+            )}{" "}
           </p>
         </div>
         <span className="group-directory-head-mark" aria-hidden="true">
@@ -351,7 +405,7 @@ export function Clusters() {
       </header>
       <section
         className="panel group-directory-tools"
-        aria-label="Filter relationship groups"
+        aria-label={translate("Filter relationship groups")}
       >
         <form
           className="group-directory-search"
@@ -362,7 +416,8 @@ export function Clusters() {
           }}
         >
           <label className="sr-only" htmlFor="group-directory-search">
-            Search groups by company, BIN or connection
+            {" "}
+            {translate("Search groups by company, BIN or connection")}{" "}
           </label>
           <MagnifyingGlassIcon aria-hidden="true" />
           <input
@@ -370,83 +425,89 @@ export function Clusters() {
             type="search"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder="Company name, BIN or connection"
+            placeholder={translate("Company name, BIN or connection")}
             maxLength={100}
             autoComplete="off"
           />
           <button className="button button-secondary" type="submit">
-            Search <ArrowRightIcon aria-hidden="true" />
+            {" "}
+            {translate("Search")} <ArrowRightIcon aria-hidden="true" />
           </button>
         </form>
         <div className="group-directory-filters">
           <label>
-            Connection
+            {" "}
+            {translate("Connection")}{" "}
             <select
-              aria-label="Connection"
+              aria-label={translate("Connection")}
               value={relationship}
               onChange={(event) =>
                 update({ relationship: event.target.value, page: 1 })
               }
             >
-              <option value="">Any connection</option>
+              <option value="">{translate("Any connection")}</option>
               {Object.entries(relationships).map(([value, label]) => (
                 <option key={value} value={value}>
-                  {label}
+                  {translate(label)}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            Saved KGD coverage
+            {" "}
+            {translate("Saved KGD coverage")}{" "}
             <select
-              aria-label="Saved KGD coverage"
+              aria-label={translate("Saved KGD coverage")}
               value={coverage}
               onChange={(event) =>
                 update({ coverage: event.target.value, page: 1 })
               }
             >
-              <option value="">Any coverage</option>
+              <option value="">{translate("Any coverage")}</option>
               {Object.entries(coverages).map(([value, label]) => (
                 <option key={value} value={value}>
-                  {label}
+                  {translate(label)}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            Minimum priority
+            {" "}
+            {translate("Minimum priority")}{" "}
             <select
-              aria-label="Minimum priority"
+              aria-label={translate("Minimum priority")}
               value={minimum}
               onChange={(event) =>
                 update({ minimum_review_priority: event.target.value, page: 1 })
               }
             >
-              <option value="">Any priority</option>
+              <option value="">{translate("Any priority")}</option>
               {[5, 10, 25, 50, 75].map((value) => (
                 <option key={value} value={value}>
-                  {value}+ points
+                  {translate("{count}+ points", { count: value })}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            Group state
+            {" "}
+            {translate("Group state")}{" "}
             <select
-              aria-label="Group state"
+              aria-label={translate("Group state")}
               value={active}
               onChange={(event) =>
                 update({ active: event.target.value, page: 1 })
               }
             >
-              <option value="true">Active</option>
-              <option value="false">Archived</option>
+              <option value="true">{translate("Active")}</option>
+              <option value="false">{translate("Archived")}</option>
             </select>
           </label>
           <label>
-            Sort by
+            {" "}
+            {translate("Sort by")}{" "}
             <select
-              aria-label="Sort by"
+              aria-label={translate("Sort by")}
               value={ordering}
               onChange={(event) =>
                 update({ ordering: event.target.value, page: 1 })
@@ -454,21 +515,26 @@ export function Clusters() {
             >
               {Object.entries(orderings).map(([value, label]) => (
                 <option key={value} value={value}>
-                  {label}
+                  {translate(label)}
                 </option>
               ))}
             </select>
           </label>
         </div>
         {hasFilters && (
-          <div className="group-directory-active" aria-label="Applied filters">
+          <div
+            className="group-directory-active"
+            aria-label={translate("Applied filters")}
+          >
             <MixerHorizontalIcon aria-hidden="true" />
             {filters.map((filter) => (
               <button
                 type="button"
                 className="group-filter-chip"
                 key={filter.key}
-                aria-label={`Remove ${filter.label}`}
+                aria-label={translate("Remove {filter}", {
+                  filter: filter.label,
+                })}
                 onClick={() => update({ [filter.key]: filter.reset, page: 1 })}
               >
                 {filter.label}
@@ -480,7 +546,8 @@ export function Clusters() {
               className="group-filter-reset"
               onClick={reset}
             >
-              Reset filters
+              {" "}
+              {translate("Reset filters")}{" "}
             </button>
           </div>
         )}
@@ -488,24 +555,27 @@ export function Clusters() {
       <div className="group-directory-results-head">
         <div aria-live="polite" role="status">
           <h2>
-            Relationship groups{" "}
+            {" "}
+            {translate("Relationship groups")}{" "}
             {records.data && !records.error && (
               <span>{formatCount(records.data.count)}</span>
             )}
           </h2>
           <p>
             {records.loading
-              ? "Reading saved groups…"
+              ? translate("Reading saved groups…")
               : records.error
-                ? "Saved results unavailable"
+                ? translate("Saved results unavailable")
                 : hasFilters
-                  ? "Matching your current filters"
-                  : "Saved connections, ordered for review"}
+                  ? translate("Matching your current filters")
+                  : translate("Saved connections, ordered for review")}
           </p>
         </div>
         <span className="group-directory-evidence-note">
-          <InfoCircledIcon aria-hidden="true" />
-          Shared contacts alone do not establish common control.
+          <InfoCircledIcon aria-hidden="true" />{" "}
+          {translate(
+            "Shared contacts alone do not establish common control.",
+          )}{" "}
         </span>
       </div>
       <PageState
@@ -515,28 +585,33 @@ export function Clusters() {
         empty={empty}
         emptyTitle={
           hasFilters
-            ? "No groups match these filters"
+            ? translate("No groups match these filters")
             : active === "true"
-              ? "No active relationship groups saved"
-              : "No relationship groups saved"
+              ? translate("No active relationship groups saved")
+              : translate("No relationship groups saved")
         }
         emptyMessage={
           hasFilters ? (
             <>
               <p>
-                Try another company or broaden the connection and coverage
-                filters.
+                {" "}
+                {translate(
+                  "Try another company or broaden the connection and coverage filters.",
+                )}{" "}
               </p>
               <button
                 type="button"
                 className="button button-secondary"
                 onClick={reset}
               >
-                Reset filters
+                {" "}
+                {translate("Reset filters")}{" "}
               </button>
             </>
           ) : (
-            "Groups appear here after an authorised analysis saves a company connection."
+            translate(
+              "Groups appear here after an authorised analysis saves a company connection.",
+            )
           )
         }
       />
@@ -546,12 +621,13 @@ export function Clusters() {
           className="button button-secondary"
           onClick={() => update({ page: 1 })}
         >
-          Return to first page
+          {" "}
+          {translate("Return to first page")}{" "}
         </button>
       )}
       {records.data && !records.error && !empty && (
         <section
-          aria-label="Relationship group results"
+          aria-label={translate("Relationship group results")}
           aria-busy={records.loading}
         >
           <div className="group-directory-grid">
@@ -572,10 +648,10 @@ export function Clusters() {
         </section>
       )}
       <p className="group-directory-note">
-        Review priority is a rule-based index for manual review, not a
-        probability of wrongdoing. KGD coverage describes usable arrears checks
-        at the saved analysis date; it does not cover every source or confirm
-        the absence of debt.
+        {" "}
+        {translate(
+          "Review priority is a rule-based index for manual review, not a probability of wrongdoing. KGD coverage describes usable arrears checks at the saved analysis date; it does not cover every source or confirm the absence of debt.",
+        )}{" "}
       </p>
     </div>
   );

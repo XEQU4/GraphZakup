@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useI18n } from "../i18n";
+import { useState, type ReactNode } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeftIcon,
@@ -22,16 +23,18 @@ import {
   validPage,
 } from "./Companies";
 import "./entities.css";
+import { FactEvidence, RelatedGroups, sourceName } from "./EntityEvidence";
 
 const missing = "Not recorded";
 
 export function ExternalSource({
   url,
-  children = "Open source",
+  children,
 }: {
   url: string | null | undefined;
   children?: ReactNode;
 }) {
+  const { t } = useI18n();
   const safe = safeHttpUrl(url);
   return safe ? (
     <a
@@ -40,33 +43,43 @@ export function ExternalSource({
       target="_blank"
       rel="noopener noreferrer"
     >
-      {children}
+      {children ?? t("Open source")}
       <ArrowTopRightIcon aria-hidden="true" />
     </a>
   ) : null;
 }
 
 function KgdCheck({ check }: { check: KgdSummary }) {
+  const { t } = useI18n();
   const arrears =
     check.source.includes("arrears") || check.source.includes("debt");
   const result = check.last_successful;
   const labels = {
-    success: result?.stale ? "Dated result" : "Saved success",
-    not_found: "No record returned",
-    unavailable: "Source unavailable",
-    invalid: "Unusable result",
-    not_checked: "Not checked",
+    success: result?.stale ? t("Past result retained") : t("Successful check"),
+    not_found: t("No record returned"),
+    unavailable: t("Source unavailable"),
+    invalid: t("Unusable result"),
+    not_checked: t("Not checked"),
   };
   return (
     <div className="entity-kgd-check">
       <div className="entity-kgd-top">
-        <h3>{arrears ? "Company tax arrears" : "Taxpayer registration"}</h3>
+        <h3>
+          {arrears ? t("Company tax arrears") : t("Taxpayer registration")}
+        </h3>
         <span
           className={`badge ${check.status === "success" && !result?.stale ? "entity-badge-success" : "entity-badge-amber"}`}
         >
           {labels[check.status]}
         </span>
       </div>
+      <p className="entity-check-purpose">
+        {arrears
+          ? t("Amounts returned by the separate tax-debt service.")
+          : t(
+              "Taxpayer identity and registration details. This check does not establish the absence of debt.",
+            )}
+      </p>
       {result ? (
         <>
           {arrears && result.total_arrears !== undefined ? (
@@ -76,72 +89,78 @@ function KgdCheck({ check }: { check: KgdSummary }) {
                 <small>KZT</small>
               </p>
               <span className="muted" style={{ fontSize: 11 }}>
-                Total in the last successful check
+                {t("Total in the last successful check")}
               </span>
             </>
           ) : (
             <p>
-              {result.taxpayer_name || "Saved registration result"}
+              {result.taxpayer_name || t("Saved registration result")}
               {result.taxpayer_type && (
                 <span className="entity-subline">
-                  Entity type: {result.taxpayer_type}
+                  {t("Entity type:")} {result.taxpayer_type}
                 </span>
               )}
             </p>
           )}
           <div className="entity-kgd-meta">
-            <span>Retrieved {formatDate(result.observed_at)}</span>
+            <span>
+              {t("Retrieved")} {formatDate(result.observed_at)}
+            </span>
             {result.reporting_dates?.length ? (
               <span>
-                Reporting dates:{" "}
+                {t("Reporting dates:")}{" "}
                 {result.reporting_dates
                   .map((date) => formatDate(date))
                   .join(", ")}
               </span>
             ) : (
-              arrears && <span>Source reporting date not available</span>
+              arrears && <span>{t("Source reporting date not available")}</span>
             )}
             {!arrears && (
               <span>
-                Registration:{" "}
+                {t("Registration:")}{" "}
                 {result.registration_begin
                   ? formatDate(result.registration_begin)
-                  : "start unknown"}
+                  : t("start unknown")}
                 {result.registration_end
-                  ? ` to ${formatDate(result.registration_end)}`
-                  : " · end not recorded"}
+                  ? t(" to {date}", {
+                      date: formatDate(result.registration_end),
+                    })
+                  : t(" · end not recorded")}
               </span>
             )}
           </div>
           {result.stale && (
             <p className="muted">
-              This retained result does not establish the company’s current
-              status.
+              {t(
+                "This retained result does not establish the company’s current status.",
+              )}
             </p>
           )}
           {check.status !== "success" && (
             <p className="muted">
-              The latest attempt did not produce a usable result. The earlier
-              successful check is retained above.
+              {t(
+                "The latest attempt did not produce a usable result. The earlier successful check is retained above.",
+              )}
             </p>
           )}
         </>
       ) : (
         <p className="muted">
           {check.status === "not_checked"
-            ? "No check is saved for this company."
+            ? t("No check is saved for this company.")
             : check.status === "not_found"
-              ? "The source did not return a matching taxpayer record."
-              : "No identity-validated successful result is available."}{" "}
-          {arrears && "Current arrears remain unknown."}
+              ? t("The source did not return a matching taxpayer record.")
+              : t("No identity-validated successful result is available.")}{" "}
+          {arrears && t("Current arrears remain unknown.")}
         </p>
       )}
       {check.latest_observed_at && (
         <div className="entity-kgd-meta">
-          Latest attempt: {formatDate(check.latest_observed_at)}
+          {t("Latest attempt:")} {formatDate(check.latest_observed_at)}
         </div>
       )}
-      <ExternalSource url={check.source_url}>KGD source</ExternalSource>
+      <ExternalSource url={check.source_url}>{t("KGD source")}</ExternalSource>
     </div>
   );
 }
@@ -155,33 +174,73 @@ export function RoleSection({
   companyId?: string;
   personId?: string;
 }) {
+  const { t, locale } = useI18n();
   const [params, setParams] = useSearchParams();
   const owner = kind === "ownerships";
   const pageKey = owner ? "owners_page" : "directors_page";
   const page = validPage(params.get(pageKey));
-  const query = new URLSearchParams({ page: String(page), page_size: "10" });
+  const filterKey = owner ? "owners_state" : "directors_state";
+  const defaultRoleState = owner || personId ? "all" : "current";
+  const roleState = ["all", "current", "historical"].includes(
+    params.get(filterKey) || "",
+  )
+    ? params.get(filterKey)!
+    : defaultRoleState;
+  const query = new URLSearchParams({
+    page: String(page),
+    page_size: "10",
+    ordering: "-id",
+  });
+  if (roleState === "current" || roleState === "historical")
+    query.set("is_current", String(roleState === "current"));
   if (companyId) query.set("company_id", companyId);
   if (personId) query.set("person_id", personId);
   const { data, loading, error, reload } = useApi<
     Paginated<Directorship | Ownership>
   >(`${kind}/?${query}`);
+  // Future ownership evidence remains readable, without advertising an empty integration.
+  if (
+    owner &&
+    !error &&
+    (loading || (data?.count === 0 && roleState === "all"))
+  )
+    return null;
   return (
     <section
       className="panel entity-directory entity-role-section"
-      aria-label={owner ? "Ownership records" : "Directorship records"}
+      aria-label={owner ? t("Ownership records") : t("Directorship records")}
+      id={kind}
     >
       <div className="entity-section-head">
         <div>
           <h2>
-            {owner ? "Ownership records" : "Directorship records"}{" "}
+            {owner ? t("Ownership records") : t("Directorship records")}{" "}
             <span className="entity-count">
-              {data?.count.toLocaleString("en-US") ?? "—"}
+              {data?.count.toLocaleString(locale) ?? "—"}
             </span>
           </h2>
           <p className="muted">
-            Saved identities, observed roles, and recorded legal periods.
+            {t(
+              "Recorded roles and their evidence. An observed current role may still have unknown legal dates.",
+            )}
           </p>
         </div>
+        <label className="entity-role-filter">
+          {t("Show roles")}
+          <select
+            value={roleState}
+            onChange={(event) => {
+              const next = new URLSearchParams(params);
+              next.set(filterKey, event.target.value);
+              next.delete(pageKey);
+              setParams(next);
+            }}
+          >
+            <option value="current">{t("Current records")}</option>
+            <option value="historical">{t("Earlier records")}</option>
+            <option value="all">{t("Source history (all records)")}</option>
+          </select>
+        </label>
       </div>
       <EntityState
         loading={loading}
@@ -189,9 +248,13 @@ export function RoleSection({
         empty={!!data && !data.results.length}
         onRetry={reload}
         emptyTitle={
-          owner ? "No ownership records saved" : "No directorship records saved"
+          owner
+            ? t("No ownership records saved")
+            : t("No directorship records saved")
         }
-        emptyText="This is a gap in saved data, not confirmation that no role exists."
+        emptyText={t(
+          "No records match this view. Missing ownership or directorship data does not establish the absence of a role.",
+        )}
       />
       {!loading && !error && !!data?.results.length && (
         <>
@@ -199,17 +262,17 @@ export function RoleSection({
             <table className="data-table entity-table entity-role-table">
               <thead>
                 <tr>
-                  <th scope="col">{personId ? "Company" : "Person"}</th>
-                  <th scope="col">Identity evidence</th>
-                  {owner && <th scope="col">Share</th>}
-                  <th scope="col">Legal period</th>
-                  <th scope="col">Source</th>
+                  <th scope="col">{personId ? t("Company") : t("Person")}</th>
+                  <th scope="col">{t("Identity evidence")}</th>
+                  {owner && <th scope="col">{t("Share")}</th>}
+                  <th scope="col">{t("Legal period")}</th>
+                  <th scope="col">{t("Source")}</th>
                 </tr>
               </thead>
               <tbody>
                 {data.results.map((role) => (
                   <tr key={role.id}>
-                    <td>
+                    <td data-label={personId ? t("Company") : t("Person")}>
                       {personId ? (
                         <Link
                           className="entity-inline-link entity-role-title"
@@ -226,84 +289,87 @@ export function RoleSection({
                         </Link>
                       ) : (
                         <span className="entity-role-title">
-                          {role.observed_name || missing}
+                          {role.observed_name || t(missing)}
                         </span>
                       )}
                       <span className="entity-subline">
                         {personId
-                          ? `BIN ${role.company.bin}`
+                          ? `${t("BIN")} ${role.company.bin}`
                           : role.is_current
-                            ? "Observed as current"
-                            : "Observed as inactive"}
+                            ? t("Observed as current")
+                            : t("Observed as inactive")}
                       </span>
                     </td>
-                    <td>
+                    <td data-label={t("Identity evidence")}>
                       <span
                         className={`badge ${role.identity_verified ? "entity-badge-cyan" : "entity-badge-amber"}`}
                       >
                         {role.identity_verified
-                          ? "Verified identity"
-                          : "Unverified identity"}
+                          ? t("Verified identity")
+                          : t("Unverified identity")}
                       </span>
                       <span className="entity-subline">
                         {role.identity_verified
-                          ? "Supported by identifier evidence"
-                          : "Name alone does not verify identity"}
+                          ? t("Supported by identifier evidence")
+                          : t("Name alone does not verify identity")}
                       </span>
                     </td>
                     {owner && (
-                      <td className="entity-mono">
+                      <td className="entity-mono" data-label={t("Share")}>
                         {"share_percent" in role && role.share_percent !== null
                           ? `${role.share_percent}%`
-                          : "Unknown"}
+                          : t("Unknown")}
                       </td>
                     )}
-                    <td className="entity-period">
+                    <td
+                      className="entity-period"
+                      data-label={t("Legal period")}
+                    >
                       {role.start_date || role.end_date ? (
                         <>
                           {role.start_date
                             ? formatDate(role.start_date)
-                            : "Start unknown"}
+                            : t("Start unknown")}
                           <br />→{" "}
                           {role.end_date
                             ? formatDate(role.end_date)
-                            : "End unknown"}
+                            : t("End unknown")}
                         </>
                       ) : (
-                        "Dates not recorded"
+                        t("Dates not recorded")
                       )}
                       <span className="entity-subline">
                         {role.temporal_status === "in_period"
-                          ? "In recorded period"
+                          ? t("In recorded period")
                           : role.temporal_status === "not_in_period"
-                            ? "Outside recorded period"
+                            ? t("Outside recorded period")
                             : role.temporal_status === "observed_inactive"
-                              ? "Observed inactive"
-                              : "Current applicability unknown"}
+                              ? t("Observed inactive")
+                              : t("Current applicability unknown")}
                       </span>
                     </td>
-                    <td>
+                    <td data-label={t("Source")}>
                       {role.source_reference ? (
                         <>
                           <ExternalSource url={role.source_reference.url}>
-                            {role.source_reference.source || "Source record"}
+                            {sourceName(role.source_reference.source)}
                           </ExternalSource>
                           {!safeHttpUrl(role.source_reference.url) && (
                             <span>
-                              {role.source_reference.source ||
-                                "Saved observation"}
+                              {sourceName(role.source_reference.source)}
                             </span>
                           )}
                           <span className="entity-subline">
-                            Observed{" "}
-                            {formatDate(role.source_reference.observed_at)}
+                            {role.source_reference.source === "legacy"
+                              ? t("Not rechecked · source date unknown")
+                              : `${role.source_reference.status === "success" ? t("Retrieved") : t("Attempted")} ${formatDate(role.source_reference.observed_at)}`}
                           </span>
                         </>
                       ) : (
                         <>
-                          <span>{role.source || "Legacy record"}</span>
+                          <span>{role.source || t("Legacy record")}</span>
                           <span className="entity-subline">
-                            No linked source observation
+                            {t("No linked source observation")}
                           </span>
                         </>
                       )}
@@ -324,8 +390,9 @@ export function RoleSection({
             }}
           />
           <div className="entity-inset-notice">
-            Identity verification and legal role applicability are separate.
-            Missing dates remain unknown.
+            {t(
+              "Identity verification and legal role applicability are separate. Missing dates remain unknown.",
+            )}
           </div>
         </>
       )}
@@ -334,28 +401,47 @@ export function RoleSection({
 }
 
 export function ContractPreview({ companyId }: { companyId: string }) {
+  const { t, locale } = useI18n();
+  const [role, setRole] = useState("supplier");
   const { data, loading, error, reload } = useApi<Paginated<Contract>>(
-    `contracts/?supplier_id=${encodeURIComponent(companyId)}&page_size=5`,
+    `contracts/?${role}_id=${encodeURIComponent(companyId)}&page_size=5`,
   );
   return (
-    <section className="panel entity-directory entity-contract-preview">
+    <section
+      className="panel entity-directory entity-contract-preview"
+      id="contracts"
+    >
       <div className="entity-section-head">
         <div>
           <h2>
-            Supplier contracts{" "}
+            {role === "supplier"
+              ? t("Supplier contracts")
+              : t("Customer contracts")}{" "}
             <span className="entity-count">
-              {data?.count.toLocaleString("en-US") ?? "—"}
+              {data?.count.toLocaleString(locale) ?? "—"}
             </span>
           </h2>
           <p className="muted">
-            Most recent saved contracts for this supplier.
+            {t(
+              "Latest saved contracts by signing date. The catalogue may be incomplete.",
+            )}
           </p>
         </div>
+        <label className="entity-role-filter">
+          {t("Company acts as")}
+          <select
+            value={role}
+            onChange={(event) => setRole(event.target.value)}
+          >
+            <option value="supplier">{t("Supplier")}</option>
+            <option value="customer">{t("Customer")}</option>
+          </select>
+        </label>
         <Link
           className="entity-inline-link"
-          to={`/contracts?supplier_id=${companyId}`}
+          to={`/contracts?${role}_id=${companyId}`}
         >
-          View all <ArrowTopRightIcon />
+          {t("View all")} <ArrowTopRightIcon />
         </Link>
       </div>
       <EntityState
@@ -363,31 +449,63 @@ export function ContractPreview({ companyId }: { companyId: string }) {
         error={error}
         empty={!!data && !data.results.length}
         onRetry={reload}
-        emptyTitle="No supplier contracts saved"
-        emptyText="Contract coverage may be incomplete. Customer contracts can be inspected separately."
+        emptyTitle={
+          role === "supplier"
+            ? t("No supplier contracts saved")
+            : t("No customer contracts saved")
+        }
+        emptyText={t(
+          "Try the other company role. Missing contracts do not establish that the company has never participated.",
+        )}
       />
       {!loading && !error && !!data?.results.length && (
         <div className="table-scroll">
           <table className="data-table entity-table entity-contract-table">
             <thead>
               <tr>
-                <th scope="col">Contract</th>
-                <th scope="col">Customer</th>
-                <th scope="col">Date</th>
-                <th scope="col">Amount, KZT</th>
+                <th scope="col">{t("Contract")}</th>
+                <th scope="col">
+                  {role === "supplier" ? t("Customer") : t("Supplier")}
+                </th>
+                <th scope="col">{t("Date")}</th>
+                <th scope="col">{t("Amount, KZT")}</th>
               </tr>
             </thead>
             <tbody>
               {data.results.map((contract) => (
                 <tr key={contract.id}>
-                  <td className="entity-contract-title">
-                    <strong>{contract.title || "Untitled contract"}</strong>
+                  <td
+                    className="entity-contract-title"
+                    data-label={t("Contract")}
+                  >
+                    <strong>{contract.title || t("Untitled contract")}</strong>
                     <span className="entity-subline entity-mono">
-                      {contract.contract_number || "Number not recorded"}
+                      {contract.contract_number || t("Number not recorded")}
+                    </span>
+                    <ExternalSource url={contract.source_url}>
+                      {t("Procurement source")}
+                    </ExternalSource>
+                    <span className="entity-subline">
+                      {contract.source_observed_at
+                        ? t("Retrieved {date}", {
+                            date: formatDate(contract.source_observed_at),
+                          })
+                        : t("Source retrieval date not verified")}
                     </span>
                   </td>
-                  <td>
-                    {contract.customer ? (
+                  <td
+                    data-label={
+                      role === "supplier" ? t("Customer") : t("Supplier")
+                    }
+                  >
+                    {role === "customer" ? (
+                      <Link
+                        className="entity-inline-link"
+                        to={`/companies/${contract.supplier.id}`}
+                      >
+                        {contract.supplier.name}
+                      </Link>
+                    ) : contract.customer ? (
                       <Link
                         className="entity-inline-link"
                         to={`/companies/${contract.customer.id}`}
@@ -395,11 +513,13 @@ export function ContractPreview({ companyId }: { companyId: string }) {
                         {contract.customer.name}
                       </Link>
                     ) : (
-                      contract.customer_name || "Not recorded"
+                      contract.customer_name || t("Not recorded")
                     )}
                   </td>
-                  <td>{formatDate(contract.contract_date)}</td>
-                  <td className="entity-money">
+                  <td data-label={t("Signing date")}>
+                    {formatDate(contract.contract_date)}
+                  </td>
+                  <td className="entity-money" data-label={t("Amount, KZT")}>
                     {formatMoney(contract.amount)}
                   </td>
                 </tr>
@@ -413,6 +533,7 @@ export function ContractPreview({ companyId }: { companyId: string }) {
 }
 
 export function CompanyDetail() {
+  const { t } = useI18n();
   const { id = "" } = useParams();
   const validId = /^[1-9]\d*$/.test(id);
   const {
@@ -425,16 +546,18 @@ export function CompanyDetail() {
     return (
       <div className="entity-page">
         <Link className="breadcrumb" to="/companies">
-          <ArrowLeftIcon /> Companies
+          <ArrowLeftIcon /> {t("Companies")}
         </Link>
         <section className="panel">
           <EntityState
             loading={loading}
-            error={error || (!validId ? "This company link is invalid." : null)}
+            error={
+              error || (!validId ? t("This company link is invalid.") : null)
+            }
             empty={!loading && !error && !company}
             onRetry={reload}
-            emptyTitle="Company not available"
-            emptyText="This saved company record could not be found."
+            emptyTitle={t("Company not available")}
+            emptyText={t("This saved company record could not be found.")}
           />
         </section>
       </div>
@@ -442,109 +565,198 @@ export function CompanyDetail() {
   return (
     <div className="entity-page">
       <Link className="breadcrumb" to="/companies">
-        <ArrowLeftIcon /> Companies
+        <ArrowLeftIcon /> {t("Companies")}
       </Link>
       <header className="page-head entity-detail-head">
         <div>
-          <span className="eyebrow">COMPANY PROFILE</span>
-          <h1>{company.name || "Unnamed company"}</h1>
+          <span className="eyebrow">{t("COMPANY PROFILE")}</span>
+          <h1>{company.name || t("Unnamed company")}</h1>
           <div className="entity-identity-row">
-            <span className="entity-mono">BIN {company.bin || missing}</span>
+            <span className="entity-mono">
+              {t("BIN")} {company.bin || t(missing)}
+            </span>
             <CompanyRoles company={company} />
           </div>
+          <FactEvidence
+            evidence={company.field_evidence?.find(
+              (item) => item.field === "name",
+            )}
+          />
           <div className="entity-actions">
             <Link
               className="button button-primary"
               to={`/contracts?supplier_id=${id}`}
             >
-              <FileTextIcon /> Supplier contracts
+              <FileTextIcon /> {t("Supplier contracts")}
             </Link>
             {company.is_customer && (
               <Link className="button" to={`/contracts?customer_id=${id}`}>
-                Customer contracts
+                {t("Customer contracts")}
               </Link>
             )}
             {company.website && (
               <ExternalSource url={company.website}>
-                Company website
+                {t("Company website")}
               </ExternalSource>
             )}
           </div>
         </div>
       </header>
+      <nav className="entity-section-nav" aria-label={t("Company sections")}>
+        <a href="#company-facts">{t("Company facts")}</a>
+        <a href="#tax-checks">{t("KGD checks")}</a>
+        <a href="#related-groups">{t("Related groups")}</a>
+        <a href="#directorships">{t("People & roles")}</a>
+        <a href="#contracts">{t("Contracts")}</a>
+      </nav>
       <div className="entity-detail-grid">
-        <section className="panel entity-detail-panel">
-          <h2>Registry information</h2>
+        <section className="panel entity-detail-panel" id="company-facts">
+          <span className="eyebrow">{t("PROFILE EVIDENCE")}</span>
+          <h2>{t("Company facts")}</h2>
+          <p className="entity-section-intro">
+            {t(
+              "Saved values with their sources and retrieval dates. Fields without a saved value are omitted; missing information has not been verified.",
+            )}
+          </p>
           <dl className="entity-fact-grid">
             {[
-              ["Registration date", formatDate(company.registration_date)],
-              ["Company status", company.company_status || missing],
-              ["Region", company.region || missing],
-              ["City", company.city || missing],
-              ["Address", company.address || missing],
-              ["OKED", company.oked || missing],
-              ["Phone", company.phone || missing],
-              ["Email", company.email || missing],
-              ["Company size", company.company_size || missing],
-              ["Economic sector", company.economic_sector || missing],
-            ].map(([label, value]) => (
-              <div key={label}>
-                <dt>{label}</dt>
-                <dd>{value}</dd>
-              </div>
-            ))}
+              [
+                "registration_date",
+                t("Registration date"),
+                company.registration_date
+                  ? formatDate(company.registration_date)
+                  : missing,
+              ],
+              [
+                "company_status",
+                t("Company status"),
+                company.company_status || missing,
+              ],
+              ["region", t("Region"), company.region || missing],
+              ["city", t("City"), company.city || missing],
+              ["address", t("Address"), company.address || missing],
+              ["oked", t("OKED"), company.oked || missing],
+              ["phone", t("Phone"), company.phone || missing],
+              ["email", t("Email"), company.email || missing],
+              [
+                "company_size",
+                t("Company size"),
+                company.company_size || missing,
+              ],
+              [
+                "economic_sector",
+                t("Economic sector"),
+                company.economic_sector || missing,
+              ],
+            ]
+              .filter(([, , value]) => value !== missing)
+              .map(([field, label, value]) => (
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd>
+                    {value}
+                    <FactEvidence
+                      evidence={company.field_evidence?.find(
+                        (item) => item.field === field,
+                      )}
+                      hasValue={value !== missing}
+                    />
+                  </dd>
+                </div>
+              ))}
           </dl>
+          {![
+            company.registration_date,
+            company.company_status,
+            company.region,
+            company.city,
+            company.address,
+            company.oked,
+            company.phone,
+            company.email,
+            company.company_size,
+            company.economic_sector,
+          ].some(Boolean) && (
+            <p className="muted">
+              {t(
+                "Only basic identification is saved. No profile details are available yet.",
+              )}
+            </p>
+          )}
           {company.description && (
-            <p className="entity-description">{company.description}</p>
+            <div className="entity-description">
+              <p>{company.description}</p>
+              <FactEvidence
+                evidence={company.field_evidence?.find(
+                  (item) => item.field === "description",
+                )}
+              />
+            </div>
           )}
           <details style={{ marginTop: 24 }}>
             <summary
               className="muted"
               style={{ fontSize: 12, cursor: "pointer" }}
             >
-              Record metadata
+              {t("Record metadata")}
             </summary>
             <div className="entity-kgd-meta">
               <span>
-                Saved {formatDate(company.created_at)} · Updated{" "}
+                {t("Saved")} {formatDate(company.created_at)} {t("· Updated")}{" "}
                 {formatDate(company.updated_at)}
               </span>
               <span>
-                Legacy index: {company.legacy_risk_score}. An uncalibrated
-                historical value, not a probability of wrongdoing.
+                {t("Database timestamps are not source verification dates.")}
               </span>
               {company.adata_updated_at && (
                 <span>
-                  Adata update: {formatDate(company.adata_updated_at)}
+                  {t("Adata update:")} {formatDate(company.adata_updated_at)}
                 </span>
               )}
             </div>
           </details>
         </section>
-        <section className="panel entity-detail-panel">
-          <h2>Saved KGD checks</h2>
+        <section className="panel entity-detail-panel" id="tax-checks">
+          <span className="eyebrow">{t("TWO SEPARATE CHECKS")}</span>
+          <h2>{t("Saved KGD checks")}</h2>
           {company.kgd_checks.length ? (
             company.kgd_checks.map((check) => (
               <KgdCheck key={check.source} check={check} />
             ))
           ) : (
             <p className="muted">
-              No KGD check is saved. Current tax arrears and registration status
-              remain unknown.
+              {t(
+                "No KGD check is saved. Current tax arrears and registration status remain unknown.",
+              )}
             </p>
           )}
         </section>
       </div>
+      <RelatedGroups key={`company-${id}`} companyId={id} />
       <div className="entity-history-note">
         <InfoCircledIcon />
         <span>
-          This profile reads saved records. A company’s arrears belong to the
-          company and are not assigned to its directors or owners.
+          {t(
+            "This profile reads saved records. A company’s arrears belong to the company and are not assigned to its directors or owners.",
+          )}
         </span>
       </div>
       <RoleSection kind="directorships" companyId={id} />
       <RoleSection kind="ownerships" companyId={id} />
-      <ContractPreview companyId={id} />
+      <details className="entity-coverage-note">
+        <summary>{t("What the current sources cover")}</summary>
+        <p>
+          {t(
+            "Goszakup and Adata provide company profiles and recorded directors. The current collectors do not establish ownership or ownership shares. An ownership section appears only when saved ownership records exist.",
+          )}
+        </p>
+        <p>
+          {t(
+            "KGD registration and company arrears are separate checks. Debt coverage depends on access for the company being checked; registration alone does not establish that it has no debt.",
+          )}
+        </p>
+      </details>
+      <ContractPreview key={id} companyId={id} />
     </div>
   );
 }

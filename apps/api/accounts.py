@@ -141,7 +141,7 @@ class AccountGraphViewList(ApiListView):
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
             return GraphViewState.objects.none()
-        return (GraphViewState.objects.filter(user=self.request.user)
+        return (GraphViewState.objects.filter(user=self.request.user).exclude(payload={})
             .select_related('cluster__current_snapshot', 'snapshot').order_by('-updated_at', '-pk'))
 
 

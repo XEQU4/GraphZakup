@@ -1,3 +1,4 @@
+import { translate as t, useI18n } from "../i18n";
 import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
@@ -27,10 +28,12 @@ import CountUp from "../components/motion/CountUp";
 import GroupGlyph from "../components/motion/GroupGlyph";
 interface Overview {
   company_count: number;
+  checked_company_count: number;
   supplier_count: number;
   customer_count: number;
   contract_count: number;
   people_count: number;
+  current_verified_people_count: number;
   verified_people_count: number;
   active_group_count: number;
   snapshot_count: number;
@@ -51,6 +54,7 @@ function CardLink({
   className: string;
   children: ReactNode;
 }) {
+  useI18n();
   const { surfaceProps } = useSpotlight<HTMLAnchorElement>();
   return (
     <Link
@@ -63,6 +67,7 @@ function CardLink({
   );
 }
 function GroupMotif({ count }: { count: number }) {
+  useI18n();
   return (
     <div className="group-motif" aria-hidden="true">
       <span className="motif-core">
@@ -79,6 +84,7 @@ function GroupMotif({ count }: { count: number }) {
   );
 }
 export default function Home() {
+  const { language } = useI18n();
   const overview = useApi<Overview>("overview/");
   const groups = useApi<Paginated<Cluster>>(
     "clusters/?page_size=3&ordering=-review_priority",
@@ -91,8 +97,8 @@ export default function Home() {
   const stats = [
     {
       label: "Companies",
-      value: data?.company_count,
-      detail: "Suppliers and customers",
+      value: data?.checked_company_count,
+      detail: "Source-checked profiles",
       path: "/companies",
       icon: CubeIcon,
     },
@@ -112,8 +118,8 @@ export default function Home() {
     },
     {
       label: "People",
-      value: data?.people_count,
-      detail: "Recorded identity profiles",
+      value: data?.current_verified_people_count,
+      detail: "Verified identities with current roles",
       path: "/people",
       icon: PersonIcon,
     },
@@ -123,15 +129,16 @@ export default function Home() {
       <div className="overview-heading">
         <div>
           <span className="eyebrow">
-            YOUR PROCUREMENT INTELLIGENCE WORKSPACE
+            {t("YOUR PROCUREMENT INTELLIGENCE WORKSPACE")}
           </span>
-          <TechHeading as="h1" text="Overview." enabled={enabled} />
+          <TechHeading as="h1" text={t("Overview.")} enabled={enabled} />
         </div>
         <span className="date-stamp">
-          {new Intl.DateTimeFormat("en-GB", {
+          {new Intl.DateTimeFormat(language === "ru" ? "ru-RU" : "en-GB", {
             day: "2-digit",
             month: "short",
             year: "numeric",
+            timeZone: "Asia/Qyzylorda",
           })
             .format(new Date())
             .toUpperCase()}
@@ -149,32 +156,33 @@ export default function Home() {
         <BorderBeam enabled={enabled} />
         <div className="hero-copy">
           <div className="hero-label">
-            <span className="label-line" /> EVIDENCE, CONNECTED{" "}
-            <span className="label-index">/ IZ2</span>
+            <span className="label-line" /> {t("EVIDENCE, CONNECTED")}{" "}
+            <span className="label-index">{t("/ IZ2")}</span>
           </div>
           <TechHeading
             as="h2"
             id="hero-title"
-            text={["See the connections.", "Find the context."]}
+            text={[t("See the connections."), t("Find the context.")]}
             enabled={enabled}
           />
           <p>
-            Explore the companies, people and records behind Kazakhstan’s public
-            procurement.
+            {t(
+              "Explore the companies, people and records behind Kazakhstan’s public procurement.",
+            )}
           </p>
           <div className="hero-actions">
             <Link className="button button-primary hero-primary" to="/clusters">
-              Explore relationships <ArrowRightIcon aria-hidden="true" />
+              {t("Explore relationships")} <ArrowRightIcon aria-hidden="true" />
             </Link>
             <Link className="hero-secondary" to="/companies">
-              Find a company <ArrowTopRightIcon aria-hidden="true" />
+              {t("Find a company")} <ArrowTopRightIcon aria-hidden="true" />
             </Link>
           </div>
           <div className="hero-footnote">
             <span className="tiny-line" />
-            <span>SAVED SOURCES</span>
+            <span>{t("SAVED SOURCES")}</span>
             <span className="tiny-plus">+</span>
-            <span>VERIFIABLE CONNECTIONS</span>
+            <span>{t("VERIFIABLE CONNECTIONS")}</span>
           </div>
         </div>
         <div className="hero-visual" aria-hidden="true">
@@ -182,13 +190,13 @@ export default function Home() {
         </div>
         <div className="hero-pills">
           <span>
-            <CheckCircledIcon /> Source-linked evidence
+            <CheckCircledIcon /> {t("Source-linked evidence")}
           </span>
           <span>
-            <LayersIcon /> Saved graph versions
+            <LayersIcon /> {t("Saved graph versions")}
           </span>
           <span>
-            <FileTextIcon /> Clear explanations
+            <FileTextIcon /> {t("Clear explanations")}
           </span>
         </div>
       </motion.section>
@@ -199,7 +207,7 @@ export default function Home() {
       ) : (
         <section
           className="stat-grid overview-stats"
-          aria-label="Saved workspace totals"
+          aria-label={t("Directory totals")}
         >
           {stats.map(({ label, value, detail, path, icon: Icon }, i) => (
             <motion.div
@@ -230,8 +238,8 @@ export default function Home() {
                     <CountUp value={value} />
                   )}
                 </strong>
-                <span className="stat-label">{label}</span>
-                <span className="stat-detail">{detail}</span>
+                <span className="stat-label">{t(label)}</span>
+                <span className="stat-detail">{t(detail)}</span>
               </CardLink>
             </motion.div>
           ))}
@@ -241,11 +249,11 @@ export default function Home() {
         <section className="groups-section">
           <div className="section-head">
             <div>
-              <span className="eyebrow">THE BIGGER PICTURE</span>
-              <h2>Relationship groups</h2>
+              <span className="eyebrow">{t("THE BIGGER PICTURE")}</span>
+              <h2>{t("Relationship groups")}</h2>
             </div>
             <Link className="text-link" to="/clusters">
-              View all <ArrowRightIcon aria-hidden="true" />
+              {t("View all")} <ArrowRightIcon aria-hidden="true" />
             </Link>
           </div>
           <PageState
@@ -253,8 +261,10 @@ export default function Home() {
             error={groups.error}
             onRetry={groups.reload}
             empty={!groups.loading && !groups.data?.count}
-            emptyTitle="No saved relationship groups"
-            emptyMessage="Groups appear here when evidence has been collected and explicitly analysed."
+            emptyTitle={t("No saved relationship groups")}
+            emptyMessage={t(
+              "Groups appear here when evidence has been collected and explicitly analysed.",
+            )}
           />
           {groups.data?.results.length ? (
             <div className="home-group-grid">
@@ -265,17 +275,22 @@ export default function Home() {
                   key={group.uuid}
                 >
                   <div className="group-card-head">
-                    <span className="mono">NETWORK / 0{i + 1}</span>
-                    <Badge tone="blue">{group.company_count} companies</Badge>
+                    <span className="mono">
+                      {t("NETWORK / 0")}
+                      {i + 1}
+                    </span>
+                    <Badge tone="blue">
+                      {t("{count} companies", { count: group.company_count })}
+                    </Badge>
                   </div>
                   <GroupMotif count={group.company_count} />
                   <h3>{group.name}</h3>
                   <div className="group-card-bottom">
                     <span>
-                      <span className="muted">Review priority</span>
+                      <span className="muted">{t("Review priority")}</span>
                       <strong>
                         {group.review_priority === null
-                          ? "Unassessed"
+                          ? t("Unassessed")
                           : group.review_priority + " / 100"}
                       </strong>
                     </span>
@@ -289,7 +304,7 @@ export default function Home() {
           ) : null}
           <div className="section-note">
             <InfoCircledIcon aria-hidden="true" />
-            Connections guide review. They do not establish wrongdoing.
+            {t("Connections guide review. They do not establish wrongdoing.")}
           </div>
         </section>
         <section
@@ -300,54 +315,64 @@ export default function Home() {
             <span className="stat-icon">
               <CheckCircledIcon aria-hidden="true" />
             </span>
-            <Badge>Saved dataset</Badge>
+            <Badge>{t("Saved dataset")}</Badge>
           </div>
-          <h2 id="coverage-title">Evidence coverage</h2>
+          <h2 id="coverage-title">{t("Evidence coverage")}</h2>
           <p className="muted">
-            A clear view of what is recorded and what still needs checking.
+            {t(
+              "A clear view of what is recorded and what still needs checking.",
+            )}
           </p>
           <EvidenceMeter
-            label="Identity verification"
+            label={t("Saved identity records")}
             value={data?.verified_people_count ?? null}
             total={data?.people_count ?? null}
-            description="Verified identifiers in saved person records"
+            description={t(
+              "Verified records out of all saved identity records, including earlier and unverified entries. The People directory shows verified identities with current roles by default.",
+            )}
           />
           <div className="coverage-item">
             <div>
-              <span>KGD company records</span>
+              <span>{t("KGD company records")}</span>
               <strong>
                 {data ? formatCount(data.companies_with_kgd_records) : "—"}
               </strong>
             </div>
             <small>
-              Saved attempts; successful and failed checks remain separate.
+              {t(
+                "Saved attempts; successful and failed checks remain separate.",
+              )}
             </small>
           </div>
           <div className="coverage-item">
             <div>
-              <span>Legacy observations</span>
+              <span>{t("Legacy observations")}</span>
               <strong>
                 {data ? formatCount(data.legacy_observation_count) : "—"}
               </strong>
             </div>
-            <small>Historical records awaiting source verification</small>
+            <small>
+              {t("Historical records awaiting source verification")}
+            </small>
           </div>
           <div className="coverage-footer">
             <span className="orbit-dot" />{" "}
             {data?.latest_saved_observation_at
-              ? "Last saved " + formatDate(data.latest_saved_observation_at)
-              : "No saved observation date"}
+              ? t("Last saved {date}", {
+                  date: formatDate(data.latest_saved_observation_at),
+                })
+              : t("No saved observation date")}
           </div>
         </section>
       </div>
       <section className="recent-records panel">
         <div className="section-head">
           <div>
-            <span className="eyebrow">FROM THE SAVED REGISTRY</span>
-            <h2>Latest contract dates</h2>
+            <span className="eyebrow">{t("FROM THE SAVED REGISTRY")}</span>
+            <h2>{t("Latest contract dates")}</h2>
           </div>
           <Link className="text-link" to="/contracts">
-            All contracts <ArrowRightIcon aria-hidden="true" />
+            {t("All contracts")} <ArrowRightIcon aria-hidden="true" />
           </Link>
         </div>
         <PageState
@@ -355,22 +380,22 @@ export default function Home() {
           error={contracts.error}
           onRetry={contracts.reload}
           empty={!contracts.loading && !contracts.data?.count}
-          emptyTitle="No contracts saved"
+          emptyTitle={t("No contracts saved")}
         />
         {contracts.data?.results.length ? (
           <div
             className="table-scroll home-contract-desktop"
             tabIndex={0}
             role="region"
-            aria-label="Latest contracts"
+            aria-label={t("Latest contracts")}
           >
             <table className="data-table home-contract-table">
               <thead>
                 <tr>
-                  <th>Contract / supplier</th>
-                  <th>Customer</th>
-                  <th>Date</th>
-                  <th aria-label="Open company" />
+                  <th>{t("Contract / supplier")}</th>
+                  <th>{t("Customer")}</th>
+                  <th>{t("Date")}</th>
+                  <th aria-label={t("Open company")} />
                 </tr>
               </thead>
               <tbody>
@@ -392,7 +417,7 @@ export default function Home() {
                     <td>
                       {contract.customer_name ||
                         contract.customer?.name ||
-                        "Not recorded"}
+                        t("Not recorded")}
                     </td>
                     <td className="nowrap mono">
                       {formatDate(contract.contract_date)}
@@ -400,7 +425,9 @@ export default function Home() {
                     <td>
                       <Link
                         className="icon-button"
-                        aria-label={"Open " + contract.supplier.name}
+                        aria-label={t("Open {name}", {
+                          name: contract.supplier.name,
+                        })}
                         to={"/companies/" + contract.supplier.id}
                       >
                         <ArrowTopRightIcon />
@@ -413,7 +440,10 @@ export default function Home() {
           </div>
         ) : null}
         {contracts.data?.results.length ? (
-          <div className="home-contract-mobile" aria-label="Latest contracts">
+          <div
+            className="home-contract-mobile"
+            aria-label={t("Latest contracts")}
+          >
             {contracts.data.results.map((contract) => (
               <article className="mobile-contract" key={contract.id}>
                 <div className="mobile-contract-supplier">
@@ -429,15 +459,15 @@ export default function Home() {
                 </div>
                 <dl>
                   <div>
-                    <dt>Customer</dt>
+                    <dt>{t("Customer")}</dt>
                     <dd>
                       {contract.customer_name ||
                         contract.customer?.name ||
-                        "Not recorded"}
+                        t("Not recorded")}
                     </dd>
                   </div>
                   <div>
-                    <dt>Contract date</dt>
+                    <dt>{t("Contract date")}</dt>
                     <dd>{formatDate(contract.contract_date)}</dd>
                   </div>
                 </dl>
@@ -445,7 +475,7 @@ export default function Home() {
                   className="mobile-contract-open"
                   to={"/companies/" + contract.supplier.id}
                 >
-                  Open supplier <ArrowTopRightIcon aria-hidden="true" />
+                  {t("Open supplier")} <ArrowTopRightIcon aria-hidden="true" />
                 </Link>
               </article>
             ))}
